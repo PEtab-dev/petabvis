@@ -10,7 +10,7 @@ import petab.C as ptc
 import pyqtgraph as pg
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt, Slot,
-                            QItemSelectionModel)
+                            QItemSelectionModel, QSortFilterProxyModel)
 from PySide2.QtGui import QColor, QPainter
 from PySide2.QtWidgets import (QAction, QApplication, QVBoxLayout, QHeaderView,
                                QMainWindow, QSizePolicy, QTableView, QWidget)
@@ -113,7 +113,10 @@ class Widget(QWidget):
 
         # Creating a QTableView
         self.table_view = QTableView()
-        self.table_view.setModel(self.model)
+        self.filter_proxy = QSortFilterProxyModel()
+        self.filter_proxy.setSourceModel(self.model)
+        self.table_view.setModel(self.filter_proxy)
+        self.table_view.setSortingEnabled(True)
 
         # QTableView Headers
         self.horizontal_header = self.table_view.horizontalHeader()
