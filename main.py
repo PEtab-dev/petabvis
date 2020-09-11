@@ -8,10 +8,9 @@ import pandas as pd
 import petab
 import petab.C as ptc
 import pyqtgraph as pg
-from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt, Slot,
                             QItemSelectionModel, QSortFilterProxyModel)
-from PySide2.QtGui import QColor, QPainter
+from PySide2.QtGui import QColor
 from PySide2.QtWidgets import (QAction, QApplication, QVBoxLayout, QHeaderView,
                                QMainWindow, QSizePolicy, QTableView, QWidget)
 
@@ -63,7 +62,7 @@ class MainWindow(QMainWindow):
 
 
 class CustomTableModel(QAbstractTableModel):
-    """PEtab data table"""
+    """PEtab data table model"""
 
     def __init__(self, data=None):
         QAbstractTableModel.__init__(self)
@@ -130,16 +129,6 @@ class Widget(QWidget):
             QHeaderView.ResizeToContents)
         self.vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
         self.horizontal_header.setStretchLastSection(True)
-
-        # Creating QChart
-        self.chart = QtCharts.QChart()
-        self.chart.setAnimationOptions(QtCharts.QChart.AllAnimations)
-        self.series = []
-        self.add_series("Measurement")
-
-        # Creating QChartView
-        self.chart_view = QtCharts.QChartView(self.chart)
-        self.chart_view.setRenderHint(QPainter.Antialiasing)
 
         # Create PyQtGraph stuff
         self.glw = pg.GraphicsLayoutWidget(show=True, title="Test")
@@ -210,46 +199,9 @@ class Widget(QWidget):
         self.table_view.setSizePolicy(size)
         self.main_layout.addWidget(self.table_view)
 
-        # size.setHorizontalStretch(4)
-        # self.chart_view.setSizePolicy(size)
-        # self.main_layout.addWidget(self.chart_view)
-
         self.main_layout.addWidget(self.glw)
 
         self.setLayout(self.main_layout)
-
-    def add_series(self, name):
-        # Create QLineSeries
-        series = QtCharts.QLineSeries()
-        series.setName(name)
-
-        for i in range(self.model.rowCount()):
-            # Getting the data
-            x = i
-            y = float(self.model.index(i, 3).data())
-            series.append(x, y)
-
-        self.chart.addSeries(series)
-
-        # Setting X-axis
-        self.axis_x = QtCharts.QValueAxis()
-        self.axis_x.setTickCount(10)
-        self.axis_x.setLabelFormat("%d")
-        self.axis_x.setTitleText("Index")
-        self.chart.addAxis(self.axis_x, Qt.AlignBottom)
-        series.attachAxis(self.axis_x)
-
-        # Setting Y-axis
-        self.axis_y = QtCharts.QValueAxis()
-        self.axis_y.setTickCount(10)
-        self.axis_y.setLabelFormat("%.2f")
-        self.axis_y.setTitleText("Value")
-        self.chart.addAxis(self.axis_y, Qt.AlignLeft)
-        series.attachAxis(self.axis_y)
-
-        # Getting the color from the QChart to use it on the QTableView
-        self.model.color = "{}".format(series.pen().color().name())
-        self.series.append(series)
 
 
 if __name__ == "__main__":
