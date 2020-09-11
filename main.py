@@ -15,6 +15,11 @@ from PySide2.QtGui import QColor, QPainter
 from PySide2.QtWidgets import (QAction, QApplication, QVBoxLayout, QHeaderView,
                                QMainWindow, QSizePolicy, QTableView, QWidget)
 
+# Enable Ctrl+C
+# FIXME remove in production
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 
 def read_data(mes, sim):
     """Read PEtab tables"""
