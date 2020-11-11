@@ -199,7 +199,7 @@ class Widget(QWidget):
         self.table_view.setSizePolicy(size)
         self.main_layout.addWidget(self.table_view)
 
-        self.main_layout.addWidget(self.glw)
+#        self.main_layout.addWidget(self.glw)
 
         self.setLayout(self.main_layout)
 
