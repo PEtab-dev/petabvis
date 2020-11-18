@@ -14,22 +14,14 @@ class Example(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        #self.textEdit = QTextEdit()
-        #self.setCentralWidget(self.textEdit)
-        #self.statusBar()
-
-        openFile = QAction(QIcon('open.png'), 'Open', self)
-        #openFile.setShortcut('Ctrl+O')
-        #openFile.setStatusTip('Open new File')
+        openFile = QAction(QIcon('open.png'), 'Select Visualization File', self)
         openFile.triggered.connect(self.showDialog)
 
         menubar = self.menuBar()
-        menubar.addAction(openFile)
-        fileMenu = menubar.addMenu('&File')
+        #menubar.addAction(openFile)
+        fileMenu = menubar.addMenu('&Select File')
         fileMenu.addAction(openFile)
 
-        #self.setGeometry(300, 300, 550, 450)
-        #self.setWindowTitle('File dialog')
         self.show()
 
     def showDialog(self):
