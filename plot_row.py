@@ -3,7 +3,7 @@ import pandas as pd
 import pyqtgraph as pg
 
 
-class PlotLine:
+class PlotRow:
     def __init__(self, exp_data: pd.DataFrame, plot_spec: pd.Series):
         self.plot_spec = plot_spec
         self.datasetId = MyUtils.get_datasetId(plot_spec)

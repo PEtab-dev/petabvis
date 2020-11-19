@@ -1,5 +1,5 @@
 import MyUtils
-import plot_line
+import plot_row
 import pandas as pd
 import pyqtgraph as pg
 
@@ -18,7 +18,7 @@ class VisuSpecPlot:
     def generatePlotLines(self):
         i = 0  # find way to include i in the for loop
         for _, plot_spec in self.visualization_df.iterrows():
-            plotLine = plot_line.PlotLine(self.measurement_df, plot_spec)
+            plotLine = plot_row.PlotRow(self.measurement_df, plot_spec)
             self.plotLines.append(plotLine)
 
 
