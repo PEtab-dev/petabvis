@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List
 
 import MyUtils
+import visuSpec_plot
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
@@ -85,7 +86,13 @@ class MainWindow(QtWidgets.QMainWindow):
         add_file_selector(self)
 
         wid = pg.GraphicsLayoutWidget(show=True, title="Basic plotting examples")
-        plots = add_plots(wid, exp_data, visualization_df)  # add plots to wid and returns them afterwards
+        #plots = add_plots(wid, exp_data, visualization_df)  # add plots to wid and returns them afterwards
+
+        visuSpecPlots = []
+        for plot_id in np.unique(visualization_df["plotId"]):
+            visuPlot = visuSpec_plot.VisuSpecPlot(exp_data, visualization_df, plot_id)
+            visuSpecPlots.append(visuPlot)
+            wid.addItem(visuPlot.getPlot())
 
         cbox = QComboBox()  # dropdown menu to select plots
         MyUtils.add_plotnames_to_cbox(visualization_df, cbox)
@@ -120,6 +127,10 @@ def main():
     folder = "C:/Users/Florian/Documents/Nebenjob/Helmholtz/PEtab/doc/example/example_Fujita/"
     visualization_file_path = folder + "/visuSpecs/test_visuSpec.tsv"
     visualization_df = core.concat_tables(visualization_file_path, core.get_visualization_df)
+
+    #pp = problem.Problem.from_yaml(folder + "/Fujita_test.yaml")
+    #exp_data = pp.measurement_df
+    #visualization_df = pp.visualization_df
 
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow(exp_data, visualization_df)

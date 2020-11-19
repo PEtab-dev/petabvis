@@ -26,6 +26,30 @@ def get_legend_name(plot_spec: pd.Series):
     return legend_name
 
 
+def get_x_var(plot_spec: pd.Series):
+    x_var = "time"  #default value
+    if "xValues" in plot_spec.index:
+        x_var = plot_spec["xValues"]
+
+    return x_var
+
+
+def get_y_var(plot_spec: pd.Series):
+    y_var = "measurement"  #default value
+    if "yValues" in plot_spec.index:
+        y_var = plot_spec["yValues"]
+
+    return y_var
+
+
+def get_datasetId(plot_spec: pd.Series):
+    datasetId = ""
+    if "datasetId" in plot_spec.index:
+        datasetId = plot_spec["datasetId"]
+
+    return datasetId
+
+
 def get_plot_title(visualization_df_rows: pd.DataFrame):
     plot_title = ""
     if "plotName" in visualization_df_rows.columns:
