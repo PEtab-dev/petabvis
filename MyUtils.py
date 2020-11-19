@@ -18,8 +18,8 @@ def read_data(mes, sim):
 
 def get_legend_name(plot_spec: pd.Series):
     legend_name = ""
-    if "datasetId" in plot_spec.index:
-        legend_name = plot_spec["datasetId"]
+    if ptc.DATASET_ID in plot_spec.index:
+        legend_name = plot_spec[ptc.DATASET_ID]
     if "legendEntry" in plot_spec.index:
         legend_name = plot_spec["legendEntry"]
 
