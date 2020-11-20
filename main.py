@@ -7,12 +7,14 @@ import numpy as np
 import pandas as pd
 import petab
 import petab.C as ptc
-import pyqtgraph as pg
 from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt, Slot,
                             QItemSelectionModel, QSortFilterProxyModel)
 from PySide2.QtGui import QColor
 from PySide2.QtWidgets import (QAction, QApplication, QVBoxLayout, QHeaderView,
                                QMainWindow, QSizePolicy, QTableView, QWidget)
+
+# Import after PySide2 to ensure usage of correct Qt library
+import pyqtgraph as pg
 
 # Enable Ctrl+C
 # FIXME remove in production
@@ -199,7 +201,7 @@ class Widget(QWidget):
         self.table_view.setSizePolicy(size)
         self.main_layout.addWidget(self.table_view)
 
-#        self.main_layout.addWidget(self.glw)
+        self.main_layout.addWidget(self.glw)
 
         self.setLayout(self.main_layout)
 
