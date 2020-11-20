@@ -3,7 +3,7 @@ import petab.C as ptc
 import numpy as np
 import pandas as pd
 import warnings
-from PySide2.QtWidgets import *
+from PySide2.QtWidgets import QComboBox
 
 
 def read_data(mes, sim):
@@ -20,58 +20,58 @@ def get_legend_name(plot_spec: pd.Series):
     legend_name = ""
     if ptc.DATASET_ID in plot_spec.index:
         legend_name = plot_spec[ptc.DATASET_ID]
-    if "legendEntry" in plot_spec.index:
-        legend_name = plot_spec["legendEntry"]
+    if ptc.LEGEND_ENTRY in plot_spec.index:
+        legend_name = plot_spec[ptc.LEGEND_ENTRY]
 
     return legend_name
 
 
 def get_x_var(plot_spec: pd.Series):
-    x_var = "time"  #default value
-    if "xValues" in plot_spec.index:
-        x_var = plot_spec["xValues"]
+    x_var = "time"  # default value
+    if ptc.X_VALUES in plot_spec.index:
+        x_var = plot_spec[ptc.X_VALUES]
 
     return x_var
 
 
 def get_y_var(plot_spec: pd.Series):
-    y_var = "measurement"  #default value
-    if "yValues" in plot_spec.index:
-        y_var = plot_spec["yValues"]
+    y_var = "measurement"  # default value
+    if ptc.Y_VALUES in plot_spec.index:
+        y_var = plot_spec[ptc.Y_VALUES]
 
     return y_var
 
 
 def get_datasetId(plot_spec: pd.Series):
     datasetId = ""
-    if "datasetId" in plot_spec.index:
-        datasetId = plot_spec["datasetId"]
+    if ptc.DATASET_ID in plot_spec.index:
+        datasetId = plot_spec[ptc.DATASET_ID]
 
     return datasetId
 
 
 def get_plot_title(visualization_df_rows: pd.DataFrame):
     plot_title = ""
-    if "plotName" in visualization_df_rows.columns:
-        plot_title = visualization_df_rows.iloc[0]["plotName"]
+    if ptc.PLOT_NAME in visualization_df_rows.columns:
+        plot_title = visualization_df_rows.iloc[0][ptc.PLOT_NAME]
 
     return plot_title
 
 
 def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
-    plot_ids = np.unique(visualization_df["plotId"])
-    if "plotName" in visualization_df.columns:
+    plot_ids = np.unique(visualization_df[ptc.PLOT_ID])
+    if ptc.PLOT_NAME in visualization_df.columns:
 
         # to keep the order of plotnames consistent with the plots that are shown
-        indexes = np.unique(visualization_df["plotName"], return_index=True)[1]
-        plot_names = [visualization_df["plotName"][index] for index in sorted(indexes)]
+        indexes = np.unique(visualization_df[ptc.PLOT_NAME], return_index=True)[1]
+        plot_names = [visualization_df[ptc.PLOT_NAME][index] for index in sorted(indexes)]
         if len(plot_ids) != len(plot_names):
             warnings.warn("The number of plot ids should be the same as the number of plot names")
 
         for name in plot_names:
             cbox.addItem(name)
     else:
-        for id in np.unique(visualization_df["plotId"]):
+        for id in np.unique(visualization_df[ptc.PLOT_ID]):
             cbox.addItem(id)
 
 # # one data_id per plot
