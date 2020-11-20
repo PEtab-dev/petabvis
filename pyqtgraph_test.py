@@ -3,16 +3,18 @@ import sys  # We need sys so that we can pass argv to QApplication
 from pathlib import Path
 from typing import List
 
-import utils
-import visuSpec_plot
 import numpy as np
 import pandas as pd
-import pyqtgraph as pg
+import petab.C as ptc
 from PySide2 import QtWidgets
 from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import QAction, QFileDialog,\
+from PySide2.QtWidgets import QAction, QFileDialog, \
     QVBoxLayout, QComboBox, QWidget
 from petab import measurements, core
+import pyqtgraph as pg
+
+import utils
+import visuSpec_plot
 
 
 def add_file_selector(window: QtWidgets.QMainWindow):
@@ -22,7 +24,7 @@ def add_file_selector(window: QtWidgets.QMainWindow):
         window: Mainwindow
     """
     openFile = QAction(QIcon('open.png'), 'Select yaml File', window)
-    openFile.triggered.connect(lambda x: showDialog(x, window))
+    openFile.triggered.connect(lambda x: show_dialog(x, window))
 
     menubar = window.menuBar()
     # menubar.addAction(openFile)
@@ -30,7 +32,7 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     fileMenu.addAction(openFile)
 
 
-def showDialog(self, window: QtWidgets.QMainWindow):
+def show_dialog(self, window: QtWidgets.QMainWindow):
     """
     Displays a file selector window when clicking on the select file button
 
@@ -50,7 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
                  visualization_df: pd.DataFrame, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
-        self.setWindowTitle("My Test")
+        self.setWindowTitle("PEtab-vis")
         self.graphWidget = pg.PlotWidget()
         self.setCentralWidget(self.graphWidget)
         layout = QVBoxLayout()
@@ -61,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # plots = add_plots(wid, exp_data, visualization_df)
 
         visuSpecPlots = []
-        for plot_id in np.unique(visualization_df["plotId"]):
+        for plot_id in np.unique(visualization_df[ptc.PLOT_ID]):
             visuPlot = visuSpec_plot.VisuSpecPlot(exp_data, visualization_df, plot_id)
             visuSpecPlots.append(visuPlot)
             wid.addItem(visuPlot.getPlot())

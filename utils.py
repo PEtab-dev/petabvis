@@ -42,7 +42,7 @@ def get_y_var(plot_spec: pd.Series):
     return y_var
 
 
-def get_datasetId(plot_spec: pd.Series):
+def get_dataset_id(plot_spec: pd.Series):
     datasetId = ""
     if ptc.DATASET_ID in plot_spec.index:
         datasetId = plot_spec[ptc.DATASET_ID]
