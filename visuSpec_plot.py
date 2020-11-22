@@ -92,12 +92,6 @@ class VisuSpecPlot:
                            line_data[plot_row.y_var].tolist(),
                            name=datasetId)
 
-        # choose dissimilar colors for each line
-        #num_lines = len(self.plot.listDataItems())
-        #for i, line in enumerate(self.plot.listDataItems()):
-        #    color = pg.intColor(i, hues=num_lines + 1)
-        #    line.setPen(color)
-
     def color_plot_lines(self):
         # choose dissimilar colors for each line
         num_lines = len(self.plot.listDataItems())
