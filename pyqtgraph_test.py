@@ -1,10 +1,10 @@
 import argparse
 import sys  # We need sys so that we can pass argv to QApplication
 from pathlib import Path
-from typing import List
 
 import numpy as np
 import pandas as pd
+import petab
 import petab.C as ptc
 from PySide2 import QtWidgets
 from PySide2.QtGui import QIcon
@@ -27,7 +27,6 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     openFile.triggered.connect(lambda x: show_dialog(x, window))
 
     menubar = window.menuBar()
-    # menubar.addAction(openFile)
     fileMenu = menubar.addMenu('&Select File')
     fileMenu.addAction(openFile)
 
@@ -40,81 +39,103 @@ def show_dialog(self, window: QtWidgets.QMainWindow):
         window: Mainwindow
     """
     home_dir = str(Path.home())
-    fname = QFileDialog.getOpenFileName(window, 'Open file', home_dir)
-    print(fname[0])
+    file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
+    if file_name != "":  # if a file was selected
+        window.visu_spec_plots.clear()
+        pp = petab.Problem.from_yaml(file_name)
+        window.exp_data = pp.measurement_df
+        window.visualization_df = pp.visualization_df
+        window.add_plots()
 
 
 class MainWindow(QtWidgets.QMainWindow):
     """
     The main window
+
+    Attributes:
+        exp_data: PEtab measurement table
+        visualization_df: PEtab visualization table
+        visu_spec_plots: A list of VisuSpecPlots
+        cbox: A dropdown menu
+        wid: GraphcisLayoutWidget showing the plots
     """
     def __init__(self, exp_data: pd.DataFrame,
                  visualization_df: pd.DataFrame, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setWindowTitle("PEtab-vis")
-        self.graphWidget = pg.PlotWidget()
-        self.setCentralWidget(self.graphWidget)
+        self.visualization_df = visualization_df
+        self.exp_data = exp_data
+        self.visu_spec_plots = []
+        self.wid = pg.GraphicsLayoutWidget(show=True) # widget to add the plots to
+        self.cbox = QComboBox()  # dropdown menu to select plots
+        self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
+
         layout = QVBoxLayout()
         add_file_selector(self)
 
-        wid = pg.GraphicsLayoutWidget(show=True)
-        # add plots to wid and returns them afterwards
-        # plots = add_plots(wid, exp_data, visualization_df)
+        if self.exp_data is not None and self.visualization_df is not None:
+            self.add_plots()
 
-        visuSpecPlots = []
-        for plot_id in np.unique(visualization_df[ptc.PLOT_ID]):
-            visuPlot = visuSpec_plot.VisuSpecPlot(exp_data, visualization_df, plot_id)
-            visuSpecPlots.append(visuPlot)
-            wid.addItem(visuPlot.getPlot())
-        plots = [visuPlot.getPlot() for visuPlot in visuSpecPlots]
-
-        cbox = QComboBox()  # dropdown menu to select plots
-        utils.add_plotnames_to_cbox(visualization_df, cbox)
-        cbox.currentIndexChanged.connect(lambda x: self.index_changed(x, wid, plots))
-
-        layout.addWidget(wid)
-        layout.addWidget(cbox)
+        layout.addWidget(self.wid)
+        layout.addWidget(self.cbox)
 
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-    def index_changed(self, i: int,
-                      wid: pg.GraphicsLayoutWidget,
-                      plots: List[pg.PlotItem]):  # i is an int
+    def add_plots(self):
+        """
+        Adds the current visuSpecPlots to the main window,
+        removes the old ones and updates the
+        cbox (dropdown list)
+
+        Returns:
+            List of PlotItem
+        """
+        self.wid.clear()
+
+        # to keep the order of plots consistent with names from the plot selection
+        indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
+        plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
+        for plot_id in plot_ids:
+            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, plot_id)
+            self.visu_spec_plots.append(visuPlot)
+            self.wid.addItem(visuPlot.getPlot())
+        plots = [visuPlot.getPlot() for visuPlot in self.visu_spec_plots]
+
+        # update the cbox
+        self.cbox.clear()
+        utils.add_plotnames_to_cbox(self.visualization_df, self.cbox)
+
+        return plots
+
+    def index_changed(self, i: int):
         """
         Changes the displayed plot to the one selected in the dropdown list
 
         Arguments:
             i: index of the selected plot
-            wid: PEtab visualization table
-            plotId: Id of the plot (has to in the visualization_df aswell)
         """
-        wid.clear()
-        wid.addItem(plots[i])
+        self.wid.clear()
+        if i >= 0:  # i is -1 when the cbox is cleared
+            self.wid.addItem(self.visu_spec_plots[i].getPlot())
 
 
 def main():
     options = argparse.ArgumentParser()
-    options.add_argument("-m", "--measurement", type=str, required=True,
+    options.add_argument("-m", "--measurement", type=str, required=False,
                          help="PEtab measurement file", )
-    # options.add_argument("-s", "--simulation", type=str, required=True,
-    #                      help="PEtab simulation file", )
-    options.add_argument("-v", "--visualization", type=str, required=True,
+    options.add_argument("-v", "--visualization", type=str, required=False,
                          help="PEtab visualization file", )
     args = options.parse_args()
 
-    exp_data = measurements.get_measurement_df(args.measurement)
-    visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
-
-    # folder = "C:/Users/Florian/Documents/Nebenjob/Helmholtz/PEtab/doc/example/example_Fujita/"
-    # visualization_file_path = folder + "/visuSpecs/test_visuSpec.tsv"
-    # visualization_df = core.concat_tables(visualization_file_path, core.get_visualization_df)
-
-    # pp = problem.Problem.from_yaml(folder + "/Fujita_test.yaml")
-    # exp_data = pp.measurement_df
-    # visualization_df = pp.visualization_df
+    if args.measurement is not None and args.visualization is not None:
+        exp_data = measurements.get_measurement_df(args.measurement)
+        visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
+    else:
+        exp_data = None
+        visualization_df = None
 
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow(exp_data, visualization_df)
