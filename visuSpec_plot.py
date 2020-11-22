@@ -54,14 +54,13 @@ class VisuSpecPlot:
 
         for i, line in enumerate(self.plotLines):
             self.add_line_to_plot(line)
-        self.color_plot_lines()
+        self.color_plot()
 
         return self.plot
 
     def add_line_to_plot(self, plot_row: plot_row.PlotRow):
         """
         Adds the content of this row to the given plot
-        All colors are resampled such that they are dissimilar
 
         Arguments:
             plot_row: The PlotRow object that contains the information
@@ -92,7 +91,10 @@ class VisuSpecPlot:
                            line_data[plot_row.y_var].tolist(),
                            name=datasetId)
 
-    def color_plot_lines(self):
+    def color_plot(self):
+        """
+        Colors the plot such that each DataItem looks dissimilar
+        """
         # choose dissimilar colors for each line
         num_lines = len(self.plot.listDataItems())
         for i, line in enumerate(self.plot.listDataItems()):
