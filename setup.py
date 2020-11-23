@@ -18,7 +18,7 @@ setup(
         'Development Status :: 3 - Alpha',
     ],
     keywords='petab, visualization',
-    packages=find_packages(where='petabvis'),
+    packages=find_packages(),
     python_requires='>=3.7, <4',
     install_requires=[
         'pandas>=1.1.2',
