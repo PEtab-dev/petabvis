@@ -1,19 +1,24 @@
 # PEtab vis
 
-This will be the future home of an interactive visualization tool for
+An interactive visualization tool for
 [PEtab](https://github.com/PEtab-dev/PEtab) measurement and simulation files.
+
+## Installation
+
+### From GitHub repository
+
+```
+pip3 install git+https://github.com/ICB-DCM/petab-interactive-viz.git@main
+```
+
+### From local source directory
+
+From within the root source directory, run:
+
+```
+pip3 install .
+```
 
 ## Usage
 
-See `python3 main.py -h`:
-
-```
-usage: python3 main.py [-h] -m MEASUREMENT -s SIMULATION
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -m MEASUREMENT, --measurement MEASUREMENT
-                        PEtab measurement file
-  -s SIMULATION, --simulation SIMULATION
-                        PEtab simulation file
-```
+Run `petabvis` or see `petabvis -h` for command line usage.
