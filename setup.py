@@ -16,6 +16,7 @@ setup(
     url='https://github.com/ICB-DCM/petab-interactive-viz',
     classifiers=[
         'Development Status :: 3 - Alpha',
+        'License :: OSI Approved :: BSD License',
     ],
     keywords='petab, visualization',
     packages=find_packages(),
