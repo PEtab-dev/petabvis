@@ -205,8 +205,7 @@ class Widget(QWidget):
 
         self.setLayout(self.main_layout)
 
-
-if __name__ == "__main__":
+def main():
     options = argparse.ArgumentParser()
     options.add_argument("-m", "--measurement", type=str, required=True,
                          help="PEtab measurement file", )
@@ -222,3 +221,7 @@ if __name__ == "__main__":
     window.show()
 
     sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
