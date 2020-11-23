@@ -21,7 +21,7 @@ setup(
     packages=find_packages(where='petabvis'),
     python_requires='>=3.7, <4',
     install_requires=[
-        'pandas==1.1.2',
+        'pandas>=1.1.2',
         'petab>=0.1.8',
         'PySide2>=5.15.1',
         'PyYAML>=5.3.1',
