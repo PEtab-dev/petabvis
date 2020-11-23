@@ -1,9 +1,10 @@
-import utils
-import plot_row
-import pandas as pd
 import numpy as np
-import pyqtgraph as pg
+import pandas as pd
 import petab.C as ptc
+import pyqtgraph as pg
+
+from . import plot_row
+from . import utils
 
 
 class VisuSpecPlot:

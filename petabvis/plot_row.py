@@ -1,6 +1,7 @@
-import utils
 import pandas as pd
 import petab.C as ptc
+
+from . import utils
 
 
 class PlotRow:
