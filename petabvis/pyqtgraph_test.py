@@ -13,8 +13,8 @@ from PySide2.QtWidgets import QAction, QFileDialog, \
 from petab import measurements, core
 import pyqtgraph as pg
 
-from . import utils
-from . import visuSpec_plot
+import utils
+import visuSpec_plot
 
 
 def add_file_selector(window: QtWidgets.QMainWindow):
@@ -95,13 +95,19 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.wid.clear()
 
-        # to keep the order of plots consistent with names from the plot selection
-        indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
-        plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
-        for plot_id in plot_ids:
-            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, plot_id)
+        if self.visualization_df is not None:
+            # to keep the order of plots consistent with names from the plot selection
+            indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
+            plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
+            for plot_id in plot_ids:
+                visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, plot_id)
+                self.visu_spec_plots.append(visuPlot)
+                self.wid.addItem(visuPlot.getPlot())
+        else:
+            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df)
             self.visu_spec_plots.append(visuPlot)
             self.wid.addItem(visuPlot.getPlot())
+
         plots = [visuPlot.getPlot() for visuPlot in self.visu_spec_plots]
 
         # update the cbox
