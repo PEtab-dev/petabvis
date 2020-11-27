@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import petab.C as ptc
 
-import utils
+from . import utils
 
 
 class PlotRow:
@@ -37,12 +37,22 @@ class PlotRow:
 
 
     def get_x_data(self):
+        """
+        Returns the x-values that should be plotted
+        Returns:
+            The x-values
+        """
         x_data = np.asarray(self.line_data[self.x_var])
         x_data = x_data + self.x_offset
 
         return x_data
 
     def get_y_data(self):
+        """
+        Returns the y-values that should be plotted
+        Returns:
+            The y-values
+        """
         y_data = np.asarray(self.line_data["measurement"])
         y_data = y_data + self.y_offset
 

@@ -4,8 +4,8 @@ import petab.C as ptc
 from PySide2 import QtCore
 import pyqtgraph as pg
 
-import plot_row
-import utils
+from . import plot_row
+from . import utils
 
 
 class VisuSpecPlot:

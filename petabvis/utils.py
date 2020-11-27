@@ -7,6 +7,13 @@ from PySide2.QtWidgets import QComboBox
 
 
 def get_legend_name(plot_spec: pd.Series):
+    """
+    Returns the plot title of the plot specification
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The name of the legend entry
+    """
     legend_name = ""
     if ptc.DATASET_ID in plot_spec.index:
         legend_name = plot_spec[ptc.DATASET_ID]
@@ -17,6 +24,13 @@ def get_legend_name(plot_spec: pd.Series):
 
 
 def get_x_var(plot_spec: pd.Series):
+    """
+    Returns the name of the x variable of the plot specification
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The name of the x variable
+    """
     x_var = "time"  # default value
     if ptc.X_VALUES in plot_spec.index:
         x_var = plot_spec[ptc.X_VALUES]
@@ -25,6 +39,13 @@ def get_x_var(plot_spec: pd.Series):
 
 
 def get_y_var(plot_spec: pd.Series):
+    """
+    Returns the observable which should be plotted on the y-axis
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        observable which should be plotted on the y-axis
+    """
     y_var = ""  # default value
     if ptc.Y_VALUES in plot_spec.index:
         y_var = plot_spec[ptc.Y_VALUES]
@@ -33,6 +54,13 @@ def get_y_var(plot_spec: pd.Series):
 
 
 def get_x_offset(plot_spec: pd.Series):
+    """
+    Returns the x offset
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The x offset
+    """
     x_offset = 0  # default value
     if ptc.X_OFFSET in plot_spec.index:
         x_offset = float(plot_spec[ptc.X_OFFSET])
@@ -41,6 +69,14 @@ def get_x_offset(plot_spec: pd.Series):
 
 
 def get_x_scale(plot_spec: pd.Series):
+    """
+    Returns the scale of the x axis (lin, log or order)
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The x scale
+    """
+
     x_scale = "lin"  # default value
     if ptc.X_SCALE in plot_spec.index:
         x_scale = plot_spec[ptc.X_SCALE]
@@ -49,6 +85,13 @@ def get_x_scale(plot_spec: pd.Series):
 
 
 def get_y_scale(plot_spec: pd.Series):
+    """
+    Returns the scale of the y axis (lin, log or order)
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The x offset
+    """
     y_scale = "lin"  # default value
     if ptc.Y_SCALE in plot_spec.index:
         y_scale = plot_spec[ptc.Y_SCALE]
@@ -57,6 +100,13 @@ def get_y_scale(plot_spec: pd.Series):
 
 
 def get_y_offset(plot_spec: pd.Series):
+    """
+    Returns the y offset
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The y offset
+    """
     y_offset = 0  # default value
     if ptc.Y_OFFSET in plot_spec.index:
         y_offset = float(plot_spec[ptc.Y_OFFSET])
@@ -65,6 +115,13 @@ def get_y_offset(plot_spec: pd.Series):
 
 
 def get_x_label(plot_spec: pd.Series):
+    """
+    Returns the label of the x axis
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The label of the x axis
+    """
     x_label = get_x_var(plot_spec)  # defaults to x_var
     if ptc.X_LABEL in plot_spec.index:
         x_label = plot_spec[ptc.X_LABEL]
@@ -73,6 +130,13 @@ def get_x_label(plot_spec: pd.Series):
 
 
 def get_y_label(plot_spec: pd.Series):
+    """
+    Returns the label of the y axis
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The label of the y axis
+    """
     y_label = get_y_var(plot_spec)  # defaults to y_var
     if ptc.Y_LABEL in plot_spec.index:
         y_label = plot_spec[ptc.Y_LABEL]
@@ -81,6 +145,13 @@ def get_y_label(plot_spec: pd.Series):
 
 
 def get_dataset_id(plot_spec: pd.Series):
+    """
+    Returns the dataset id
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The dataset id
+    """
     dataset_id = ""
     if ptc.DATASET_ID in plot_spec.index:
         dataset_id = plot_spec[ptc.DATASET_ID]
@@ -89,6 +160,13 @@ def get_dataset_id(plot_spec: pd.Series):
 
 
 def get_plot_title(visualization_df_rows: pd.DataFrame):
+    """
+    Returns the title of the plot
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The plot title
+    """
     plot_title = ""
     if visualization_df_rows is not None:
         if ptc.PLOT_NAME in visualization_df_rows.columns:
@@ -98,6 +176,13 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
 
 
 def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
+    """
+    Adds the name of every plot in the visualization df
+    to the cbox
+    Arguments:
+    visualization_df: PEtab visualization table
+    cbox: QComboBox
+    """
     if visualization_df is not None:
         plot_ids = np.unique(visualization_df[ptc.PLOT_ID])
         if ptc.PLOT_NAME in visualization_df.columns:

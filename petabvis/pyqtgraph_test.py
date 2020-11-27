@@ -13,8 +13,8 @@ from PySide2.QtWidgets import QAction, QFileDialog, \
 from petab import measurements, core
 import pyqtgraph as pg
 
-import utils
-import visuSpec_plot
+from . import utils
+from . import visuSpec_plot
 
 
 def add_file_selector(window: QtWidgets.QMainWindow):
