@@ -175,6 +175,35 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
     return plot_title
 
 
+def split_replicates(line_data):
+    """
+    Cuts the df whenever the x variable
+    decreases and thus a new replicate starts
+
+    Arguments:
+       line_data: A subset of a visualization df
+    Returns:
+        replicates:
+            A list of data frames
+            each corresponding to a replicate
+    """
+    replicates = []
+    cut_index = 0
+    old_x = line_data[ptc.TIME].iloc[0]
+    for i in range(1, len(line_data[ptc.TIME])):
+        current_x = line_data[ptc.TIME].iloc[i]
+        if old_x > current_x:
+            replicate = line_data.iloc[cut_index:i, :]
+            replicates.append(replicate)
+            cut_index = i
+
+        old_x = line_data[ptc.TIME].iloc[i]
+    last_replicate = line_data.iloc[cut_index:len(line_data[ptc.TIME])]
+    replicates.append(last_replicate)
+
+    return replicates
+
+
 def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
     """
     Adds the name of every plot in the visualization df

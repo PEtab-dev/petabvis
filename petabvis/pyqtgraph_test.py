@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import petab
 import petab.C as ptc
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtCore
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction, QFileDialog, \
     QVBoxLayout, QComboBox, QWidget
@@ -63,6 +63,9 @@ class MainWindow(QtWidgets.QMainWindow):
                  visualization_df: pd.DataFrame, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
+        # set the background color to white
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
         self.setWindowTitle("PEtab-vis")
         self.visualization_df = visualization_df
         self.exp_data = exp_data
@@ -70,6 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wid = pg.GraphicsLayoutWidget(show=True) # widget to add the plots to
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
+        self.current_list_index = 0
 
         layout = QVBoxLayout()
         add_file_selector(self)
@@ -123,9 +127,26 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             i: index of the selected plot
         """
-        self.wid.clear()
-        if i >= 0:  # i is -1 when the cbox is cleared
+        if i >= 0 and i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
+            self.wid.clear()
             self.wid.addItem(self.visu_spec_plots[i].getPlot())
+            self.current_list_index = i
+
+    def keyPressEvent(self, ev):
+        """
+        Changes the displayed plot by pressing arrow keys
+
+        Arguments:
+            ev: key event
+        """
+        if(ev.key() == QtCore.Qt.Key_Up):
+            self.index_changed(self.current_list_index - 1)
+        if(ev.key() == QtCore.Qt.Key_Down):
+            self.index_changed(self.current_list_index + 1)
+        if(ev.key() == QtCore.Qt.Key_Left):
+            self.index_changed(self.current_list_index - 1)
+        if(ev.key() == QtCore.Qt.Key_Right):
+            self.index_changed(self.current_list_index + 1)
 
 
 def main():

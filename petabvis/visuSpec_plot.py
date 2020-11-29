@@ -12,10 +12,20 @@ class VisuSpecPlot:
     """
     Can generate a plot based on the given specifications
 
+    Arguments:
+        measurement_df: PEtab measurement table
+        visualization_df: PEtab visualization table
+        plotId: Id of the plot (has to in the visualization_df aswell)
+
     Attributes:
         measurement_df: PEtab measurement table
         visualization_df: PEtab visualization table
         plotId: Id of the plot (has to in the visualization_df aswell)
+        plotTitle: The title of the plot
+        plotLines: A list of individual lines of the visualization df
+        scatterPoints: A list of length 2 with the x- and y-values
+            of the points
+        plot: PlotItem containing the lines
     """
     def __init__(self, measurement_df: pd.DataFrame = None,
                  visualization_df: pd.DataFrame = None, plotId: str = ""):
@@ -23,6 +33,7 @@ class VisuSpecPlot:
         self.measurement_df = measurement_df
         self.plotId = plotId
         self.visualization_df = visualization_df
+        self.scatterPoints = [[], []]
 
         # reduce the visualization_df to the relevant rows (by plotId)
         if self.visualization_df is not None:
@@ -67,48 +78,64 @@ class VisuSpecPlot:
             self.default_plot(None)
         self.color_plot()
 
+        # The points are added after coloring so the colors
+        # stay correct
+        self.plot.plot(self.scatterPoints[0], self.scatterPoints[1],
+                       pen=None, symbol='o',
+                       symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+
         return self.plot
 
-    def add_line_to_plot(self, plot_row: plot_row.PlotRow):
+    def add_line_to_plot(self, p_row: plot_row.PlotRow):
         """
         Adds the content of this row to the given plot
 
         Arguments:
-            plot_row: The PlotRow object that contains the information
+            p_row: The PlotRow object that contains the information
              of the line that is added
         """
-        # if the plot_row has no datasetId,
+        # if the p_row has no datasetId,
         # the whole dataset will be plotted
-        if plot_row.dataset_id == "":
-            self.default_plot(plot_row)
+        if p_row.dataset_id == "":
+            self.default_plot(p_row)
         else:
-            self.plot.plot(plot_row.x_data,
-                           plot_row.y_data,
-                           name=plot_row.legend_name)
+            # add points to scatterPoints
+            self.scatterPoints[0] = self.scatterPoints[0] + p_row.x_data.tolist()
+            self.scatterPoints[1] = self.scatterPoints[1] + p_row.y_data.tolist()
 
-    def default_plot(self, plot_row):
+            self.plot.plot(p_row.x_data,
+                           p_row.y_data,
+                           name=p_row.legend_name)
+
+
+    def default_plot(self, p_row: plot_row.PlotRow):
         """
-        This method is used when the plot_row contains no dataset_id
+        This method is used when the p_row contains no dataset_id
         or no visualization file was provided
         Therefore, the whole dataset will be visualized
         in a single plot
 
         Arguments:
-            plot_row: The PlotRow object that contains the information
+            p_row: The PlotRow object that contains the information
              of the line that is added
         """
         for datasetId in np.unique(self.measurement_df[ptc.DATASET_ID]):
             line_data = self.measurement_df[self.measurement_df[ptc.DATASET_ID] == datasetId]
             x_data = np.asarray(line_data["time"])
             y_data = np.asarray(line_data["measurement"])
-            if plot_row is not None:
-                # Note: do not use plot_row.x_data when default plotting
-                x_data = x_data + plot_row.x_offset
-                y_data = y_data + plot_row.y_offset
+            if p_row is not None:
+                # Note: do not use p_row.x_data when default plotting
+                x_data = x_data + p_row.x_offset
+                y_data = y_data + p_row.y_offset
+
+            # add points
+            self.scatterPoints[0] = self.scatterPoints[0] + x_data.tolist()
+            self.scatterPoints[1] = self.scatterPoints[1] + y_data.tolist()
 
             self.plot.plot(x_data,
                            y_data,
                            name=datasetId)
+
 
     def color_plot(self):
         """
@@ -118,4 +145,4 @@ class VisuSpecPlot:
         num_lines = len(self.plot.listDataItems())
         for i, line in enumerate(self.plot.listDataItems()):
             color = pg.intColor(i, hues=num_lines)
-            line.setPen(color, style=QtCore.Qt.DashDotLine)
+            line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
