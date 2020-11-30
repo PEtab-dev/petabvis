@@ -53,8 +53,8 @@ class VisuSpecPlot:
         """
         if self.visualization_df is not None:
             for _, plot_spec in self.visualization_df.iterrows():
-                plotLine = plot_row.PlotRow(self.measurement_df, plot_spec)
-                self.plotLines.append(plotLine)
+                plot_line = plot_row.PlotRow(self.measurement_df, plot_spec)
+                self.plotLines.append(plot_line)
 
     def getPlot(self):
         """
