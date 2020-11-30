@@ -127,7 +127,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             i: index of the selected plot
         """
-        if i >= 0 and i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
+        if 0 <= i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
             self.wid.clear()
             self.wid.addItem(self.visu_spec_plots[i].getPlot())
             self.current_list_index = i
