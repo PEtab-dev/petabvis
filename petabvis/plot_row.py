@@ -33,7 +33,7 @@ class PlotRow:
         else:
             self.line_data = exp_data
         # filter by y-values if specified
-        if self.y_var != "":
+        if self.y_var:
             self.line_data = self.line_data[self.line_data[ptc.OBSERVABLE_ID] == self.y_var]
 
         # the "original" will be at replicates[0]
