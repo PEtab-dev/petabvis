@@ -27,19 +27,21 @@ class PlotRow:
         self.y_offset = utils.get_y_offset(plot_spec)
         self.y_scale = utils.get_y_scale(plot_spec)
         self.legend_name = utils.get_legend_name(plot_spec)
+        self.plot_type_data = utils.get_plot_type_data(plot_spec)
 
-        if self.dataset_id != "":
+        if self.dataset_id:  # != ""
             self.line_data = exp_data[exp_data[ptc.DATASET_ID] == self.dataset_id]
         else:
             self.line_data = exp_data
         # filter by y-values if specified
-        if self.y_var:
+        if self.y_var:  # != ""
             self.line_data = self.line_data[self.line_data[ptc.OBSERVABLE_ID] == self.y_var]
 
         # the "original" will be at replicates[0]
         self.replicates = utils.split_replicates(self.line_data)
         self.x_data = self.get_x_data()
         self.y_data = self.get_y_data()
+        self.sd = utils.sd_repl(self.line_data, self.x_var)
 
 
     def get_x_data(self):
@@ -59,7 +61,10 @@ class PlotRow:
         Returns:
             The y-values
         """
+        # TODO: handle MeanAndSEM, replicate and provided options
         y_data = np.asarray(self.replicates[0]["measurement"])
+        if self.plot_type_data == "MeanAndSD":
+            y_data = utils.mean_repl(self.line_data, self.x_var)
         y_data = y_data + self.y_offset
 
         return y_data

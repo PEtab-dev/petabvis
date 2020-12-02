@@ -70,7 +70,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.visualization_df = visualization_df
         self.exp_data = exp_data
         self.visu_spec_plots = []
-        self.wid = pg.GraphicsLayoutWidget(show=True) # widget to add the plots to
+        self.wid = pg.GraphicsLayoutWidget(show=True)  # widget to add the plots to
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.current_list_index = 0

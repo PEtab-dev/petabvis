@@ -22,7 +22,7 @@ class VisuSpecPlot:
         visualization_df: PEtab visualization table
         plotId: Id of the plot (has to in the visualization_df aswell)
         plotTitle: The title of the plot
-        plotLines: A list of individual lines of the visualization df
+        plot_lines: A list of individual lines of the visualization df
         scatterPoints: A list of length 2 with the x- and y-values
             of the points
         plot: PlotItem containing the lines
@@ -41,7 +41,7 @@ class VisuSpecPlot:
             self.visualization_df = visualization_df[rows]
 
         self.plotTitle = utils.get_plot_title(self.visualization_df)
-        self.plotLines = []
+        self.plot_lines = []
         self.plot = pg.PlotItem(title=self.plotTitle)
 
         self.generatePlotLines()
@@ -54,7 +54,7 @@ class VisuSpecPlot:
         if self.visualization_df is not None:
             for _, plot_spec in self.visualization_df.iterrows():
                 plot_line = plot_row.PlotRow(self.measurement_df, plot_spec)
-                self.plotLines.append(plot_line)
+                self.plot_lines.append(plot_line)
 
     def getPlot(self):
         """
@@ -66,16 +66,19 @@ class VisuSpecPlot:
         self.plot = pg.PlotItem(title=self.plotTitle)
         self.plot.addLegend()
 
-        if len(self.plotLines) > 0:
+        if len(self.plot_lines) > 0:
             # get the axis labels info from the first line of the plot
-            self.plot.setLabel("left", self.plotLines[0].y_label)
-            self.plot.setLabel("bottom", self.plotLines[0].x_label)
-            for i, line in enumerate(self.plotLines):
+            self.plot.setLabel("left", self.plot_lines[0].y_label)
+            self.plot.setLabel("bottom", self.plot_lines[0].x_label)
+
+            for i, line in enumerate(self.plot_lines):
                 self.add_line_to_plot(line)
+
         else:  # when no visualization file was probided
             self.plot.setLabel("left", "measurement")
             self.plot.setLabel("bottom", "time")
             self.default_plot(None)
+
         self.color_plot()
 
         # The points are added after coloring so the colors
@@ -83,6 +86,12 @@ class VisuSpecPlot:
         self.plot.plot(self.scatterPoints[0], self.scatterPoints[1],
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+
+        # set log scales if neccessary
+        if "log" in self.plot_lines[0].x_scale:
+            self.plot.setLogMode(x=True)
+        if "log" in self.plot_lines[0].y_scale:
+            self.plot.setLogMode(y=True)
 
         return self.plot
 
@@ -106,6 +115,9 @@ class VisuSpecPlot:
             self.plot.plot(p_row.x_data,
                            p_row.y_data,
                            name=p_row.legend_name)
+
+            error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data, top=p_row.sd, bottom=p_row.sd, beam=0.5)
+            self.plot.addItem(error)
 
 
     def default_plot(self, p_row: plot_row.PlotRow):

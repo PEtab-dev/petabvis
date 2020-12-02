@@ -1,4 +1,3 @@
-import petab
 import petab.C as ptc
 import numpy as np
 import pandas as pd
@@ -159,6 +158,23 @@ def get_dataset_id(plot_spec: pd.Series):
     return dataset_id
 
 
+def get_plot_type_data(plot_spec: pd.Series):
+    """
+    Returns the dataset id
+    Arguments:
+       plot_spec: A single row of a visualization df
+    Returns:
+        The dataset id
+    """
+    plot_type_data = "MeanAndSD"
+    if ptc.PLOT_TYPE_DATA in plot_spec.index:
+        plot_type_data = plot_spec[ptc.PLOT_TYPE_DATA]
+
+    return plot_type_data
+
+
+
+
 def get_plot_title(visualization_df_rows: pd.DataFrame):
     """
     Returns the title of the plot
@@ -175,13 +191,49 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
     return plot_title
 
 
-def split_replicates(line_data):
+def mean_repl(line_data: pd.DataFrame, x_var: str):
+    """
+    Calculates the mean of the measurement grouped
+    by their x-value
+    Arguments:
+       plot_spec: A single row of a visualization df
+       x_var: Name of the x-variable
+    Returns:
+        The mean grouped by x_var
+    """
+    line_data = line_data[[ptc.MEASUREMENT, x_var]]
+    means = line_data.groupby(x_var).mean()
+    means = means[ptc.MEASUREMENT].to_numpy()
+    return means
+
+
+def sd_repl(line_data: pd.DataFrame, x_var: str):
+    """
+    Calculates the standard deviation of
+    the measurement grouped by their x-value
+    Arguments:
+       plot_spec: A single row of a visualization df
+       x_var: Name of the x-variable
+    Returns:
+        The std grouped by x_var
+    """
+    line_data = line_data[[ptc.MEASUREMENT, x_var]]
+    # std with ddof = 0 (degrees of freedom)
+    # to match np.std that is used in petab
+    sds = line_data.groupby(x_var).std(ddof=0)
+    sds = sds[ptc.MEASUREMENT].to_numpy()
+    return sds
+
+
+
+
+def split_replicates(line_data: pd.DataFrame):
     """
     Cuts the df whenever the x variable
     decreases and thus a new replicate starts
 
     Arguments:
-       line_data: A subset of a visualization df
+       line_data: A subset of a measurement df
     Returns:
         replicates:
             A list of data frames
