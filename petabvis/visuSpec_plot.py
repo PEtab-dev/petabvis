@@ -25,6 +25,8 @@ class VisuSpecPlot:
         plot_lines: A list of individual lines of the visualization df
         scatterPoints: A list of length 2 with the x- and y-values
             of the points
+        warnings: String of warning messages if the input is incorrect
+            or not supported
         plot: PlotItem containing the lines
     """
     def __init__(self, measurement_df: pd.DataFrame = None,
@@ -34,6 +36,7 @@ class VisuSpecPlot:
         self.plotId = plotId
         self.visualization_df = visualization_df
         self.scatterPoints = [[], []]
+        self.warnings = ""
 
         # reduce the visualization_df to the relevant rows (by plotId)
         if self.visualization_df is not None:
@@ -45,6 +48,7 @@ class VisuSpecPlot:
         self.plot = pg.PlotItem(title=self.plotTitle)
 
         self.generatePlotLines()
+        self.generatePlot()
 
     def generatePlotLines(self):
         """
@@ -57,6 +61,9 @@ class VisuSpecPlot:
                 self.plot_lines.append(plot_line)
 
     def getPlot(self):
+        return self.plot
+
+    def generatePlot(self):
         """
         Generate a pyqtgraph PlotItem based on the plotRows
 
@@ -74,7 +81,7 @@ class VisuSpecPlot:
             for i, line in enumerate(self.plot_lines):
                 self.add_line_to_plot(line)
 
-        else:  # when no visualization file was probided
+        else:  # when no visualization file was provided
             self.plot.setLabel("left", "measurement")
             self.plot.setLabel("bottom", "time")
             self.default_plot(None)
@@ -87,11 +94,7 @@ class VisuSpecPlot:
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
 
-        # set log scales if neccessary
-        if "log" in self.plot_lines[0].x_scale:
-            self.plot.setLogMode(x=True)
-        if "log" in self.plot_lines[0].y_scale:
-            self.plot.setLogMode(y=True)
+        self.set_scales()
 
         return self.plot
 
@@ -158,3 +161,16 @@ class VisuSpecPlot:
         for i, line in enumerate(self.plot.listDataItems()):
             color = pg.intColor(i, hues=num_lines)
             line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
+
+    def set_scales(self):
+        # set log scales if neccessary
+        # default plots have a linear scale
+        if len(self.plot_lines) > 0:  # default plots have a linear scale
+            if "log" in self.plot_lines[0].x_scale:
+                self.plot.setLogMode(x=True)
+                if self.plot_lines[0].x_scale == "log":
+                    self.warnings = self.warnings + "log not supported, using log10 instead (in " + self.plotId + ")\n"
+            if "log" in self.plot_lines[0].y_scale:
+                self.plot.setLogMode(y=True)
+                if self.plot_lines[0].y_scale == "log":
+                    self.warnings = self.warnings + "log not supported, using log10 instead (in " + self.plotId + ")\n"
