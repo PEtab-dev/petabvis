@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import petab
 import petab.C as ptc
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtCore
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction, QFileDialog, \
-    QVBoxLayout, QComboBox, QWidget
+    QVBoxLayout, QComboBox, QWidget, QLabel
 from petab import measurements, core
 import pyqtgraph as pg
 
@@ -42,9 +42,13 @@ def show_dialog(self, window: QtWidgets.QMainWindow):
     file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
     if file_name != "":  # if a file was selected
         window.visu_spec_plots.clear()
+        window.warn_msg.setText("")
         pp = petab.Problem.from_yaml(file_name)
         window.exp_data = pp.measurement_df
         window.visualization_df = pp.visualization_df
+        if pp.visualization_df is None:
+            window.warn_msg.setText(window.warn_msg.text() +
+                                    "The yaml file contains no visualization file (default plotted)")
         window.add_plots()
 
 
@@ -60,16 +64,23 @@ class MainWindow(QtWidgets.QMainWindow):
         wid: GraphcisLayoutWidget showing the plots
     """
     def __init__(self, exp_data: pd.DataFrame,
-                 visualization_df: pd.DataFrame, *args, **kwargs):
+                 visualization_df: pd.DataFrame,
+                 simulation_df: pd.DataFrame = None, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
+        # set the background color to white
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
         self.setWindowTitle("PEtab-vis")
         self.visualization_df = visualization_df
+        self.simulation_df = simulation_df
         self.exp_data = exp_data
         self.visu_spec_plots = []
-        self.wid = pg.GraphicsLayoutWidget(show=True) # widget to add the plots to
+        self.wid = pg.GraphicsLayoutWidget(show=True)  # widget to add the plots to
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
+        self.warn_msg = QLabel("")
+        self.current_list_index = 0
 
         layout = QVBoxLayout()
         add_file_selector(self)
@@ -77,8 +88,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.exp_data is not None and self.visualization_df is not None:
             self.add_plots()
 
+
+
         layout.addWidget(self.wid)
         layout.addWidget(self.cbox)
+        layout.addWidget(self.warn_msg)
 
         widget = QWidget()
         widget.setLayout(layout)
@@ -95,13 +109,21 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.wid.clear()
 
-        # to keep the order of plots consistent with names from the plot selection
-        indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
-        plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
-        for plot_id in plot_ids:
-            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, plot_id)
+        if self.visualization_df is not None:
+            # to keep the order of plots consistent with names from the plot selection
+            indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
+            plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
+            for plot_id in plot_ids:
+                visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, plot_id)
+                self.visu_spec_plots.append(visuPlot)
+                self.wid.addItem(visuPlot.getPlot())
+                if visuPlot.warnings:
+                    self.warn_msg.setText(self.warn_msg.text() + visuPlot.warnings)
+        else:
+            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df)
             self.visu_spec_plots.append(visuPlot)
             self.wid.addItem(visuPlot.getPlot())
+
         plots = [visuPlot.getPlot() for visuPlot in self.visu_spec_plots]
 
         # update the cbox
@@ -117,9 +139,26 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             i: index of the selected plot
         """
-        self.wid.clear()
-        if i >= 0:  # i is -1 when the cbox is cleared
+        if 0 <= i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
+            self.wid.clear()
             self.wid.addItem(self.visu_spec_plots[i].getPlot())
+            self.current_list_index = i
+
+    def keyPressEvent(self, ev):
+        """
+        Changes the displayed plot by pressing arrow keys
+
+        Arguments:
+            ev: key event
+        """
+        if(ev.key() == QtCore.Qt.Key_Up):
+            self.index_changed(self.current_list_index - 1)
+        if(ev.key() == QtCore.Qt.Key_Down):
+            self.index_changed(self.current_list_index + 1)
+        if(ev.key() == QtCore.Qt.Key_Left):
+            self.index_changed(self.current_list_index - 1)
+        if(ev.key() == QtCore.Qt.Key_Right):
+            self.index_changed(self.current_list_index + 1)
 
 
 def main():
