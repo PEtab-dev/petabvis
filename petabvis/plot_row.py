@@ -28,6 +28,7 @@ class PlotRow:
         self.y_scale = utils.get_y_scale(plot_spec)
         self.legend_name = utils.get_legend_name(plot_spec)
         self.plot_type_data = utils.get_plot_type_data(plot_spec)
+        self.is_simulation = ptc.SIMULATION in exp_data.columns
 
         if self.dataset_id:  # != ""
             self.line_data = exp_data[exp_data[ptc.DATASET_ID] == self.dataset_id]
@@ -41,7 +42,7 @@ class PlotRow:
         self.replicates = utils.split_replicates(self.line_data)
         self.x_data = self.get_x_data()
         self.y_data = self.get_y_data()
-        self.sd = utils.sd_repl(self.line_data, self.x_var)
+        self.sd = utils.sd_repl(self.line_data, self.x_var, self.is_simulation)
 
 
     def get_x_data(self):
@@ -62,7 +63,10 @@ class PlotRow:
             The y-values
         """
         # TODO: handle MeanAndSEM, replicate and provided options
-        y_data = np.asarray(self.replicates[0]["measurement"])
+        variable = ptc.MEASUREMENT
+        if self.is_simulation:
+            variable = ptc.SIMULATION
+        y_data = np.asarray(self.replicates[0][variable])
         if self.plot_type_data == "MeanAndSD":
             y_data = utils.mean_repl(self.line_data, self.x_var)
         y_data = y_data + self.y_offset

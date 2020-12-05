@@ -20,22 +20,31 @@ class VisuSpecPlot:
     Attributes:
         measurement_df: PEtab measurement table
         visualization_df: PEtab visualization table
+        simulation_df: PEtab simulation table
         plotId: Id of the plot (has to in the visualization_df aswell)
         plotTitle: The title of the plot
-        plot_lines: A list of individual lines of the visualization df
-        scatterPoints: A list of length 2 with the x- and y-values
+        plot_rows: A list of PlotRow objects
+        scatter_points: A list of length 2 with the x- and y-values
             of the points
         warnings: String of warning messages if the input is incorrect
             or not supported
         plot: PlotItem containing the lines
+        error_bars: A list of pg.ErrorBarItems
+        plot_rows: A list of PlotRows
+        plot_rows_simulation: A list of PlotRows for simulation data
+        exp_lines: A list of PlotDataItems
+        simu_lines: A list of PlotDataItems for simulation data
     """
     def __init__(self, measurement_df: pd.DataFrame = None,
-                 visualization_df: pd.DataFrame = None, plotId: str = ""):
+                 visualization_df: pd.DataFrame = None,
+                 simulation_df: pd.DataFrame = None, plotId: str = ""):
 
         self.measurement_df = measurement_df
+        self.simulation_df = simulation_df
         self.plotId = plotId
         self.visualization_df = visualization_df
-        self.scatterPoints = [[], []]
+        self.scatter_points = [[], []]
+        self.error_bars = []
         self.warnings = ""
 
         # reduce the visualization_df to the relevant rows (by plotId)
@@ -44,63 +53,103 @@ class VisuSpecPlot:
             self.visualization_df = visualization_df[rows]
 
         self.plotTitle = utils.get_plot_title(self.visualization_df)
-        self.plot_lines = []
         self.plot = pg.PlotItem(title=self.plotTitle)
+        self.plot.addLegend()
 
-        self.generatePlotLines()
-        self.generatePlot()
+        self.plot_rows = self.generate_plot_rows(self.measurement_df)
+        self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
 
-    def generatePlotLines(self):
+        self.exp_lines = self.generate_plotDataItems(self.plot_rows)  # list of PlotDataItems (measurements)
+        self.simu_lines = self.generate_plotDataItems(self.plot_rows_simulation)  # (simulations)
+
+        self.generate_plot()
+
+
+    def generate_plot_rows(self, df):
         """
         Go through all rows of the visualization_df
         and create a PlotRow object for each
         """
+        plot_rows = []
         if self.visualization_df is not None:
             for _, plot_spec in self.visualization_df.iterrows():
-                plot_line = plot_row.PlotRow(self.measurement_df, plot_spec)
-                self.plot_lines.append(plot_line)
+                if df is not None:
+                    plot_line = plot_row.PlotRow(df, plot_spec)
+                    plot_rows.append(plot_line)
+        return plot_rows
+
+
+    def generate_plotDataItems(self, plot_rows):
+        """
+        Generates a list of PlotDataItems based on
+        a list of PlotRows
+
+        Arguments:
+            plot_rows: A list of PlotRow objects
+        Returns:
+            pdis: A list of PlotDataItems
+        """
+        pdis = []  # list of PlotDataItems
+        if len(plot_rows) > 0:
+            for i, line in enumerate(plot_rows):
+                pdis.append(self.plotRow_to_plotDataItem(line))
+        return pdis
+
 
     def getPlot(self):
         return self.plot
 
-    def generatePlot(self):
+    def generate_plot(self):
         """
-        Generate a pyqtgraph PlotItem based on the plotRows
+        Generate a pyqtgraph PlotItem based on exp_lines
+        and simu_lines (both are DataPlotItem lists
 
         Returns:
             pyqtgraph PlotItem
         """
-        self.plot = pg.PlotItem(title=self.plotTitle)
-        self.plot.addLegend()
-
-        if len(self.plot_lines) > 0:
+        if len(self.plot_rows) > 0:
             # get the axis labels info from the first line of the plot
-            self.plot.setLabel("left", self.plot_lines[0].y_label)
-            self.plot.setLabel("bottom", self.plot_lines[0].x_label)
-
-            for i, line in enumerate(self.plot_lines):
-                self.add_line_to_plot(line)
+            self.plot.setLabel("left", self.plot_rows[0].y_label)
+            self.plot.setLabel("bottom", self.plot_rows[0].x_label)
 
         else:  # when no visualization file was provided
             self.plot.setLabel("left", "measurement")
             self.plot.setLabel("bottom", "time")
             self.default_plot(None)
 
-        self.color_plot()
 
-        # The points are added after coloring so the colors
-        # stay correct
-        self.plot.plot(self.scatterPoints[0], self.scatterPoints[1],
+        # color the plot so measurements and simulations
+        # have the same color but are different from other
+        # measurements
+        num_lines = len(self.exp_lines)
+        for i, line in enumerate(self.exp_lines):
+            color = pg.intColor(i, hues=num_lines)
+            line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
+            self.plot.addItem(line)
+            if len(self.simu_lines) > 0:
+                self.simu_lines[i].setPen(color, style=QtCore.Qt.SolidLine , width=2)
+                self.plot.addItem(self.simu_lines[i])
+
+
+        # add point measurements
+        self.plot.plot(self.scatter_points[0], self.scatter_points[1],
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+
+        # add error bars
+        for error_bar in self.error_bars:
+            self.plot.addItem(error_bar)
 
         self.set_scales()
 
         return self.plot
 
-    def add_line_to_plot(self, p_row: plot_row.PlotRow):
+    def plotRow_to_plotDataItem(self, p_row: plot_row.PlotRow):
         """
-        Adds the content of this row to the given plot
+        Creates a PlotDataItem based on the PlotRow
+        Also generates an error bar and measurement points
+        and appends them to self.scatter_points and self.error_bars = []
+        respectively
 
         Arguments:
             p_row: The PlotRow object that contains the information
@@ -111,16 +160,20 @@ class VisuSpecPlot:
         if p_row.dataset_id == "":
             self.default_plot(p_row)
         else:
-            # add points to scatterPoints
-            self.scatterPoints[0] = self.scatterPoints[0] + p_row.x_data.tolist()
-            self.scatterPoints[1] = self.scatterPoints[1] + p_row.y_data.tolist()
+            # add points to scatter_points
+            self.scatter_points[0] = self.scatter_points[0] + p_row.x_data.tolist()
+            self.scatter_points[1] = self.scatter_points[1] + p_row.y_data.tolist()
 
-            self.plot.plot(p_row.x_data,
+            legend_name = p_row.legend_name
+            if p_row.is_simulation:
+                legend_name = legend_name + " simulation"
+            pdi = pg.PlotDataItem(p_row.x_data,
                            p_row.y_data,
-                           name=p_row.legend_name)
+                           name=legend_name)
 
             error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data, top=p_row.sd, bottom=p_row.sd, beam=0.5)
-            self.plot.addItem(error)
+            self.error_bars.append(error)
+            return(pdi)
 
 
     def default_plot(self, p_row: plot_row.PlotRow):
@@ -129,6 +182,7 @@ class VisuSpecPlot:
         or no visualization file was provided
         Therefore, the whole dataset will be visualized
         in a single plot
+        The plotDataItems created here will be added to self.exp_lines
 
         Arguments:
             p_row: The PlotRow object that contains the information
@@ -136,41 +190,30 @@ class VisuSpecPlot:
         """
         for datasetId in np.unique(self.measurement_df[ptc.DATASET_ID]):
             line_data = self.measurement_df[self.measurement_df[ptc.DATASET_ID] == datasetId]
-            x_data = np.asarray(line_data["time"])
-            y_data = np.asarray(line_data["measurement"])
+            x_data = np.asarray(line_data[ptc.TIME])
+            y_data = utils.mean_repl(line_data, ptc.TIME)
             if p_row is not None:
                 # Note: do not use p_row.x_data when default plotting
                 x_data = x_data + p_row.x_offset
                 y_data = y_data + p_row.y_offset
 
             # add points
-            self.scatterPoints[0] = self.scatterPoints[0] + x_data.tolist()
-            self.scatterPoints[1] = self.scatterPoints[1] + y_data.tolist()
+            self.scatter_points[0] = self.scatter_points[0] + x_data.tolist()
+            self.scatter_points[1] = self.scatter_points[1] + y_data.tolist()
+            sd = utils.sd_repl(line_data, ptc.TIME, False)
 
-            self.plot.plot(x_data,
-                           y_data,
-                           name=datasetId)
+            self.exp_lines.append(pg.PlotDataItem(x_data, y_data, name=datasetId))
 
-
-    def color_plot(self):
-        """
-        Colors the plot such that each DataItem looks dissimilar
-        """
-        # choose dissimilar colors for each line
-        num_lines = len(self.plot.listDataItems())
-        for i, line in enumerate(self.plot.listDataItems()):
-            color = pg.intColor(i, hues=num_lines)
-            line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
 
     def set_scales(self):
-        # set log scales if neccessary
+        # set log scales if necessary
         # default plots have a linear scale
-        if len(self.plot_lines) > 0:  # default plots have a linear scale
-            if "log" in self.plot_lines[0].x_scale:
+        if len(self.plot_rows) > 0:  # default plots have a linear scale
+            if "log" in self.plot_rows[0].x_scale:
                 self.plot.setLogMode(x=True)
-                if self.plot_lines[0].x_scale == "log":
+                if self.plot_rows[0].x_scale == "log":
                     self.warnings = self.warnings + "log not supported, using log10 instead (in " + self.plotId + ")\n"
-            if "log" in self.plot_lines[0].y_scale:
+            if "log" in self.plot_rows[0].y_scale:
                 self.plot.setLogMode(y=True)
-                if self.plot_lines[0].y_scale == "log":
+                if self.plot_rows[0].y_scale == "log":
                     self.warnings = self.warnings + "log not supported, using log10 instead (in " + self.plotId + ")\n"

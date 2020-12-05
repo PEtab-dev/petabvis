@@ -15,6 +15,7 @@ import pyqtgraph as pg
 
 from . import utils
 from . import visuSpec_plot
+from petab.visualize.helper_functions import check_ex_exp_columns
 
 
 def add_file_selector(window: QtWidgets.QMainWindow):
@@ -23,17 +24,21 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     Arguments:
         window: Mainwindow
     """
-    openFile = QAction(QIcon('open.png'), 'Select yaml File', window)
-    openFile.triggered.connect(lambda x: show_dialog(x, window))
+    open_yaml_file = QAction(QIcon('open.png'), 'Select yaml File', window)
+    open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(x, window))
+    open_simulation_file = QAction(QIcon('open.png'), 'Select Simulation File', window)
+    open_simulation_file.triggered.connect(lambda x: show_simulation_dialog(x, window))
 
     menubar = window.menuBar()
     fileMenu = menubar.addMenu('&Select File')
-    fileMenu.addAction(openFile)
+    fileMenu.addAction(open_yaml_file)
+    fileMenu.addAction(open_simulation_file)
 
 
-def show_dialog(self, window: QtWidgets.QMainWindow):
+def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
     """
-    Displays a file selector window when clicking on the select file button
+    Displays a file selector window when clicking on the select yaml file button
+    Then displays the new plots described by the yaml file
 
     Arguments:
         window: Mainwindow
@@ -46,9 +51,33 @@ def show_dialog(self, window: QtWidgets.QMainWindow):
         pp = petab.Problem.from_yaml(file_name)
         window.exp_data = pp.measurement_df
         window.visualization_df = pp.visualization_df
+        window.condition_df = pp.condition_df
         if pp.visualization_df is None:
             window.warn_msg.setText(window.warn_msg.text() +
                                     "The yaml file contains no visualization file (default plotted)")
+        window.add_plots()
+
+
+def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
+    """
+    Displays a file selector window when clicking on the select simulation file button
+    Then adds the simulation lines to the plots
+
+    Arguments:
+        window: Mainwindow
+    """
+    home_dir = str(Path.home())
+    file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
+    if file_name != "":  # if a file was selected
+        window.visu_spec_plots.clear()
+        window.warn_msg.setText("")
+        sim_data = core.get_simulation_df(file_name)
+        # check columns, and add non-mandatory default columns
+        sim_data, _, _ = check_ex_exp_columns(sim_data, None, None,
+                                              None, None, None,
+                                              window.condition_df,
+                                              sim=True)
+        window.simulation_df = sim_data
         window.add_plots()
 
 
@@ -65,7 +94,8 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     def __init__(self, exp_data: pd.DataFrame,
                  visualization_df: pd.DataFrame,
-                 simulation_df: pd.DataFrame = None, *args, **kwargs):
+                 simulation_df: pd.DataFrame = None,
+                 condition_df: pd.DataFrame = None,*args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
         # set the background color to white
@@ -74,6 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("PEtab-vis")
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
+        self.condition_df = condition_df
         self.exp_data = exp_data
         self.visu_spec_plots = []
         self.wid = pg.GraphicsLayoutWidget(show=True)  # widget to add the plots to
@@ -84,8 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         layout = QVBoxLayout()
         add_file_selector(self)
-
-        if self.exp_data is not None and self.visualization_df is not None:
+        if self.exp_data is not None:
             self.add_plots()
 
 
@@ -114,7 +144,7 @@ class MainWindow(QtWidgets.QMainWindow):
             indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
             plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
             for plot_id in plot_ids:
-                visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, plot_id)
+                visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, self.simulation_df, plot_id)
                 self.visu_spec_plots.append(visuPlot)
                 self.wid.addItem(visuPlot.getPlot())
                 if visuPlot.warnings:
@@ -164,16 +194,18 @@ class MainWindow(QtWidgets.QMainWindow):
 def main():
     options = argparse.ArgumentParser()
     options.add_argument("-m", "--measurement", type=str, required=False,
-                         help="PEtab measurement file", )
+                         help="PEtab measurement file", default=None)
     options.add_argument("-v", "--visualization", type=str, required=False,
-                         help="PEtab visualization file", )
+                         help="PEtab visualization file", default=None)
     args = options.parse_args()
 
-    if args.measurement is not None and args.visualization is not None:
+    if args.measurement is not None:
         exp_data = measurements.get_measurement_df(args.measurement)
-        visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
     else:
         exp_data = None
+    if args.visualization is not None:
+        visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
+    else:
         visualization_df = None
 
     app = QtWidgets.QApplication(sys.argv)

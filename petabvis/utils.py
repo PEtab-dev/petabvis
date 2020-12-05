@@ -207,21 +207,26 @@ def mean_repl(line_data: pd.DataFrame, x_var: str):
     return means
 
 
-def sd_repl(line_data: pd.DataFrame, x_var: str):
+def sd_repl(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     """
     Calculates the standard deviation of
     the measurement grouped by their x-value
     Arguments:
        plot_spec: A single row of a visualization df
        x_var: Name of the x-variable
+       is_simulation: Boolean to check if the y variable
+            is measurement or simulation
     Returns:
         The std grouped by x_var
     """
-    line_data = line_data[[ptc.MEASUREMENT, x_var]]
+    y_var = ptc.MEASUREMENT
+    if is_simulation:
+        y_var = ptc.SIMULATION
+    line_data = line_data[[x_var, y_var]]
     # std with ddof = 0 (degrees of freedom)
     # to match np.std that is used in petab
     sds = line_data.groupby(x_var).std(ddof=0)
-    sds = sds[ptc.MEASUREMENT].to_numpy()
+    sds = sds[y_var].to_numpy()
     return sds
 
 
