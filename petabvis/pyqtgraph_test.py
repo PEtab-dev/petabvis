@@ -1,5 +1,6 @@
 import argparse
 import sys  # We need sys so that we can pass argv to QApplication
+import os
 from pathlib import Path
 
 import numpy as np
@@ -44,6 +45,10 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         window: Mainwindow
     """
     home_dir = str(Path.home())
+    # start file selector on the last selected directory
+    settings = QtCore.QSettings("petab", "Helmholtz")
+    if settings.value("last_dir") is not None:
+        home_dir = settings.value("last_dir")
     file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
     if file_name != "":  # if a file was selected
         window.visu_spec_plots.clear()
@@ -56,6 +61,11 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
             window.warn_msg.setText(window.warn_msg.text() +
                                     "The yaml file contains no visualization file (default plotted)")
         window.add_plots()
+
+        # save the directory for the next use
+        last_dir = os.path.dirname(file_name)
+        settings.setValue("last_dir", last_dir)
+
 
 
 def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
