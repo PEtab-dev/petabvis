@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import warnings
 import petab
 import petab.C as ptc
 from PySide2 import QtWidgets, QtCore
@@ -57,9 +58,9 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         window.exp_data = pp.measurement_df
         window.visualization_df = pp.visualization_df
         window.condition_df = pp.condition_df
+        window.simulation_df = None
         if pp.visualization_df is None:
-            window.warn_msg.setText(window.warn_msg.text() +
-                                    "The yaml file contains no visualization file (default plotted)")
+            window.add_warning("The yaml file contains no visualization file (default plotted)")
         window.add_plots()
 
         # save the directory for the next use
@@ -77,18 +78,28 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
         window: Mainwindow
     """
     home_dir = str(Path.home())
+    settings = QtCore.QSettings("petab", "Helmholtz")
+    if settings.value("last_dir") is not None:
+        home_dir = settings.value("last_dir")
     file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
     if file_name != "":  # if a file was selected
-        window.visu_spec_plots.clear()
-        window.warn_msg.setText("")
-        sim_data = core.get_simulation_df(file_name)
-        # check columns, and add non-mandatory default columns
-        sim_data, _, _ = check_ex_exp_columns(sim_data, None, None,
-                                              None, None, None,
-                                              window.condition_df,
-                                              sim=True)
-        window.simulation_df = sim_data
-        window.add_plots()
+        if window.exp_data is None:
+            window.add_warning("Please provide a yaml file first")
+        else:
+            window.visu_spec_plots.clear()
+            window.warn_msg.setText("")
+            sim_data = core.get_simulation_df(file_name)
+            # check columns, and add non-mandatory default columns
+            sim_data, _, _ = check_ex_exp_columns(sim_data, None, None,
+                                                  None, None, None,
+                                                  window.condition_df,
+                                                  sim=True)
+            window.simulation_df = sim_data
+            window.add_plots()
+
+        # save the directory for the next use
+        last_dir = os.path.dirname(file_name)
+        settings.setValue("last_dir", last_dir)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -111,6 +122,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # set the background color to white
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
+        pg.setConfigOption("antialias", True)
         self.setWindowTitle("PEtab-vis")
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
@@ -122,6 +134,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.warn_msg = QLabel("")
         self.current_list_index = 0
+
+        warnings.showwarning = self.redirect_warn
 
         layout = QVBoxLayout()
         add_file_selector(self)
@@ -154,20 +168,17 @@ class MainWindow(QtWidgets.QMainWindow):
             indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
             plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
             for plot_id in plot_ids:
-                visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, self.simulation_df, plot_id)
-                self.visu_spec_plots.append(visuPlot)
-                self.wid.addItem(visuPlot.getPlot())
-                if visuPlot.warnings:
-                    self.warn_msg.setText(self.warn_msg.text() + visuPlot.warnings)
-        else:
-            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df)
-            self.visu_spec_plots.append(visuPlot)
-            self.wid.addItem(visuPlot.getPlot())
+                self.create_and_add_visuPlot(plot_id)
+
+        else:  # default plot when no visu_df is provided
+            self.create_and_add_visuPlot()
 
         plots = [visuPlot.getPlot() for visuPlot in self.visu_spec_plots]
 
         # update the cbox
         self.cbox.clear()
+        # calling this method sets the index of the cbox to 0
+        # and thus displays the first plot
         utils.add_plotnames_to_cbox(self.visualization_df, self.cbox)
 
         return plots
@@ -182,6 +193,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if 0 <= i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
             self.wid.clear()
             self.wid.addItem(self.visu_spec_plots[i].getPlot())
+            if self.simulation_df is not None:
+                self.wid.addItem((self.visu_spec_plots[i].correlation_plot))
             self.current_list_index = i
 
     def keyPressEvent(self, ev):
@@ -200,6 +213,40 @@ class MainWindow(QtWidgets.QMainWindow):
         if(ev.key() == QtCore.Qt.Key_Right):
             self.index_changed(self.current_list_index + 1)
 
+    def add_warning(self, message: str):
+        """
+        Adds the message to the warnings box
+
+        Arguments:
+            message: The message to display
+        """
+        self.warn_msg.setText(self.warn_msg.text() + message + "\n")
+
+    def redirect_warn(self, message, category, filename=None, lineno=None, file=None, line=None):
+        """
+        Redirects all warning messages and displays them in the window
+
+        Arguments:
+            message: The message of the warning
+        """
+        print("Warning redirected: " + str(message))
+        self.add_warning(str(message))
+
+    def create_and_add_visuPlot(self, plot_id = ""):
+        """
+        Creates a visuSpec_plot object based on the given plot_id
+        If no plot_it is provided the default will be plotted
+        Adds all the warnings of the visuPlot object to the warning text box
+
+        The actual plotting happens in the index_changed method
+
+        Arguments:
+            plot_id: The plotId of the plot
+        """
+        visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, self.simulation_df, plot_id)
+        self.visu_spec_plots.append(visuPlot)
+        if visuPlot.warnings:
+            self.add_warning(visuPlot.warnings)
 
 def main():
     options = argparse.ArgumentParser()
@@ -222,6 +269,7 @@ def main():
     main = MainWindow(exp_data, visualization_df)
     main.show()
     sys.exit(app.exec_())
+
 
 
 if __name__ == '__main__':

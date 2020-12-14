@@ -136,7 +136,7 @@ def get_y_label(plot_spec: pd.Series):
     Returns:
         The label of the y axis
     """
-    y_label = get_y_var(plot_spec)  # defaults to y_var
+    y_label = ptc.MEASUREMENT  # defaults to y_var
     if ptc.Y_LABEL in plot_spec.index:
         y_label = plot_spec[ptc.Y_LABEL]
 
@@ -191,19 +191,20 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
     return plot_title
 
 
-def mean_repl(line_data: pd.DataFrame, x_var: str):
+def mean_repl(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str = ptc.MEASUREMENT):
     """
     Calculates the mean of the measurement grouped
     by their x-value
     Arguments:
        plot_spec: A single row of a visualization df
        x_var: Name of the x-variable
+       y_var: Name of the y-variable (measurement or simulation)
     Returns:
         The mean grouped by x_var
     """
-    line_data = line_data[[ptc.MEASUREMENT, x_var]]
+    line_data = line_data[[y_var, x_var]]
     means = line_data.groupby(x_var).mean()
-    means = means[ptc.MEASUREMENT].to_numpy()
+    means = means[y_var].to_numpy()
     return means
 
 
@@ -230,44 +231,43 @@ def sd_repl(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     return sds
 
 
+def sem_repl(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
+    """
+    Calculates the standard deviation of
+    the measurement grouped by their x-value
+    Arguments:
+       plot_spec: A single row of a visualization df
+       x_var: Name of the x-variable
+       is_simulation: Boolean to check if the y variable
+            is measurement or simulation
+    Returns:
+        The std grouped by x_var
+    """
+    sd = sd_repl(line_data, x_var, is_simulation)
+    sem = sd / np.sqrt(len(line_data.groupby(x_var)))
+    return sem
 
 
 def split_replicates(line_data: pd.DataFrame):
-    """
-    Cuts the df whenever the x variable
-    decreases and thus a new replicate starts
-
-    Arguments:
-       line_data: A subset of a measurement df
-    Returns:
-        replicates:
-            A list of data frames
-            each corresponding to a replicate
-    """
     replicates = []
-    cut_index = 0
-    old_x = line_data[ptc.TIME].iloc[0]
-    for i in range(1, len(line_data[ptc.TIME])):
-        current_x = line_data[ptc.TIME].iloc[i]
-        if old_x > current_x:
-            replicate = line_data.iloc[cut_index:i, :]
-            replicates.append(replicate)
-            cut_index = i
-
-        old_x = line_data[ptc.TIME].iloc[i]
-    last_replicate = line_data.iloc[cut_index:len(line_data[ptc.TIME])]
-    replicates.append(last_replicate)
-
+    if ptc.REPLICATE_ID in line_data.columns:
+        for repl_id in np.unique(line_data[ptc.REPLICATE_ID]):
+            repl = line_data[line_data[ptc.REPLICATE_ID] == repl_id]
+            replicates.append(repl)
+    else:
+        replicates.append(line_data)
     return replicates
+
 
 
 def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
     """
     Adds the name of every plot in the visualization df
     to the cbox
+
     Arguments:
-    visualization_df: PEtab visualization table
-    cbox: QComboBox
+        visualization_df: PEtab visualization table
+        cbox: QComboBox
     """
     if visualization_df is not None:
         plot_ids = np.unique(visualization_df[ptc.PLOT_ID])

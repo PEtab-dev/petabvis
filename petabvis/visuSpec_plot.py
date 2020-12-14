@@ -44,6 +44,7 @@ class VisuSpecPlot:
         self.plotId = plotId
         self.visualization_df = visualization_df
         self.scatter_points = [[], []]
+        self.scatter_points_simulation = [[], []]
         self.error_bars = []
         self.warnings = ""
 
@@ -56,7 +57,8 @@ class VisuSpecPlot:
         self.plot = pg.PlotItem(title=self.plotTitle)
         self.plot.addLegend()
 
-        self.plot_rows = self.generate_plot_rows(self.measurement_df)
+
+        self.plot_rows = self.generate_plot_rows(self.measurement_df)  # list of plot_rows
         self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
 
         self.exp_lines = self.generate_plotDataItems(self.plot_rows)  # list of PlotDataItems (measurements)
@@ -64,6 +66,8 @@ class VisuSpecPlot:
 
         self.generate_plot()
 
+        self.correlation_plot = pg.PlotItem(title="Correlation")
+        self.generate_correlation_plot()
 
     def generate_plot_rows(self, df):
         """
@@ -135,6 +139,9 @@ class VisuSpecPlot:
         self.plot.plot(self.scatter_points[0], self.scatter_points[1],
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+        self.plot.plot(self.scatter_points_simulation[0], self.scatter_points_simulation[1],
+                       pen=None, symbol='o',
+                       symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
 
         # add error bars
         for error_bar in self.error_bars:
@@ -160,21 +167,41 @@ class VisuSpecPlot:
         if p_row.dataset_id == "":
             self.default_plot(p_row)
         else:
-            # add points to scatter_points
-            self.scatter_points[0] = self.scatter_points[0] + p_row.x_data.tolist()
-            self.scatter_points[1] = self.scatter_points[1] + p_row.y_data.tolist()
-
             legend_name = p_row.legend_name
             if p_row.is_simulation:
                 legend_name = legend_name + " simulation"
+                # add points to scatter_points
+                self.scatter_points_simulation[0] = self.scatter_points_simulation[0] + p_row.x_data.tolist()
+                self.scatter_points_simulation[1] = self.scatter_points_simulation[1] + p_row.y_data.tolist()
+            else:
+                self.scatter_points[0] = self.scatter_points[0] + p_row.x_data.tolist()
+                self.scatter_points[1] = self.scatter_points[1] + p_row.y_data.tolist()
             pdi = pg.PlotDataItem(p_row.x_data,
                            p_row.y_data,
                            name=legend_name)
 
-            error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data, top=p_row.sd, bottom=p_row.sd, beam=0.5)
+            error_length = p_row.sd
+            if p_row.plot_type_data == ptc.MEAN_AND_SEM:
+                error_length = p_row.sem
+            if p_row.plot_type_data == ptc.PROVIDED:
+                error_length = p_row.provided_noise
+            beam_length = np.max(p_row.x_data) / 100
+            error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data, top=error_length, bottom=error_length, beam=beam_length)
             self.error_bars.append(error)
+
             return(pdi)
 
+
+    def generate_correlation_plot(self):
+        if self.simulation_df is not None:
+            self.correlation_plot.setLabel("left", "Simulation")
+            self.correlation_plot.setLabel("bottom", "Measurement")
+            for i in range(0, len(self.plot_rows)):
+                measurements = self.plot_rows[i].y_data
+                simulations = self.plot_rows_simulation[i].y_data
+                self.correlation_plot.plot(measurements, simulations,
+                               pen=None, symbol='o',
+                               symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
 
     def default_plot(self, p_row: plot_row.PlotRow):
         """
@@ -188,9 +215,20 @@ class VisuSpecPlot:
             p_row: The PlotRow object that contains the information
              of the line that is added
         """
-        for datasetId in np.unique(self.measurement_df[ptc.DATASET_ID]):
-            line_data = self.measurement_df[self.measurement_df[ptc.DATASET_ID] == datasetId]
-            x_data = np.asarray(line_data[ptc.TIME])
+
+        # group by Observable ID as default
+        grouping = ptc.OBSERVABLE_ID
+        # if the datasetId column is present, group by datasetId
+        if ptc.DATASET_ID in self.measurement_df.columns:
+            grouping = ptc.DATASET_ID
+        else:
+            self.warnings = self.warnings + "Grouped by observable. If you want to specify another grouping option" \
+                                            ", please add \"datasetID\" columns."
+        for group_id in np.unique(self.measurement_df[grouping]):
+            line_data = self.measurement_df[self.measurement_df[grouping] == group_id]
+            data = line_data[[ptc.MEASUREMENT, ptc.TIME]]
+            x_data = data.groupby(ptc.TIME)
+            x_data = np.fromiter(x_data.groups.keys(), dtype=float)
             y_data = utils.mean_repl(line_data, ptc.TIME)
             if p_row is not None:
                 # Note: do not use p_row.x_data when default plotting
@@ -202,7 +240,8 @@ class VisuSpecPlot:
             self.scatter_points[1] = self.scatter_points[1] + y_data.tolist()
             sd = utils.sd_repl(line_data, ptc.TIME, False)
 
-            self.exp_lines.append(pg.PlotDataItem(x_data, y_data, name=datasetId))
+
+            self.exp_lines.append(pg.PlotDataItem(x_data, y_data, name=group_id))
 
 
     def set_scales(self):
