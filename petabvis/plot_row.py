@@ -43,8 +43,8 @@ class PlotRow:
         self.replicates = utils.split_replicates(self.line_data)
         self.x_data = self.get_x_data()
         self.y_data = self.get_y_data()
-        self.sd = utils.sd_repl(self.line_data, self.x_var, self.is_simulation)
-        self.sem = utils.sem_repl(self.line_data, self.x_var, self.is_simulation)
+        self.sd = utils.sd_replicates(self.line_data, self.x_var, self.is_simulation)
+        self.sem = utils.sem_replicates(self.line_data, self.x_var, self.is_simulation)
         self.provided_noise = self.get_provided_noise()
 
 
@@ -74,7 +74,7 @@ class PlotRow:
             variable = ptc.SIMULATION
         y_data = np.asarray(self.replicates[0][variable])
         if self.plot_type_data == "MeanAndSD" or self.plot_type_data == "provided":
-            y_data = utils.mean_repl(self.line_data, self.x_var, variable)
+            y_data = utils.mean_replicates(self.line_data, self.x_var, variable)
         y_data = y_data + self.y_offset
 
         return y_data

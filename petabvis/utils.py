@@ -191,7 +191,7 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
     return plot_title
 
 
-def mean_repl(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str = ptc.MEASUREMENT):
+def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str = ptc.MEASUREMENT):
     """
     Calculates the mean of the measurement grouped
     by their x-value
@@ -208,7 +208,7 @@ def mean_repl(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str = ptc.M
     return means
 
 
-def sd_repl(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
+def sd_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     """
     Calculates the standard deviation of
     the measurement grouped by their x-value
@@ -231,7 +231,7 @@ def sd_repl(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     return sds
 
 
-def sem_repl(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
+def sem_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     """
     Calculates the standard deviation of
     the measurement grouped by their x-value

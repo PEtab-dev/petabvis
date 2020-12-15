@@ -94,7 +94,7 @@ class VisuSpecPlot:
             pdis: A list of PlotDataItems
         """
         pdis = []  # list of PlotDataItems
-        for i, line in enumerate(plot_rows):
+        for line in plot_rows:
             pdis.append(self.plotRow_to_plotDataItem(line))
         return pdis
 
@@ -228,7 +228,7 @@ class VisuSpecPlot:
             data = line_data[[ptc.MEASUREMENT, ptc.TIME]]
             x_data = data.groupby(ptc.TIME)
             x_data = np.fromiter(x_data.groups.keys(), dtype=float)
-            y_data = utils.mean_repl(line_data, ptc.TIME)
+            y_data = utils.mean_replicates(line_data, ptc.TIME)
             if p_row is not None:
                 # Note: do not use p_row.x_data when default plotting
                 x_data = x_data + p_row.x_offset
@@ -237,7 +237,7 @@ class VisuSpecPlot:
             # add points
             self.scatter_points[0] = self.scatter_points[0] + x_data.tolist()
             self.scatter_points[1] = self.scatter_points[1] + y_data.tolist()
-            sd = utils.sd_repl(line_data, ptc.TIME, False)
+            sd = utils.sd_replicates(line_data, ptc.TIME, False)
 
 
             self.exp_lines.append(pg.PlotDataItem(x_data, y_data, name=group_id))
