@@ -224,7 +224,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def redirect_warn(self, message, category, filename=None, lineno=None, file=None, line=None):
         """
-        Redirects all warning messages and displays them in the window
+        Redirect all warning messages and display them in the window.
 
         Arguments:
             message: The message of the warning
