@@ -244,7 +244,8 @@ def sem_repl(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
         The std grouped by x_var
     """
     sd = sd_repl(line_data, x_var, is_simulation)
-    sem = sd / np.sqrt(len(line_data.groupby(x_var)))
+    n_replicates = [len(replicates) for replicates in line_data.groupby(x_var))]
+    sem = sd / np.sqrt(n_replicates)
     return sem
 
 
