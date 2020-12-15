@@ -47,7 +47,7 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
     """
     home_dir = str(Path.home())
     # start file selector on the last selected directory
-    settings = QtCore.QSettings("petab", "Helmholtz")
+    settings = QtCore.QSettings("petab", "petabvis")
     if settings.value("last_dir") is not None:
         home_dir = settings.value("last_dir")
     file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
