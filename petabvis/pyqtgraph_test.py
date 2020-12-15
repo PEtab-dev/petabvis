@@ -259,8 +259,6 @@ def main():
     exp_data = None
     if args.measurement is not None:
         exp_data = measurements.get_measurement_df(args.measurement)
-    else:
-        exp_data = None
     if args.visualization is not None:
         visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
     else:
