@@ -39,8 +39,8 @@ def add_file_selector(window: QtWidgets.QMainWindow):
 
 def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
     """
-    Displays a file selector window when clicking on the select yaml file button
-    Then displays the new plots described by the yaml file
+    Display a file selector window when clicking on the select YAML file menu
+    item, then display the new plots described by the YAML file.
 
     Arguments:
         window: Mainwindow
