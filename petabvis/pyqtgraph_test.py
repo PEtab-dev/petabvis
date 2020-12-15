@@ -68,7 +68,6 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         settings.setValue("last_dir", last_dir)
 
 
-
 def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
     """
     Displays a file selector window when clicking on the select simulation file button
@@ -116,7 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, exp_data: pd.DataFrame,
                  visualization_df: pd.DataFrame,
                  simulation_df: pd.DataFrame = None,
-                 condition_df: pd.DataFrame = None,*args, **kwargs):
+                 condition_df: pd.DataFrame = None, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
         # set the background color to white
@@ -141,8 +140,6 @@ class MainWindow(QtWidgets.QMainWindow):
         add_file_selector(self)
         if self.exp_data is not None:
             self.add_plots()
-
-
 
         layout.addWidget(self.wid)
         layout.addWidget(self.cbox)
@@ -232,7 +229,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Warning redirected: " + str(message))
         self.add_warning(str(message))
 
-    def create_and_add_visuPlot(self, plot_id = ""):
+    def create_and_add_visuPlot(self, plot_id=""):
         """
         Create a visuSpec_plot object based on the given plot_id.
         If no plot_it is provided the default will be plotted.
@@ -248,6 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if visuPlot.warnings:
             self.add_warning(visuPlot.warnings)
 
+
 def main():
     options = argparse.ArgumentParser()
     options.add_argument("-m", "--measurement", type=str, required=False,
@@ -259,16 +257,15 @@ def main():
     exp_data = None
     if args.measurement is not None:
         exp_data = measurements.get_measurement_df(args.measurement)
+
+    visualization_df = None
     if args.visualization is not None:
         visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
-    else:
-        visualization_df = None
 
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow(exp_data, visualization_df)
     main.show()
     sys.exit(app.exec_())
-
 
 
 if __name__ == '__main__':

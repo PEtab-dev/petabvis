@@ -173,8 +173,6 @@ def get_plot_type_data(plot_spec: pd.Series):
     return plot_type_data
 
 
-
-
 def get_plot_title(visualization_df_rows: pd.DataFrame):
     """
     Returns the title of the plot
@@ -193,12 +191,12 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
 
 def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str = ptc.MEASUREMENT):
     """
-    Calculates the mean of the measurement grouped
-    by their x-value
+    Calculate the mean of the replicates.
+
     Arguments:
-       plot_spec: A single row of a visualization df
-       x_var: Name of the x-variable
-       y_var: Name of the y-variable (measurement or simulation)
+        line_data: A subset of the measurement file
+        x_var: Name of the x-variable
+        y_var: Name of the y-variable (measurement or simulation)
     Returns:
         The mean grouped by x_var
     """
@@ -210,12 +208,12 @@ def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str =
 
 def sd_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     """
-    Calculates the standard deviation of
-    the measurement grouped by their x-value
+    Calculate the standard deviation of the replicates.
+
     Arguments:
-       plot_spec: A single row of a visualization df
-       x_var: Name of the x-variable
-       is_simulation: Boolean to check if the y variable
+        line_data: A subset of the measurement file
+        x_var: Name of the x-variable
+        is_simulation: Boolean to check if the y variable
             is measurement or simulation
     Returns:
         The std grouped by x_var
@@ -233,23 +231,35 @@ def sd_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
 
 def sem_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     """
-    Calculates the standard deviation of
-    the measurement grouped by their x-value
+    Calculate the standard error of the mean of the replicates
+
     Arguments:
-       plot_spec: A single row of a visualization df
-       x_var: Name of the x-variable
-       is_simulation: Boolean to check if the y variable
+        line_data: A subset of the measurement file
+        x_var: Name of the x-variable
+        is_simulation: Boolean to check if the y variable
             is measurement or simulation
     Returns:
         The std grouped by x_var
     """
-    sd = sd_repl(line_data, x_var, is_simulation)
-    n_replicates = [len(replicates) for replicates in line_data.groupby(x_var))]
+    sd = sd_replicates(line_data, x_var, is_simulation)
+    n_replicates = [len(replicates) for replicates in line_data.groupby(x_var)]
     sem = sd / np.sqrt(n_replicates)
     return sem
 
 
 def split_replicates(line_data: pd.DataFrame):
+    """
+    Split the line_data df into replicate dfs based on their
+    replicate Id.
+    If no replicateId column is in the line_data, line_data will
+    be returned.
+
+    Arguments:
+        line_data: A subset of the measurement file
+    Returns:
+        The std grouped by x_var
+    """
+
     replicates = []
     if ptc.REPLICATE_ID in line_data.columns:
         for repl_id in np.unique(line_data[ptc.REPLICATE_ID]):
@@ -260,15 +270,14 @@ def split_replicates(line_data: pd.DataFrame):
     return replicates
 
 
-
 def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
     """
-    Adds the name of every plot in the visualization df
+    Add the name of every plot in the visualization df
     to the cbox
 
     Arguments:
         visualization_df: PEtab visualization table
-        cbox: QComboBox
+        cbox:  The list of plots (UI)
     """
     if visualization_df is not None:
         plot_ids = np.unique(visualization_df[ptc.PLOT_ID])

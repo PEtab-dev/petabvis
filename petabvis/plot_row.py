@@ -47,7 +47,6 @@ class PlotRow:
         self.sem = utils.sem_replicates(self.line_data, self.x_var, self.is_simulation)
         self.provided_noise = self.get_provided_noise()
 
-
     def get_x_data(self):
         """
         Returns the x-values that should be plotted
