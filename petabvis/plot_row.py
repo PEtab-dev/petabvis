@@ -69,7 +69,6 @@ class PlotRow:
         Returns:
             The y-values
         """
-        # TODO: handle provided option
         variable = ptc.MEASUREMENT
         if self.is_simulation:
             variable = ptc.SIMULATION

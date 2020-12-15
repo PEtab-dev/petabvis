@@ -94,9 +94,8 @@ class VisuSpecPlot:
             pdis: A list of PlotDataItems
         """
         pdis = []  # list of PlotDataItems
-        if len(plot_rows) > 0:
-            for i, line in enumerate(plot_rows):
-                pdis.append(self.plotRow_to_plotDataItem(line))
+        for i, line in enumerate(plot_rows):
+            pdis.append(self.plotRow_to_plotDataItem(line))
         return pdis
 
 

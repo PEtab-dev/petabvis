@@ -78,7 +78,7 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
         window: Mainwindow
     """
     home_dir = str(Path.home())
-    settings = QtCore.QSettings("petab", "Helmholtz")
+    settings = QtCore.QSettings("petab", "petabvis")
     if settings.value("last_dir") is not None:
         home_dir = settings.value("last_dir")
     file_name = QFileDialog.getOpenFileName(window, 'Open simulation file', home_dir)[0]
@@ -135,7 +135,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.warn_msg = QLabel("")
         self.current_list_index = 0
 
-        warnings.showwarning = self.redirect_warn
+        warnings.showwarning = self.redirect_warning
 
         layout = QVBoxLayout()
         add_file_selector(self)
@@ -222,7 +222,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.warn_msg.setText(self.warn_msg.text() + message + "\n")
 
-    def redirect_warn(self, message, category, filename=None, lineno=None, file=None, line=None):
+    def redirect_warning(self, message, category, filename=None, lineno=None, file=None, line=None):
         """
         Redirect all warning messages and display them in the window.
 
@@ -234,9 +234,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def create_and_add_visuPlot(self, plot_id = ""):
         """
-        Creates a visuSpec_plot object based on the given plot_id
-        If no plot_it is provided the default will be plotted
-        Adds all the warnings of the visuPlot object to the warning text box
+        Create a visuSpec_plot object based on the given plot_id.
+        If no plot_it is provided the default will be plotted.
+        Add all the warnings of the visuPlot object to the warning text box.
 
         The actual plotting happens in the index_changed method
 
