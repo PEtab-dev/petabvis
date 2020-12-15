@@ -81,7 +81,7 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
     settings = QtCore.QSettings("petab", "Helmholtz")
     if settings.value("last_dir") is not None:
         home_dir = settings.value("last_dir")
-    file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
+    file_name = QFileDialog.getOpenFileName(window, 'Open simulation file', home_dir)[0]
     if file_name != "":  # if a file was selected
         if window.exp_data is None:
             window.add_warning("Please provide a yaml file first")
