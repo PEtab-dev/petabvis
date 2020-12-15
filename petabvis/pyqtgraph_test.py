@@ -60,7 +60,7 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         window.condition_df = pp.condition_df
         window.simulation_df = None
         if pp.visualization_df is None:
-            window.add_warning("The yaml file contains no visualization file (default plotted)")
+            window.add_warning("The YAML file contains no visualization file (default plotted)")
         window.add_plots()
 
         # save the directory for the next use
