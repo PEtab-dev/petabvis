@@ -26,7 +26,7 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     Arguments:
         window: Mainwindow
     """
-    open_yaml_file = QAction(QIcon('open.png'), 'Select yaml File', window)
+    open_yaml_file = QAction(QIcon('open.png'), 'Open YAML file...', window)
     open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(x, window))
     open_simulation_file = QAction(QIcon('open.png'), 'Select Simulation File', window)
     open_simulation_file.triggered.connect(lambda x: show_simulation_dialog(x, window))
