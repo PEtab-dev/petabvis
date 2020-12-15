@@ -256,6 +256,7 @@ def main():
                          help="PEtab visualization file", default=None)
     args = options.parse_args()
 
+    exp_data = None
     if args.measurement is not None:
         exp_data = measurements.get_measurement_df(args.measurement)
     else:
