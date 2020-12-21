@@ -270,7 +270,7 @@ def split_replicates(line_data: pd.DataFrame):
     return replicates
 
 
-def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
+def add_plotnames_to_cbox(exp_data: pd.DataFrame, visualization_df: pd.DataFrame, cbox: QComboBox):
     """
     Add the name of every plot in the visualization df
     to the cbox
@@ -296,4 +296,9 @@ def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
             for id in np.unique(visualization_df[ptc.PLOT_ID]):
                 cbox.addItem(id)
     else:
-        cbox.addItem("default plot")
+        # the default plots are grouped by observable ID
+        # to keep the order of plots consistent with names from the plot selection
+        indexes = np.unique(exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
+        observable_ids = [exp_data[ptc.OBSERVABLE_ID][index] for index in sorted(indexes)]
+        for observable_id in observable_ids:
+            cbox.addItem(observable_id)

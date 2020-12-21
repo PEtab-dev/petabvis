@@ -176,7 +176,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbox.clear()
         # calling this method sets the index of the cbox to 0
         # and thus displays the first plot
-        utils.add_plotnames_to_cbox(self.visualization_df, self.cbox)
+        utils.add_plotnames_to_cbox(self.exp_data, self.visualization_df, self.cbox)
 
         return plots
 
@@ -240,10 +240,23 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             plot_id: The plotId of the plot
         """
-        visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, self.simulation_df, plot_id)
-        self.visu_spec_plots.append(visuPlot)
-        if visuPlot.warnings:
-            self.add_warning(visuPlot.warnings)
+        # split the measurement df by observable when using default plots
+        if self.visualization_df is None:
+            # to keep the order of plots consistent with names from the plot selection
+            indexes = np.unique(self.exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
+            observable_ids = [self.exp_data[ptc.OBSERVABLE_ID][index] for index in sorted(indexes)]
+            for observable_id in observable_ids:
+                rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
+                data = self.exp_data[rows]
+                visuPlot = visuSpec_plot.VisuSpecPlot(data, self.visualization_df, self.simulation_df, plot_id)
+                self.visu_spec_plots.append(visuPlot)
+                if visuPlot.warnings:
+                    self.add_warning(visuPlot.warnings)
+        else:
+            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, self.simulation_df, plot_id)
+            self.visu_spec_plots.append(visuPlot)
+            if visuPlot.warnings:
+                self.add_warning(visuPlot.warnings)
 
 
 def main():
