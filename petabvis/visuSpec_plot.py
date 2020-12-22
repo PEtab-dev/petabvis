@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import scipy
 import petab
 import petab.C as ptc
 from PySide2 import QtCore
@@ -67,8 +68,14 @@ class VisuSpecPlot:
 
         self.generate_plot()
 
+        # add the correlation plot (only if a simulation file is provided)
         self.correlation_plot = pg.PlotItem(title="Correlation")
         self.generate_correlation_plot()
+        self.correlation_plot.addItem(pg.InfiniteLine([0,0], angle=45))
+        self.correlation_plot.setAspectLocked()
+        self.r_squared = self.get_R_squared()
+        r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
+        self.correlation_plot.addItem(pg.TextItem(str(r_squared_text), anchor=(0,0), color="k"))
 
     def generate_plot_rows(self, df):
         """
@@ -301,3 +308,16 @@ class VisuSpecPlot:
         # filter out double warnings
         if not message in self.warnings:
             self.warnings = self.warnings + message + "\n"
+
+    def get_R_squared(self):
+        if self.simulation_df is not None:
+            x = []
+            y = []
+            for i in range(0, len(self.plot_rows)):
+                measurements = self.plot_rows[i].y_data
+                simulations = self.plot_rows_simulation[i].y_data
+                x = np.concatenate([x, measurements])
+                y = np.concatenate([y, simulations])
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
+
+            return r_value

@@ -64,7 +64,7 @@ class PlotRow:
 
     def get_y_data(self):
         """
-        Returns the y-values that should be plotted
+        Return the y-values that should be plotted
         Returns:
             The y-values
         """

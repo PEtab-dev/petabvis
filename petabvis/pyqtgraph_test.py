@@ -95,6 +95,7 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
                                                   sim=True)
             window.simulation_df = sim_data
             window.add_plots()
+            window.wid.addWidget(window.plot2_widget)
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name)
@@ -128,7 +129,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.condition_df = condition_df
         self.exp_data = exp_data
         self.visu_spec_plots = []
-        self.wid = pg.GraphicsLayoutWidget(show=True)  # widget to add the plots to
+        self.wid = QtWidgets.QSplitter()
+        self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
+        self.plot2_widget = pg.GraphicsLayoutWidget(show=False)
+        self.wid.addWidget(self.plot1_widget)
+        # plot2_widget will be added to the QSplitter when
+        # a simulation file is opened
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.warn_msg = QLabel("")
@@ -158,7 +164,8 @@ class MainWindow(QtWidgets.QMainWindow):
         Returns:
             List of PlotItem
         """
-        self.wid.clear()
+        #self.wid.clear()
+        self.clear_QSplitter()
 
         if self.visualization_df is not None:
             # to keep the order of plots consistent with names from the plot selection
@@ -188,10 +195,12 @@ class MainWindow(QtWidgets.QMainWindow):
             i: index of the selected plot
         """
         if 0 <= i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
-            self.wid.clear()
-            self.wid.addItem(self.visu_spec_plots[i].getPlot())
+            self.clear_QSplitter()
+            self.plot1_widget.addItem(self.visu_spec_plots[i].getPlot())
+            self.plot2_widget.hide()
             if self.simulation_df is not None:
-                self.wid.addItem((self.visu_spec_plots[i].correlation_plot))
+                self.plot2_widget.show()
+                self.plot2_widget.addItem(self.visu_spec_plots[i].correlation_plot)
             self.current_list_index = i
 
     def keyPressEvent(self, ev):
@@ -257,6 +266,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.visu_spec_plots.append(visuPlot)
             if visuPlot.warnings:
                 self.add_warning(visuPlot.warnings)
+
+    def clear_QSplitter(self):
+        """
+        Clear the GraphicsLayoutWidgets for the
+        measurement and correlation plot
+        """
+        self.plot1_widget.clear()
+        self.plot2_widget.clear()
 
 
 def main():
