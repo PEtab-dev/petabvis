@@ -30,11 +30,14 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(x, window))
     open_simulation_file = QAction(QIcon('open.png'), 'Open simulation file...', window)
     open_simulation_file.triggered.connect(lambda x: show_simulation_dialog(x, window))
+    quit = QAction("Quit", window)
+    quit.triggered.connect(sys.exit)
 
     menubar = window.menuBar()
     fileMenu = menubar.addMenu('&Select File')
     fileMenu.addAction(open_yaml_file)
     fileMenu.addAction(open_simulation_file)
+    fileMenu.addAction(quit)
 
 
 def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
@@ -210,6 +213,13 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             ev: key event
         """
+        # Exit when pressing ctrl + Q
+        ctrl = False
+        if (ev.modifiers() & QtCore.Qt.ControlModifier):
+            ctrl = True
+        if ctrl and ev.key() == QtCore.Qt.Key_Q:
+            sys.exit()
+
         if(ev.key() == QtCore.Qt.Key_Up):
             self.index_changed(self.current_list_index - 1)
         if(ev.key() == QtCore.Qt.Key_Down):
