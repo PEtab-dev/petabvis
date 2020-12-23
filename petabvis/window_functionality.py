@@ -1,39 +1,22 @@
-import argparse
-import sys
-
-import numpy as np
-import pandas as pd
-import petab
-import petab.C as ptc
-from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt, Slot,
-                            QItemSelectionModel, QSortFilterProxyModel)
-from PySide2.QtGui import QColor
-from PySide2.QtWidgets import (QAction, QApplication, QVBoxLayout, QHeaderView,
-                               QMainWindow, QSizePolicy, QTableView, QWidget)
-
 # Import after PySide2 to ensure usage of correct Qt library
-import pyqtgraph as pg
-import argparse
-import sys  # We need sys so that we can pass argv to QApplication
 import os
+import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-import warnings
+from PySide2 import QtWidgets, QtCore, QtGui
+from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt,
+                            QSortFilterProxyModel)
+from PySide2.QtGui import QColor
+from PySide2.QtGui import QIcon
+from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView,
+                               QSizePolicy, QTableView, QWidget, QFileDialog)
+
 import petab
 import petab.C as ptc
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import QAction, QFileDialog, \
-    QVBoxLayout, QComboBox, QWidget, QLabel
-from petab import measurements, core
-import pyqtgraph as pg
-
-from . import utils
-from . import visuSpec_plot
-from . import window_functionality
+from petab import core
 from petab.visualize.helper_functions import check_ex_exp_columns
+
 
 class CustomTableModel(QAbstractTableModel):
     """PEtab data table model"""
@@ -99,8 +82,7 @@ class TableWidget(QWidget):
         # QTableView Headers
         self.horizontal_header = self.table_view.horizontalHeader()
         self.vertical_header = self.table_view.verticalHeader()
-        self.horizontal_header.setSectionResizeMode(
-            QHeaderView.ResizeToContents)
+        self.horizontal_header.setSectionResizeMode(QHeaderView.ResizeToContents)
         self.vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
         self.horizontal_header.setStretchLastSection(True)
 
@@ -115,10 +97,41 @@ class TableWidget(QWidget):
         self.setLayout(self.main_layout)
 
 
-def pop_up_table_view(window:QtWidgets.QMainWindow, df: pd.DataFrame):
+def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     window.table_window = TableWidget(df)
     window.table_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
     window.table_window.show()
+
+
+def table_list_view(window: QtWidgets.QMainWindow):
+    list_view = window.list_view
+
+    entries = []
+    if window.exp_data is not None:
+        entries.append("Measurement")
+    if window.simulation_df is not None:
+        entries.append("Simulation")
+    if window.visualization_df is not None:
+        entries.append("Visualization")
+
+    model = QtGui.QStandardItemModel()
+    list_view.setModel(model)
+    list_view.doubleClicked.connect(lambda x: state_changed(x, model, window))
+
+    for i in entries:
+        item = QtGui.QStandardItem(i)
+        model.appendRow(item)
+
+
+def state_changed(index, model, window):
+    name = model.data(index, QtCore.Qt.DisplayRole)
+    if name == "Measurement":
+        pop_up_table_view(window, window.exp_data)
+    if name == "Simulation":
+        pop_up_table_view(window, window.simulation_df)
+    if name == "Visualization":
+        pop_up_table_view(window, window.visualization_df)
+
 
 def add_file_selector(window: QtWidgets.QMainWindow):
     """
@@ -165,6 +178,7 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         if pp.visualization_df is None:
             window.add_warning("The YAML file contains no visualization file (default plotted)")
         window.add_plots()
+        window.listWidget = table_list_view(window)
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name)
@@ -198,11 +212,14 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
                                                   sim=True)
             # delete the replicateId column if it gets added to the simulation table
             # but is not in exp_data because it causes problems when splitting the replicates
-            if not ptc.REPLICATE_ID in window.exp_data.columns and ptc.REPLICATE_ID in sim_data.columns:
+            if ptc.REPLICATE_ID not in window.exp_data.columns and ptc.REPLICATE_ID in sim_data.columns:
                 sim_data.drop(ptc.REPLICATE_ID, axis=1, inplace=True)
             window.simulation_df = sim_data
             window.add_plots()
-            window.wid.addWidget(window.plot2_widget)
+
+            # insert correlation plot at position 1
+            window.wid.insertWidget(1, window.plot2_widget)
+            window.listWidget = table_list_view(window)
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name)

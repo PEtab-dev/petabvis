@@ -8,7 +8,7 @@ import pandas as pd
 import warnings
 import petab
 import petab.C as ptc
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction, QFileDialog, \
     QVBoxLayout, QComboBox, QWidget, QLabel
@@ -61,6 +61,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.warn_msg = QLabel("")
+        self.list_view = QtGui.QListView()
+        window_functionality.table_list_view(self)
+        self.wid.addWidget(self.list_view)
         self.current_list_index = 0
 
         warnings.showwarning = self.redirect_warning
