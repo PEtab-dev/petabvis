@@ -17,92 +17,10 @@ import pyqtgraph as pg
 
 from . import utils
 from . import visuSpec_plot
+from . import window_functionality
 from petab.visualize.helper_functions import check_ex_exp_columns
 
 
-def add_file_selector(window: QtWidgets.QMainWindow):
-    """
-    Adds a file selector button to the main window
-    Arguments:
-        window: Mainwindow
-    """
-    open_yaml_file = QAction(QIcon('open.png'), 'Open YAML file...', window)
-    open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(x, window))
-    open_simulation_file = QAction(QIcon('open.png'), 'Open simulation file...', window)
-    open_simulation_file.triggered.connect(lambda x: show_simulation_dialog(x, window))
-    quit = QAction("Quit", window)
-    quit.triggered.connect(sys.exit)
-
-    menubar = window.menuBar()
-    fileMenu = menubar.addMenu('&Select File')
-    fileMenu.addAction(open_yaml_file)
-    fileMenu.addAction(open_simulation_file)
-    fileMenu.addAction(quit)
-
-
-def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
-    """
-    Display a file selector window when clicking on the select YAML file menu
-    item, then display the new plots described by the YAML file.
-
-    Arguments:
-        window: Mainwindow
-    """
-    home_dir = str(Path.home())
-    # start file selector on the last selected directory
-    settings = QtCore.QSettings("petab", "petabvis")
-    if settings.value("last_dir") is not None:
-        home_dir = settings.value("last_dir")
-    file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
-    if file_name != "":  # if a file was selected
-        window.visu_spec_plots.clear()
-        window.warn_msg.setText("")
-        pp = petab.Problem.from_yaml(file_name)
-        window.exp_data = pp.measurement_df
-        window.visualization_df = pp.visualization_df
-        window.condition_df = pp.condition_df
-        window.simulation_df = None
-        if pp.visualization_df is None:
-            window.add_warning("The YAML file contains no visualization file (default plotted)")
-        window.add_plots()
-
-        # save the directory for the next use
-        last_dir = os.path.dirname(file_name)
-        settings.setValue("last_dir", last_dir)
-
-
-def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
-    """
-    Displays a file selector window when clicking on the select simulation file button
-    Then adds the simulation lines to the plots
-
-    Arguments:
-        window: Mainwindow
-    """
-    home_dir = str(Path.home())
-    settings = QtCore.QSettings("petab", "petabvis")
-    if settings.value("last_dir") is not None:
-        home_dir = settings.value("last_dir")
-    file_name = QFileDialog.getOpenFileName(window, 'Open simulation file', home_dir)[0]
-    if file_name != "":  # if a file was selected
-        if window.exp_data is None:
-            window.add_warning("Please open a YAML file first.")
-        else:
-            window.visu_spec_plots.clear()
-            window.warn_msg.setText("")
-            sim_data = core.get_simulation_df(file_name)
-            # check columns, and add non-mandatory default columns
-            sim_data, _, _ = check_ex_exp_columns(sim_data, None, None,
-                                                  None, None, None,
-                                                  window.condition_df,
-                                                  sim=True)
-            window.simulation_df = sim_data
-            window.add_plots()
-            window.wid.addWidget(window.plot2_widget)
-
-        # save the directory for the next use
-        last_dir = os.path.dirname(file_name)
-        settings.setValue("last_dir", last_dir)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -126,6 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
         pg.setConfigOption("antialias", True)
+        self.resize(900, 600)
         self.setWindowTitle("PEtab-vis")
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
@@ -136,6 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
         self.plot2_widget = pg.GraphicsLayoutWidget(show=False)
         self.wid.addWidget(self.plot1_widget)
+        self.table_window = None
         # plot2_widget will be added to the QSplitter when
         # a simulation file is opened
         self.cbox = QComboBox()  # dropdown menu to select plots
@@ -146,7 +66,7 @@ class MainWindow(QtWidgets.QMainWindow):
         warnings.showwarning = self.redirect_warning
 
         layout = QVBoxLayout()
-        add_file_selector(self)
+        window_functionality.add_file_selector(self)
         if self.exp_data is not None:
             self.add_plots()
 

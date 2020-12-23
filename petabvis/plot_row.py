@@ -39,6 +39,7 @@ class PlotRow:
         if self.y_var:  # != ""
             self.line_data = self.line_data[self.line_data[ptc.OBSERVABLE_ID] == self.y_var]
 
+
         self.has_replicates = petab.measurements.measurements_have_replicates(self.line_data)
         self.replicates = utils.split_replicates(self.line_data)
         self.x_data = self.get_x_data()

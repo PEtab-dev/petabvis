@@ -320,4 +320,4 @@ class VisuSpecPlot:
                 y = np.concatenate([y, simulations])
             slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
 
-            return r_value
+            return r_value**2

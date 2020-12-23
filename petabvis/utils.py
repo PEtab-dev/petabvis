@@ -259,7 +259,6 @@ def split_replicates(line_data: pd.DataFrame):
     Returns:
         The std grouped by x_var
     """
-
     replicates = []
     if ptc.REPLICATE_ID in line_data.columns:
         for repl_id in np.unique(line_data[ptc.REPLICATE_ID]):
