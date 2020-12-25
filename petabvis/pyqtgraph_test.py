@@ -46,6 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pg.setConfigOption("antialias", True)
         self.resize(900, 600)
         self.setWindowTitle("PEtab-vis")
+        self.yaml_dict = None
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
         self.condition_df = condition_df
@@ -61,9 +62,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.warn_msg = QLabel("")
-        self.list_view = QtGui.QListView()
-        window_functionality.table_list_view(self)
-        self.wid.addWidget(self.list_view)
+        self.tree_view = QtGui.QTreeView(self)
+        self.tree_view.setHeaderHidden(True)
+        self.wid.addWidget(self.tree_view)
         self.current_list_index = 0
 
         warnings.showwarning = self.redirect_warning

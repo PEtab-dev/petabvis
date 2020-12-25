@@ -81,6 +81,7 @@ class TableWidget(QWidget):
 
         # QTableView Headers
         self.horizontal_header = self.table_view.horizontalHeader()
+        self.horizontal_header.setSortIndicator(-1, Qt.DescendingOrder)
         self.vertical_header = self.table_view.verticalHeader()
         self.horizontal_header.setSectionResizeMode(QHeaderView.ResizeToContents)
         self.vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -103,34 +104,47 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     window.table_window.show()
 
 
-def table_list_view(window: QtWidgets.QMainWindow):
-    list_view = window.list_view
 
-    entries = []
-    if window.exp_data is not None:
-        entries.append("Measurement")
-    if window.simulation_df is not None:
-        entries.append("Simulation")
-    if window.visualization_df is not None:
-        entries.append("Visualization")
 
+def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     model = QtGui.QStandardItemModel()
-    list_view.setModel(model)
-    list_view.doubleClicked.connect(lambda x: state_changed(x, model, window))
+    tree_view = window.tree_view
+    root_node = model.invisibleRootItem()
 
-    for i in entries:
-        item = QtGui.QStandardItem(i)
-        model.appendRow(item)
+    for key in window.yaml_dict:
+        branch = QtGui.QStandardItem(key)
+        for filename in window.yaml_dict[key]:
+            file = QtGui.QStandardItem(filename)
+            df = None
+            if key == ptc.MEASUREMENT_FILES:
+                df = petab.get_measurement_df(folder_path + "/" + filename)
+            if key == ptc.VISUALIZATION_FILES:
+                df = petab.get_visualization_df(folder_path + "/" + filename)
+            if key == ptc.CONDITION_FILES:
+                df = petab.get_condition_df(folder_path + "/" + filename)
+            if key == ptc.OBSERVABLE_FILES:
+                df = petab.get_observable_df(folder_path + "/" + filename)
+            file.setData(df, role=Qt.UserRole + 1)
+            branch.appendRow(file)
+        root_node.appendRow(branch)
+
+    if window.simulation_df is not None:
+        branch = QtGui.QStandardItem("simulation_files")
+        simulation_file = QtGui.QStandardItem("simulation_file")
+        simulation_file.setData(window.simulation_df, role=Qt.UserRole + 1)
+        branch.appendRow(simulation_file)
+        root_node.appendRow(branch)
+
+    tree_view.setModel(model)
+    tree_view.doubleClicked.connect(lambda x: state_changed(x, model, window))
+
 
 
 def state_changed(index, model, window):
     name = model.data(index, QtCore.Qt.DisplayRole)
-    if name == "Measurement":
-        pop_up_table_view(window, window.exp_data)
-    if name == "Simulation":
-        pop_up_table_view(window, window.simulation_df)
-    if name == "Visualization":
-        pop_up_table_view(window, window.visualization_df)
+    df = model.data(index, role=Qt.UserRole + 1)
+    if df is not None:
+        pop_up_table_view(window, df)
 
 
 def add_file_selector(window: QtWidgets.QMainWindow):
@@ -171,6 +185,7 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         window.visu_spec_plots.clear()
         window.warn_msg.setText("")
         pp = petab.Problem.from_yaml(file_name)
+        window.yaml_dict = petab.load_yaml(file_name)["problems"][0]
         window.exp_data = pp.measurement_df
         window.visualization_df = pp.visualization_df
         window.condition_df = pp.condition_df
@@ -178,11 +193,12 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         if pp.visualization_df is None:
             window.add_warning("The YAML file contains no visualization file (default plotted)")
         window.add_plots()
-        window.listWidget = table_list_view(window)
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name)
         settings.setValue("last_dir", last_dir)
+
+        window.listWidget = table_tree_view(window, last_dir)
 
 
 def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
@@ -219,7 +235,7 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
 
             # insert correlation plot at position 1
             window.wid.insertWidget(1, window.plot2_widget)
-            window.listWidget = table_list_view(window)
+            window.listWidget = table_tree_view(window, os.path.dirname(file_name))
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name)
