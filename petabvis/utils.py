@@ -2,6 +2,8 @@ import petab.C as ptc
 import numpy as np
 import pandas as pd
 import warnings
+from PySide2 import QtWidgets, QtCore, QtGui
+
 from PySide2.QtWidgets import QComboBox
 
 
@@ -301,3 +303,38 @@ def add_plotnames_to_cbox(exp_data: pd.DataFrame, visualization_df: pd.DataFrame
         observable_ids = [exp_data[ptc.OBSERVABLE_ID][index] for index in sorted(indexes)]
         for observable_id in observable_ids:
             cbox.addItem(observable_id)
+
+
+def get_min_and_max_ranges(plot_rows, simulation_plot_rows):
+    """
+    Calculate the min and max value between measurement
+    and simulation (used to set appropriate scales in the
+    correlation plot such that all points are visible and
+    both axis have the same initial ranges
+
+    Arguments:
+        plot_rows: List of plot_row Objects (measurements)
+        simulation_plot_rows: List of plot_row Objects (simulation)
+    Returns:
+        min_value: The minimum value of measurements and simulations
+        max_value: The maximum value of measurements and simulations
+    """
+    min_value = min([np.min(row.y_data) for row in plot_rows] + [np.min(row.y_data) for row in simulation_plot_rows])
+    max_value = max([np.max(row.y_data) for row in plot_rows] + [np.max(row.y_data) for row in simulation_plot_rows])
+
+    return min_value, max_value
+
+def get_signals(source):
+    """
+    Print out all signals that are implemented in source
+    (only for debug purposes)
+    """
+    cls = source if isinstance(source, type) else type(source)
+    signal = type(QtCore.Signal())
+    print("Signals:")
+    for name in dir(source):
+        try:
+            if isinstance(getattr(cls, name), signal):
+                print(name)
+        except Exception as inst:
+            print("skipped")

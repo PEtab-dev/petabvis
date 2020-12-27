@@ -99,6 +99,13 @@ class TableWidget(QWidget):
 
 
 def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
+    """
+    Create a popup window that displays the dataframe
+
+    Arguments:
+        window: The mainwindow to which the TableWidget gets added
+        df: The dataframe to display
+    """
     window.table_window = TableWidget(df)
     window.table_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
     window.table_window.show()
@@ -107,6 +114,13 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
 
 
 def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
+    """
+    Create a treeview of the yaml file
+
+    Arguments:
+        window: The Mainwindow to which the treeview is added
+        folder_path: The path to the folder the yaml file is in
+    """
     model = QtGui.QStandardItemModel()
     tree_view = window.tree_view
     root_node = model.invisibleRootItem()
@@ -136,11 +150,43 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         root_node.appendRow(branch)
 
     tree_view.setModel(model)
-    tree_view.doubleClicked.connect(lambda x: state_changed(x, model, window))
+    tree_view.clicked.connect(lambda i: exchange_dataframe_on_click(i, model, window))
+    tree_view.doubleClicked.connect(lambda i: display_table_on_doubleclick(i, model, window))
 
 
+def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):
+    """
+    Changes the currently plotted dataframe with the one
+    that gets clicked on and replot the data
+    e.g. switch the measurement or visualization df
 
-def state_changed(index, model, window):
+    Arguments:
+        index: index of the clicked dataframe
+        model: model containing the data
+        window: Mainwindow whose attributes get updated
+    """
+    name = model.data(index, QtCore.Qt.DisplayRole)
+    df = model.data(index, role=Qt.UserRole + 1)
+    parent = index.parent()
+    parent_name = model.data(parent, QtCore.Qt.DisplayRole)
+    if parent_name == ptc.MEASUREMENT_FILES:
+        window.exp_data = df
+    if parent_name == ptc.VISUALIZATION_FILES:
+        window.visualization_df = df
+    if parent_name == ptc.CONDITION_FILES:
+        window.condition_df = df
+    window.add_plots()
+
+
+def display_table_on_doubleclick(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):
+    """
+    Display the dataframe in a new window upon double-click
+
+    Arguments:
+        index: index of the clicked dataframe
+        model: model containing the data
+        window: Mainwindow whose attributes get updated
+    """
     name = model.data(index, QtCore.Qt.DisplayRole)
     df = model.data(index, role=Qt.UserRole + 1)
     if df is not None:
@@ -182,21 +228,24 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         home_dir = settings.value("last_dir")
     file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
     if file_name != "":  # if a file was selected
-        window.visu_spec_plots.clear()
-        window.warn_msg.setText("")
-        pp = petab.Problem.from_yaml(file_name)
-        window.yaml_dict = petab.load_yaml(file_name)["problems"][0]
-        window.exp_data = pp.measurement_df
-        window.visualization_df = pp.visualization_df
-        window.condition_df = pp.condition_df
-        window.simulation_df = None
-        if pp.visualization_df is None:
-            window.add_warning("The YAML file contains no visualization file (default plotted)")
-        window.add_plots()
-
         # save the directory for the next use
         last_dir = os.path.dirname(file_name)
         settings.setValue("last_dir", last_dir)
+
+        window.warn_msg.setText("")
+
+        # select the first df in the dict for measurements, etc.
+        yaml_dict = petab.load_yaml(file_name)["problems"][0]
+        window.yaml_dict = yaml_dict
+        window.exp_data = petab.get_measurement_df(last_dir + "/" + yaml_dict[ptc.MEASUREMENT_FILES][0])
+        window.condition_df = petab.get_condition_df(last_dir + "/" + yaml_dict[ptc.CONDITION_FILES][0])
+        window.simulation_df = None
+        if ptc.VISUALIZATION_FILES in yaml_dict:
+            window.visualization_df = petab.get_visualization_df(last_dir + "/" + yaml_dict[ptc.VISUALIZATION_FILES][0])
+        else:
+            window.add_warning("The YAML file contains no visualization file (default plotted)")
+        window.add_plots()
+
 
         window.listWidget = table_tree_view(window, last_dir)
 
@@ -218,14 +267,11 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
         if window.exp_data is None:
             window.add_warning("Please open a YAML file first.")
         else:
-            window.visu_spec_plots.clear()
             window.warn_msg.setText("")
             sim_data = core.get_simulation_df(file_name)
             # check columns, and add non-mandatory default columns
-            sim_data, _, _ = check_ex_exp_columns(sim_data, None, None,
-                                                  None, None, None,
-                                                  window.condition_df,
-                                                  sim=True)
+            sim_data, _, _ = check_ex_exp_columns(sim_data, None, None, None, None, None,
+                                                  window.condition_df, sim=True)
             # delete the replicateId column if it gets added to the simulation table
             # but is not in exp_data because it causes problems when splitting the replicates
             if ptc.REPLICATE_ID not in window.exp_data.columns and ptc.REPLICATE_ID in sim_data.columns:

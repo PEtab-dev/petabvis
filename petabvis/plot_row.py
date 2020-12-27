@@ -80,6 +80,12 @@ class PlotRow:
         return y_data
 
     def get_provided_noise(self):
+        """
+        Get the provided noise from the noiseParameters column
+
+        Returns:
+            The provided noise
+        """
         if self.plot_type_data == ptc.PROVIDED:
             noise = self.line_data[ptc.NOISE_PARAMETERS]
             noise = np.asarray(noise)

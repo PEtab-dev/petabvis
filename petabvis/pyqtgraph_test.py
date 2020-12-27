@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
         pg.setConfigOption("antialias", True)
-        self.resize(900, 600)
+        self.resize(1000, 600)
         self.setWindowTitle("PEtab-vis")
         self.yaml_dict = None
         self.visualization_df = visualization_df
@@ -56,12 +56,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
         self.plot2_widget = pg.GraphicsLayoutWidget(show=False)
         self.wid.addWidget(self.plot1_widget)
-        self.table_window = None
         # plot2_widget will be added to the QSplitter when
         # a simulation file is opened
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.warn_msg = QLabel("")
+        # The new window that pops up to display a table
+        self.table_window = None
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
         self.wid.addWidget(self.tree_view)
@@ -91,8 +92,9 @@ class MainWindow(QtWidgets.QMainWindow):
         Returns:
             List of PlotItem
         """
-        #self.wid.clear()
         self.clear_QSplitter()
+        self.visu_spec_plots.clear()
+
 
         if self.visualization_df is not None:
             # to keep the order of plots consistent with names from the plot selection

@@ -58,7 +58,7 @@ class VisuSpecPlot:
 
         self.plot_title = utils.get_plot_title(self.visualization_df)
         self.plot = pg.PlotItem(title=self.plot_title)
-        self.plot.addLegend()
+        self.legend = self.plot.addLegend()
 
         self.plot_rows = self.generate_plot_rows(self.measurement_df)  # list of plot_rows
         self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
@@ -68,14 +68,20 @@ class VisuSpecPlot:
 
         self.generate_plot()
 
-        # add the correlation plot (only if a simulation file is provided)
-        self.correlation_plot = pg.PlotItem(title="Correlation")
-        self.generate_correlation_plot()
-        self.correlation_plot.addItem(pg.InfiniteLine([0,0], angle=45))
-        self.correlation_plot.setAspectLocked()
-        self.r_squared = self.get_R_squared()
-        r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
-        self.correlation_plot.addItem(pg.TextItem(str(r_squared_text), anchor=(0,0), color="k"))
+
+        if self.simulation_df is not None:
+            # add the correlation plot (only if a simulation file is provided)
+            self.correlation_plot = pg.PlotItem(title="Correlation")
+            self.generate_correlation_plot()
+            self.correlation_plot.addItem(pg.InfiniteLine([0,0], angle=45))
+
+            #calculate and add the r_squared value
+            self.r_squared = self.get_R_squared()
+            r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
+            r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
+            min_value, max_value = utils.get_min_and_max_ranges(self.plot_rows, self.plot_rows_simulation)
+            r_squared_text.setPos(min_value, max_value)
+            self.correlation_plot.addItem(r_squared_text, anchor=(0,0), color="k")
 
     def generate_plot_rows(self, df):
         """
@@ -205,16 +211,22 @@ class VisuSpecPlot:
 
         return(pdi)
 
+
     def generate_correlation_plot(self):
-        if self.simulation_df is not None:
-            self.correlation_plot.setLabel("left", "Simulation")
-            self.correlation_plot.setLabel("bottom", "Measurement")
-            for i in range(0, len(self.plot_rows)):
-                measurements = self.plot_rows[i].y_data
-                simulations = self.plot_rows_simulation[i].y_data
-                self.correlation_plot.plot(measurements, simulations,
-                                           pen=None, symbol='o',
-                                           symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+        """
+        Generate the scatterplot between the
+        measurement and simulation values
+        """
+        self.correlation_plot.setLabel("left", "Simulation")
+        self.correlation_plot.setLabel("bottom", "Measurement")
+        for i in range(0, len(self.plot_rows)):
+            measurements = self.plot_rows[i].y_data
+            simulations = self.plot_rows_simulation[i].y_data
+            self.correlation_plot.plot(measurements, simulations,
+                                       pen=None, symbol='o',
+                                       symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+        min_value, max_value = utils.get_min_and_max_ranges(self.plot_rows, self.plot_rows_simulation)
+        self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
 
     def default_plot(self, p_row: plot_row.PlotRow):
         """
@@ -250,9 +262,9 @@ class VisuSpecPlot:
 
             # case distinction if a visualization_df was provided or not
             if p_row is not None:
-                # add offsets to the data
-                # we only set the x_ and y_data variable so we can use
-                # the check_log_for_zeros function
+                # add offsets to the data:
+                # we only set the x_ and y_data variable of p_row
+                # so we can use the check_log_for_zeros function
                 p_row.x_data = x_data + p_row.x_offset
                 p_row.y_data = y_data + p_row.y_offset
                 self.check_log_for_zeros(p_row)
@@ -310,6 +322,13 @@ class VisuSpecPlot:
             self.warnings = self.warnings + message + "\n"
 
     def get_R_squared(self):
+        """
+        Calculate the R^2 value between the measurement
+        and simulation values
+
+        Returns:
+            The R^2 value
+        """
         if self.simulation_df is not None:
             x = []
             y = []
