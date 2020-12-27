@@ -31,7 +31,7 @@ class PlotRow:
         self.plot_type_data = utils.get_plot_type_data(plot_spec)
         self.is_simulation = ptc.SIMULATION in exp_data.columns
 
-        if self.dataset_id:  # != ""
+        if self.dataset_id and ptc.DATASET_ID in exp_data:  # != ""
             self.line_data = exp_data[exp_data[ptc.DATASET_ID] == self.dataset_id]
         else:
             self.line_data = exp_data

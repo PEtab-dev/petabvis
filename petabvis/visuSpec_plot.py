@@ -156,11 +156,10 @@ class VisuSpecPlot:
                        symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
 
         # Errorbars do not support log scales
-        if self.plot_rows:
-            if "log" in self.plot_rows[0].x_scale or "log" in self.plot_rows[0].y_scale:
-                if len(self.error_bars) > 0:
-                    self.warnings = self.warnings + "Errorbars are not supported with log scales (in " \
-                                    + self.plot_title + ")\n"
+        if self.plot_rows and ("log" in self.plot_rows[0].x_scale or "log" in self.plot_rows[0].y_scale):
+            if len(self.error_bars) > 0:
+                self.warnings = self.warnings + "Errorbars are not supported with log scales (in " \
+                                + self.plot_title + ")\n"
         else:
             # add error bars
             for error_bar in self.error_bars:

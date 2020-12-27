@@ -162,7 +162,8 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             message: The message to display
         """
-        self.warn_msg.setText(self.warn_msg.text() + message + "\n")
+        if message not in self.warn_msg.text():
+            self.warn_msg.setText(self.warn_msg.text() + message + "\n")
 
     def redirect_warning(self, message, category, filename=None, lineno=None, file=None, line=None):
         """
