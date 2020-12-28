@@ -337,5 +337,9 @@ class VisuSpecPlot:
                 x = np.concatenate([x, measurements])
                 y = np.concatenate([y, simulations])
             slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
+            print("Linear Regression Statistics for " + self.plot_title + ":")
+            print("Slope: " + str(slope) + ", Intercept: " + str(intercept)
+                  + ", R-value: " + str(r_value) + ", p-value: " + str(p_value)
+                  + ", Std Err: " + str(std_err))
 
             return r_value**2

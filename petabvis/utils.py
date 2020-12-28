@@ -322,7 +322,6 @@ def get_min_and_max_ranges(plot_rows, simulation_plot_rows):
     values = [y for row in (plot_rows + simulation_plot_rows) for y in row.y_data]
     return min(values), max(values)
 
-    return min_value, max_value
 
 def get_signals(source):
     """
