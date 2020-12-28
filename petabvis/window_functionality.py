@@ -180,7 +180,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandar
 
 def display_table_on_doubleclick(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):
     """
-    Display the dataframe in a new window upon double-click
+    Display the dataframe in a new window upon double-click.
 
     Arguments:
         index: index of the clicked dataframe
