@@ -257,7 +257,7 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
     then add the simulation lines to the plots.
 
     Arguments:
-        window: Mainwindow
+        window: main window.
     """
     home_dir = str(Path.home())
     settings = QtCore.QSettings("petab", "petabvis")
