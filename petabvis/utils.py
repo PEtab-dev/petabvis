@@ -310,7 +310,7 @@ def get_min_and_max_ranges(plot_rows, simulation_plot_rows):
     Calculate the min and max value between measurement
     and simulation (used to set appropriate scales in the
     correlation plot such that all points are visible and
-    both axis have the same initial ranges
+    both axis have the same initial ranges).
 
     Arguments:
         plot_rows: List of plot_row Objects (measurements)
