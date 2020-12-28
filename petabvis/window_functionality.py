@@ -253,8 +253,8 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
 
 def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
     """
-    Displays a file selector window when clicking on the select simulation file button
-    Then adds the simulation lines to the plots
+    Display a file selector window when clicking on the select simulation file button,
+    then add the simulation lines to the plots.
 
     Arguments:
         window: Mainwindow
