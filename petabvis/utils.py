@@ -319,8 +319,8 @@ def get_min_and_max_ranges(plot_rows, simulation_plot_rows):
         min_value: The minimum value of measurements and simulations
         max_value: The maximum value of measurements and simulations
     """
-    min_value = min([np.min(row.y_data) for row in plot_rows] + [np.min(row.y_data) for row in simulation_plot_rows])
-    max_value = max([np.max(row.y_data) for row in plot_rows] + [np.max(row.y_data) for row in simulation_plot_rows])
+    values = [y for row in (plot_rows + simulation_plot_rows) for y in row.y_data]
+    return min(values), max(values)
 
     return min_value, max_value
 
