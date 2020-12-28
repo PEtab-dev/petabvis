@@ -157,8 +157,8 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
 def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):
     """
     Changes the currently plotted dataframe with the one
-    that gets clicked on and replot the data
-    e.g. switch the measurement or visualization df
+    that gets clicked on and replot the data,
+    e.g. switch the measurement or visualization df.
 
     Arguments:
         index: index of the clicked dataframe
