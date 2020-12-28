@@ -115,7 +115,7 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
 
 def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     """
-    Create a treeview of the yaml file
+    Create a treeview of the yaml file.
 
     Arguments:
         window: The Mainwindow to which the treeview is added
