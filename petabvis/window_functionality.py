@@ -195,7 +195,7 @@ def display_table_on_doubleclick(index: QtCore.QModelIndex, model: QtGui.QStanda
 
 def add_file_selector(window: QtWidgets.QMainWindow):
     """
-    Adds a file selector button to the main window
+    Add a file selector button to the main window.
     Arguments:
         window: Mainwindow
     """
