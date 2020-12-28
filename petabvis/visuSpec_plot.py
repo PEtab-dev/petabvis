@@ -298,8 +298,8 @@ class VisuSpecPlot:
 
     def check_log_for_zeros(self, p_row):
         """
-        Add an offset of 0.001 to the x- or y-values if
-        they contain a zero and are log-scaled
+        Add an offset to values if they contain a zero and will be plotted on
+        log-scale.
         """
         offset = 0.001
         if 0 in p_row.x_data and "log" in p_row.x_scale:
