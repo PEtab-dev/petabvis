@@ -141,7 +141,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         # Exit when pressing ctrl + Q
         ctrl = False
-        if (ev.modifiers() & QtCore.Qt.ControlModifier):
+        if (ev.modifiers() and QtCore.Qt.ControlModifier):
             ctrl = True
         if ctrl and ev.key() == QtCore.Qt.Key_Q:
             sys.exit()

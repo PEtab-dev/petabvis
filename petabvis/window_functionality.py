@@ -243,6 +243,7 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         if ptc.VISUALIZATION_FILES in yaml_dict:
             window.visualization_df = petab.get_visualization_df(last_dir + "/" + yaml_dict[ptc.VISUALIZATION_FILES][0])
         else:
+            window.visualization_df = None
             window.add_warning("The YAML file contains no visualization file (default plotted)")
         window.add_plots()
 
