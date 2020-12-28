@@ -103,7 +103,7 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     Create a popup window that displays the dataframe.
 
     Arguments:
-        window: The mainwindow to which the TableWidget gets added
+        window: The main window to which the TableWidget gets added.
         df: The dataframe to display
     """
     window.table_window = TableWidget(df)
