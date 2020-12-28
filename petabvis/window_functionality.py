@@ -21,10 +21,10 @@ from petab.visualize.helper_functions import check_ex_exp_columns
 class CustomTableModel(QAbstractTableModel):
     """PEtab data table model."""
 
-    def __init__(self, data=None):
+    def __init__(self, df=None):
         QAbstractTableModel.__init__(self)
-        self.load_data(data)
-        self.df = data
+        self.load_data(df)
+        self.df = df
 
     def load_data(self, data):
         for x in data:
@@ -68,7 +68,6 @@ class TableWidget(QWidget):
 
     def __init__(self, data: pd.DataFrame):
         QWidget.__init__(self)
-
         # Getting the Model
         self.model = CustomTableModel(data)
 
@@ -84,8 +83,8 @@ class TableWidget(QWidget):
         self.horizontal_header.setSortIndicator(-1, Qt.DescendingOrder)
         self.vertical_header = self.table_view.verticalHeader()
         self.horizontal_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.horizontal_header.setStretchLastSection(True)
+        #self.vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
+
 
         # QWidget Layout
         self.main_layout = QVBoxLayout()
@@ -150,8 +149,25 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         root_node.appendRow(branch)
 
     tree_view.setModel(model)
-    tree_view.clicked.connect(lambda i: exchange_dataframe_on_click(i, model, window))
-    tree_view.doubleClicked.connect(lambda i: display_table_on_doubleclick(i, model, window))
+    reconnect(tree_view.clicked, lambda i: exchange_dataframe_on_click(i, model, window))
+    reconnect(tree_view.doubleClicked, lambda i: display_table_on_doubleclick(i, model, window))
+
+
+def reconnect(signal, new_function=None):
+    """
+    Disconnect a signal from all functions and connect it
+    to a new function.
+
+    Arguments:
+        signal: The signal to reconnect
+        new_function: The function the signal gets connected to
+    """
+    try:
+        signal.disconnect()
+    except RuntimeError:
+        pass
+    if new_function is not None:
+        signal.connect(new_function)
 
 
 def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):
@@ -169,13 +185,24 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandar
     df = model.data(index, role=Qt.UserRole + 1)
     parent = index.parent()
     parent_name = model.data(parent, QtCore.Qt.DisplayRole)
+    # Only replot when a new dataframe is selected
+    # (Important because double clicking also calls this function)
+    df_changed = True
     if parent_name == ptc.MEASUREMENT_FILES:
+        if window.exp_data.equals(df):
+            df_changed = False
         window.exp_data = df
     if parent_name == ptc.VISUALIZATION_FILES:
+        if window.visualization_df.equals(df):
+            df_changed = False
         window.visualization_df = df
     if parent_name == ptc.CONDITION_FILES:
+        if window.condition_df.equals(df):
+            df_changed = False
         window.condition_df = df
-    window.add_plots()
+
+    if df_changed:
+        window.add_plots()
 
 
 def display_table_on_doubleclick(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):

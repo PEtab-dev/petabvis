@@ -300,12 +300,14 @@ class VisuSpecPlot:
         """
         Add an offset to values if they contain a zero and will be plotted on
         log-scale.
+        The offset is calculated as the smalles nonzero value times 0.001
         """
-        offset = 0.001
         if 0 in p_row.x_data and "log" in p_row.x_scale:
+            offset = np.min(p_row.x_data[np.nonzero(p_row.x_data)]) * 0.001
             p_row.x_data = p_row.x_data + offset
             self.add_warning("Unable to take log of 0, added offset of " + str(offset) + " to x-values")
         if 0 in p_row.y_data and "log" in p_row.y_scale:
+            offset = np.min(p_row.y_data[np.nonzero(p_row.y_data)]) * 0.001
             p_row.y_data = p_row.y_data + offset
             self.add_warning("Unable to take log of 0, added offset of " + str(offset) + " to y-values")
 
