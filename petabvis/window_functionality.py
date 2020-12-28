@@ -19,7 +19,7 @@ from petab.visualize.helper_functions import check_ex_exp_columns
 
 
 class CustomTableModel(QAbstractTableModel):
-    """PEtab data table model"""
+    """PEtab data table model."""
 
     def __init__(self, data=None):
         QAbstractTableModel.__init__(self)
