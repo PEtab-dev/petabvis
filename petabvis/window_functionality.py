@@ -118,7 +118,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     Create a treeview of the yaml file.
 
     Arguments:
-        window: The Mainwindow to which the treeview is added
+        window: The main window to which the treeview is added
         folder_path: The path to the folder the yaml file is in
     """
     model = QtGui.QStandardItemModel()
