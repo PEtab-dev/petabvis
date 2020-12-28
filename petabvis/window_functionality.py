@@ -64,7 +64,7 @@ class CustomTableModel(QAbstractTableModel):
 
 
 class TableWidget(QWidget):
-    """Main widget"""
+    """Widget for displaying a PEtab table."""
 
     def __init__(self, data: pd.DataFrame):
         QWidget.__init__(self)
