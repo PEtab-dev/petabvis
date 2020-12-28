@@ -194,7 +194,7 @@ class MainWindow(QtWidgets.QMainWindow):
             for observable_id in observable_ids:
                 rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
                 data = self.exp_data[rows]
-                visuPlot = visuSpec_plot.VisuSpecPlot(data, self.visualization_df, self.simulation_df, plot_id)
+                visuPlot = visuSpec_plot.VisuSpecPlot(data, None, self.simulation_df, plot_id)
                 self.visu_spec_plots.append(visuPlot)
                 if visuPlot.warnings:
                     self.add_warning(visuPlot.warnings)
