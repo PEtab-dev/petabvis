@@ -187,6 +187,8 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
     if visualization_df_rows is not None:
         if ptc.PLOT_NAME in visualization_df_rows.columns:
             plot_title = visualization_df_rows.iloc[0][ptc.PLOT_NAME]
+        elif ptc.PLOT_ID in visualization_df_rows.columns:
+            plot_title = visualization_df_rows.iloc[0][ptc.PLOT_ID]
 
     return plot_title
 
