@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import scipy
 import petab
 import petab.C as ptc
 from PySide2 import QtCore
@@ -44,8 +45,8 @@ class VisuSpecPlot:
         self.simulation_df = simulation_df
         self.plotId = plotId
         self.visualization_df = visualization_df
-        self.scatter_points = [[], []]
-        self.scatter_points_simulation = [[], []]
+        self.scatter_points = {"x": [], "y": []}
+        self.scatter_points_simulation = {"x": [], "y": []}
         self.error_bars = []
         self.warnings = ""
         self.has_replicates = petab.measurements.measurements_have_replicates(self.measurement_df)
@@ -57,22 +58,38 @@ class VisuSpecPlot:
 
         self.plot_title = utils.get_plot_title(self.visualization_df)
         self.plot = pg.PlotItem(title=self.plot_title)
-        self.plot.addLegend()
+        self.legend = self.plot.addLegend()
 
+        self.check_log_for_zeros()
         self.plot_rows = self.generate_plot_rows(self.measurement_df)  # list of plot_rows
         self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
 
-        self.exp_lines = self.generate_plot_data_items(self.plot_rows)  # list of PlotDataItems (measurements)
-        self.simu_lines = self.generate_plot_data_items(self.plot_rows_simulation)  # (simulations)
+        self.exp_lines = self.generate_plot_data_items(self.plot_rows, is_simulation=False)  # list of PlotDataItems (measurements)
+        self.simu_lines = self.generate_plot_data_items(self.plot_rows_simulation, is_simulation=True)  # (simulations)
 
         self.generate_plot()
 
-        self.correlation_plot = pg.PlotItem(title="Correlation")
-        self.generate_correlation_plot()
+        if self.simulation_df is not None:
+            # add the correlation plot (only if a simulation file is provided)
+            self.correlation_plot = pg.PlotItem(title="Correlation")
+            self.generate_correlation_plot()
+            self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
+
+            # calculate and add the r_squared value
+            self.r_squared = self.get_R_squared()
+            r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
+            r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
+            min_value = min(self.scatter_points["y"] + self.scatter_points_simulation["y"])
+            max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
+            r_squared_text.setPos(min_value, max_value)
+            self.correlation_plot.addItem(r_squared_text, anchor=(0, 0), color="k")
 
     def generate_plot_rows(self, df):
         """
         Create a PlotRow object for each row of the visualization df
+
+        Arguments:
+            df: Measurement or Simulation df
         """
         plot_rows = []
         if self.visualization_df is not None:
@@ -82,19 +99,24 @@ class VisuSpecPlot:
                     plot_rows.append(plot_line)
         return plot_rows
 
-    def generate_plot_data_items(self, plot_rows):
+    def generate_plot_data_items(self, plot_rows, is_simulation: bool = False):
         """
         Generate a list of PlotDataItems based on
         a list of PlotRows
 
         Arguments:
             plot_rows: A list of PlotRow objects
+            is_simulation: True plot_rows belong to a simulation df
         Returns:
             pdis: A list of PlotDataItems
         """
         pdis = []  # list of PlotDataItems
         for line in plot_rows:
-            pdis.append(self.plot_row_to_plot_data_item(line))
+            if line.dataset_id == "":
+                plot_lines = self.default_plot(line, is_simulation=is_simulation)
+                pdis = pdis + plot_lines
+            else:
+                pdis.append(self.plot_row_to_plot_data_item(line))
         return pdis
 
     def getPlot(self):
@@ -116,7 +138,9 @@ class VisuSpecPlot:
         else:  # when no visualization file was provided
             self.plot.setLabel("left", "measurement")
             self.plot.setLabel("bottom", "time")
-            self.default_plot(None)
+            self.exp_lines = self.default_plot(None)
+            if self.simulation_df is not None:
+                self.simu_lines = self.default_plot(None, is_simulation=True)
 
         # color the plot so measurements and simulations
         # have the same color but are different from other
@@ -131,15 +155,15 @@ class VisuSpecPlot:
                 self.plot.addItem(self.simu_lines[i])
 
         # add point measurements
-        self.plot.plot(self.scatter_points[0], self.scatter_points[1],
+        self.plot.plot(self.scatter_points["x"], self.scatter_points["y"],
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
-        self.plot.plot(self.scatter_points_simulation[0], self.scatter_points_simulation[1],
+        self.plot.plot(self.scatter_points_simulation["x"], self.scatter_points_simulation["y"],
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
 
         # Errorbars do not support log scales
-        if "log" in self.plot_rows[0].x_scale or "log" in self.plot_rows[0].y_scale:
+        if self.plot_rows and ("log" in self.plot_rows[0].x_scale or "log" in self.plot_rows[0].y_scale):
             if len(self.error_bars) > 0:
                 self.warnings = self.warnings + "Errorbars are not supported with log scales (in " \
                                 + self.plot_title + ")\n"
@@ -163,51 +187,49 @@ class VisuSpecPlot:
             p_row: The PlotRow object that contains the information
              of the line that is added
         """
-        # if the p_row has no datasetId,
-        # the whole dataset will be plotted
-        if p_row.dataset_id == "":
-            self.default_plot(p_row)
+        legend_name = p_row.legend_name
+        if p_row.is_simulation:
+            legend_name = legend_name + " simulation"
+            # add points to scatter_points
+            self.scatter_points_simulation["x"] = self.scatter_points_simulation["x"] + p_row.x_data.tolist()
+            self.scatter_points_simulation["y"] = self.scatter_points_simulation["y"] + p_row.y_data.tolist()
         else:
-            legend_name = p_row.legend_name
-            if p_row.is_simulation:
-                legend_name = legend_name + " simulation"
-                # add points to scatter_points
-                self.scatter_points_simulation[0] = self.scatter_points_simulation[0] + p_row.x_data.tolist()
-                self.scatter_points_simulation[1] = self.scatter_points_simulation[1] + p_row.y_data.tolist()
-            else:
-                self.scatter_points[0] = self.scatter_points[0] + p_row.x_data.tolist()
-                self.scatter_points[1] = self.scatter_points[1] + p_row.y_data.tolist()
-            pdi = pg.PlotDataItem(p_row.x_data,
-                                  p_row.y_data,
-                                  name=legend_name)
+            self.scatter_points["x"] = self.scatter_points["x"] + p_row.x_data.tolist()
+            self.scatter_points["y"] = self.scatter_points["y"] + p_row.y_data.tolist()
+        pdi = pg.PlotDataItem(p_row.x_data,
+                              p_row.y_data,
+                              name=legend_name)
 
-            # Only add error bars when needed
-            if p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED:
-                error_length = p_row.sd
-                if p_row.plot_type_data == ptc.MEAN_AND_SEM:
-                    error_length = p_row.sem
-                if p_row.plot_type_data == ptc.PROVIDED:
-                    error_length = p_row.provided_noise
-                beam_width = 0
-                if len(p_row.x_data) > 0:  # p_row.x_data could be empty
-                    beam_width = np.max(p_row.x_data) / 100
-                error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data, top=error_length, bottom=error_length, beam=beam_width)
-                self.error_bars.append(error)
+        # Only add error bars when needed
+        if p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED:
+            error_length = p_row.sd
+            if p_row.plot_type_data == ptc.MEAN_AND_SEM:
+                error_length = p_row.sem
+            if p_row.plot_type_data == ptc.PROVIDED:
+                error_length = p_row.provided_noise
+            beam_width = 0
+            if len(p_row.x_data) > 0:  # p_row.x_data could be empty
+                beam_width = np.max(p_row.x_data) / 100
+            error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data, top=error_length, bottom=error_length, beam=beam_width)
+            self.error_bars.append(error)
 
-            return(pdi)
+        return(pdi)
 
     def generate_correlation_plot(self):
-        if self.simulation_df is not None:
-            self.correlation_plot.setLabel("left", "Simulation")
-            self.correlation_plot.setLabel("bottom", "Measurement")
-            for i in range(0, len(self.plot_rows)):
-                measurements = self.plot_rows[i].y_data
-                simulations = self.plot_rows_simulation[i].y_data
-                self.correlation_plot.plot(measurements, simulations,
-                                           pen=None, symbol='o',
-                                           symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+        """
+        Generate the scatterplot between the
+        measurement and simulation values
+        """
+        self.correlation_plot.setLabel("left", "Simulation")
+        self.correlation_plot.setLabel("bottom", "Measurement")
+        self.correlation_plot.plot(self.scatter_points["y"], self.scatter_points_simulation["y"],
+                                   pen=None, symbol='o',
+                                   symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+        min_value = min(self.scatter_points["y"] + self.scatter_points_simulation["y"])
+        max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
+        self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
 
-    def default_plot(self, p_row: plot_row.PlotRow):
+    def default_plot(self, p_row: plot_row.PlotRow, is_simulation=False):
         """
         This method is used when the p_row contains no dataset_id
         or no visualization file was provided
@@ -218,32 +240,53 @@ class VisuSpecPlot:
         Arguments:
             p_row: The PlotRow object that contains the information
              of the line that is added
-        """
 
+        Returns:
+            List of Plot_Data_Items
+        """
+        plot_lines = []
         # group by Observable ID as default
-        grouping = ptc.OBSERVABLE_ID
+        grouping = ptc.SIMULATION_CONDITION_ID
         # if the datasetId column is present, group by datasetId
         if ptc.DATASET_ID in self.measurement_df.columns:
             grouping = ptc.DATASET_ID
         else:
-            self.warnings = self.warnings + "Grouped by observable. If you want to specify another grouping option" \
-                                            ", please add \"datasetID\" columns."
-        for group_id in np.unique(self.measurement_df[grouping]):
-            line_data = self.measurement_df[self.measurement_df[grouping] == group_id]
-            data = line_data[[ptc.MEASUREMENT, ptc.TIME]]
+            self.add_warning("Grouped by observable. If you want to specify another grouping option"
+                             ", please add \"datasetID\" columns.")
+        df = self.measurement_df
+        y_var = ptc.MEASUREMENT
+        if is_simulation:
+            df = self.simulation_df
+            y_var = ptc.SIMULATION
+
+        for group_id in np.unique(df[grouping]):
+            line_data = df[df[grouping] == group_id]
+            data = line_data[[y_var, ptc.TIME]]
             x_data = data.groupby(ptc.TIME)
             x_data = np.fromiter(x_data.groups.keys(), dtype=float)
-            y_data = utils.mean_replicates(line_data, ptc.TIME)
+            y_data = utils.mean_replicates(line_data, ptc.TIME, y_var)
+            line_name = group_id
+
+            # case distinction if a visualization_df was provided or not
             if p_row is not None:
-                # Note: do not use p_row.x_data when default plotting
+                # add offsets to the data:
                 x_data = x_data + p_row.x_offset
                 y_data = y_data + p_row.y_offset
+            else:
+                line_name = line_name + "_" + df[ptc.OBSERVABLE_ID].iloc[0]
 
             # add points
-            self.scatter_points[0] = self.scatter_points[0] + x_data.tolist()
-            self.scatter_points[1] = self.scatter_points[1] + y_data.tolist()
+            if is_simulation:
+                self.scatter_points_simulation["x"] = self.scatter_points_simulation["x"] + x_data.tolist()
+                self.scatter_points_simulation["y"] = self.scatter_points_simulation["y"] + y_data.tolist()
+                line_name = line_name + " simulation"
+            else:
+                self.scatter_points["x"] = self.scatter_points["x"] + x_data.tolist()
+                self.scatter_points["y"] = self.scatter_points["y"] + y_data.tolist()
 
-            self.exp_lines.append(pg.PlotDataItem(x_data, y_data, name=group_id))
+            plot_lines.append(pg.PlotDataItem(x_data, y_data, name=line_name))
+
+        return plot_lines
 
     def set_scales(self):
         """
@@ -255,8 +298,78 @@ class VisuSpecPlot:
             if "log" in self.plot_rows[0].x_scale:
                 self.plot.setLogMode(x=True)
                 if self.plot_rows[0].x_scale == "log":
-                    self.warnings = self.warnings + "log not supported, using log10 instead (in " + self.plot_title + ")\n"
+                    self.add_warning("log not supported, using log10 instead (in " + self.plot_title + ")")
             if "log" in self.plot_rows[0].y_scale:
                 self.plot.setLogMode(y=True)
                 if self.plot_rows[0].y_scale == "log":
-                    self.warnings = self.warnings + "log not supported, using log10 instead (in " + self.plot_title + ")\n"
+                    self.add_warning("log not supported, using log10 instead (in " + self.plot_title + ")")
+
+    def check_log_for_zeros(self):
+        """
+        Add an offset to values if they contain a zero and will be plotted on
+        log-scale.
+        The offset is calculated as the smalles nonzero value times 0.001
+        (Also adds the offset to the simulation values).
+        """
+
+        x_var = utils.get_x_var(self.visualization_df.iloc[0])
+        y_var = ptc.MEASUREMENT
+        x_values = np.asarray(self.measurement_df[x_var])
+        y_values = np.asarray(self.measurement_df[y_var])
+
+        if ptc.X_SCALE in self.visualization_df.columns:
+            if 0 in x_values and "log" in self.visualization_df.iloc[0][ptc.X_SCALE]:
+                offset = np.min(x_values[np.nonzero(x_values)]) * 0.001
+                x_values = x_values + offset
+                self.measurement_df[x_var] = x_values
+                self.add_warning("Unable to take log of 0, added offset of " + str(offset) + " to x-values")
+
+                if self.simulation_df is not None:
+                    x_simulation = np.asarray(self.simulation_df[x_var])
+                    self.simulation_df[x_var] = x_simulation + offset
+
+        if ptc.Y_SCALE in self.visualization_df.columns:
+            if 0 in y_values and "log" in self.visualization_df.iloc[0][ptc.Y_SCALE]:
+                offset = np.min(y_values[np.nonzero(y_values)]) * 0.001
+                y_values = y_values + offset
+                self.measurement_df[y_var] = y_values
+                self.add_warning("Unable to take log of 0, added offset of " + str(offset) + " to y-values")
+
+                if self.simulation_df is not None:
+                    y_simulation = np.asarray(self.simulation_df[ptc.SIMULATION])
+                    self.simulation_df[ptc.SIMULATION] = y_simulation + offset
+
+    def add_warning(self, message: str):
+        """
+        Adds the message to the warnings box
+
+        Arguments:
+            message: The message to display
+        """
+        # filter out double warnings
+        if message not in self.warnings:
+            self.warnings = self.warnings + message + "\n"
+
+    def get_R_squared(self):
+        """
+        Calculate the R^2 value between the measurement
+        and simulation values
+
+        Returns:
+            The R^2 value
+        """
+        if self.simulation_df is not None:
+            x = []
+            y = []
+            for i in range(0, len(self.plot_rows)):
+                measurements = self.plot_rows[i].y_data
+                simulations = self.plot_rows_simulation[i].y_data
+                x = np.concatenate([x, measurements])
+                y = np.concatenate([y, simulations])
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
+            print("Linear Regression Statistics for " + self.plot_title + ":")
+            print("Slope: " + str(slope) + ", Intercept: " + str(intercept)
+                  + ", R-value: " + str(r_value) + ", p-value: " + str(p_value)
+                  + ", Std Err: " + str(std_err))
+
+            return r_value**2

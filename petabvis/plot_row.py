@@ -31,7 +31,7 @@ class PlotRow:
         self.plot_type_data = utils.get_plot_type_data(plot_spec)
         self.is_simulation = ptc.SIMULATION in exp_data.columns
 
-        if self.dataset_id:  # != ""
+        if self.dataset_id and ptc.DATASET_ID in exp_data:  # != ""
             self.line_data = exp_data[exp_data[ptc.DATASET_ID] == self.dataset_id]
         else:
             self.line_data = exp_data
@@ -64,7 +64,7 @@ class PlotRow:
 
     def get_y_data(self):
         """
-        Returns the y-values that should be plotted
+        Return the y-values that should be plotted
         Returns:
             The y-values
         """
@@ -79,6 +79,12 @@ class PlotRow:
         return y_data
 
     def get_provided_noise(self):
+        """
+        Get the provided noise from the noiseParameters column
+
+        Returns:
+            The provided noise
+        """
         if self.plot_type_data == ptc.PROVIDED:
             noise = self.line_data[ptc.NOISE_PARAMETERS]
             noise = np.asarray(noise)

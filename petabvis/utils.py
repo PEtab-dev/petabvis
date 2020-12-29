@@ -2,6 +2,7 @@ import petab.C as ptc
 import numpy as np
 import pandas as pd
 import warnings
+from PySide2 import QtCore
 from PySide2.QtWidgets import QComboBox
 
 
@@ -185,6 +186,8 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
     if visualization_df_rows is not None:
         if ptc.PLOT_NAME in visualization_df_rows.columns:
             plot_title = visualization_df_rows.iloc[0][ptc.PLOT_NAME]
+        elif ptc.PLOT_ID in visualization_df_rows.columns:
+            plot_title = visualization_df_rows.iloc[0][ptc.PLOT_ID]
 
     return plot_title
 
@@ -259,7 +262,6 @@ def split_replicates(line_data: pd.DataFrame):
     Returns:
         The std grouped by x_var
     """
-
     replicates = []
     if ptc.REPLICATE_ID in line_data.columns:
         for repl_id in np.unique(line_data[ptc.REPLICATE_ID]):
@@ -270,7 +272,7 @@ def split_replicates(line_data: pd.DataFrame):
     return replicates
 
 
-def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
+def add_plotnames_to_cbox(exp_data: pd.DataFrame, visualization_df: pd.DataFrame, cbox: QComboBox):
     """
     Add the name of every plot in the visualization df
     to the cbox
@@ -296,4 +298,25 @@ def add_plotnames_to_cbox(visualization_df: pd.DataFrame, cbox: QComboBox):
             for id in np.unique(visualization_df[ptc.PLOT_ID]):
                 cbox.addItem(id)
     else:
-        cbox.addItem("default plot")
+        # the default plots are grouped by observable ID
+        # to keep the order of plots consistent with names from the plot selection
+        indexes = np.unique(exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
+        observable_ids = [exp_data[ptc.OBSERVABLE_ID][index] for index in sorted(indexes)]
+        for observable_id in observable_ids:
+            cbox.addItem(observable_id)
+
+
+def get_signals(source):
+    """
+    Print out all signals that are implemented in source
+    (only for debug purposes)
+    """
+    cls = source if isinstance(source, type) else type(source)
+    signal = type(QtCore.Signal())
+    print("Signals:")
+    for name in dir(source):
+        try:
+            if isinstance(getattr(cls, name), signal):
+                print(name)
+        except Exception as inst:
+            print("skipped")
