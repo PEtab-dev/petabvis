@@ -307,24 +307,6 @@ def add_plotnames_to_cbox(exp_data: pd.DataFrame, visualization_df: pd.DataFrame
             cbox.addItem(observable_id)
 
 
-def get_min_and_max_ranges(plot_rows, simulation_plot_rows):
-    """
-    Calculate the min and max value between measurement
-    and simulation (used to set appropriate scales in the
-    correlation plot such that all points are visible and
-    both axis have the same initial ranges).
-
-    Arguments:
-        plot_rows: List of plot_row Objects (measurements)
-        simulation_plot_rows: List of plot_row Objects (simulation)
-    Returns:
-        min_value: The minimum value of measurements and simulations
-        max_value: The maximum value of measurements and simulations
-    """
-    values = [y for row in (plot_rows + simulation_plot_rows) for y in row.y_data]
-    return min(values), max(values)
-
-
 def get_signals(source):
     """
     Print out all signals that are implemented in source

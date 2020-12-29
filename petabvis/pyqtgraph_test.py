@@ -70,14 +70,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
         warnings.showwarning = self.redirect_warning
 
-        layout = QVBoxLayout()
         window_functionality.add_file_selector(self)
         if self.exp_data is not None:
             self.add_plots()
 
-        layout.addWidget(self.wid)
-        layout.addWidget(self.cbox)
-        layout.addWidget(self.warn_msg)
+        # the layout of the plot-list and message textbox
+        lower_layout = QVBoxLayout()
+        lower_layout.addWidget(self.cbox)
+        lower_layout.addWidget(self.warn_msg)
+        lower_widget = QWidget()
+        lower_widget.setLayout(lower_layout)
+        split_plots_and_warnings = QtWidgets.QSplitter()
+        split_plots_and_warnings.setOrientation(QtCore.Qt.Vertical)
+        split_plots_and_warnings.addWidget(self.wid)
+        split_plots_and_warnings.addWidget(lower_widget)
+
+        layout = QVBoxLayout()
+        layout.addWidget(split_plots_and_warnings)
 
         widget = QWidget()
         widget.setLayout(layout)

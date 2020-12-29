@@ -152,7 +152,6 @@ class VisuSpecPlot:
             color = pg.intColor(i, hues=num_lines)
             line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
             self.plot.addItem(line)
-            print(len(self.simu_lines))
             if len(self.simu_lines) > 0:
                 self.simu_lines[i].setPen(color, style=QtCore.Qt.SolidLine, width=2)
                 self.plot.addItem(self.simu_lines[i])
