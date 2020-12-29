@@ -2,8 +2,7 @@ import petab.C as ptc
 import numpy as np
 import pandas as pd
 import warnings
-from PySide2 import QtWidgets, QtCore, QtGui
-
+from PySide2 import QtCore
 from PySide2.QtWidgets import QComboBox
 
 

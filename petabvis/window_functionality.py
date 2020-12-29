@@ -83,8 +83,6 @@ class TableWidget(QWidget):
         self.horizontal_header.setSortIndicator(-1, Qt.DescendingOrder)
         self.vertical_header = self.table_view.verticalHeader()
         self.horizontal_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-        #self.vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-
 
         # QWidget Layout
         self.main_layout = QVBoxLayout()
@@ -108,8 +106,6 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     window.table_window = TableWidget(df)
     window.table_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
     window.table_window.show()
-
-
 
 
 def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
@@ -170,7 +166,9 @@ def reconnect(signal, new_function=None):
         signal.connect(new_function)
 
 
-def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):
+def exchange_dataframe_on_click(index: QtCore.QModelIndex,
+                                model: QtGui.QStandardItemModel,
+                                window: QtWidgets.QMainWindow):
     """
     Changes the currently plotted dataframe with the one
     that gets clicked on and replot the data,
@@ -181,13 +179,14 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandar
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    name = model.data(index, QtCore.Qt.DisplayRole)
     df = model.data(index, role=Qt.UserRole + 1)
     parent = index.parent()
     parent_name = model.data(parent, QtCore.Qt.DisplayRole)
     # Only replot when a new dataframe is selected
     # (Important because double clicking also calls this function)
     df_changed = True
+    if df is None:
+        return
     if parent_name == ptc.MEASUREMENT_FILES:
         if window.exp_data.equals(df):
             df_changed = False
@@ -200,12 +199,22 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex, model: QtGui.QStandar
         if window.condition_df.equals(df):
             df_changed = False
         window.condition_df = df
+    if parent_name == ptc.OBSERVABLE_FILES:
+        if window.observable_df.equals(df):
+            df_changed = False
+        window.observable_df = df
+    if parent_name == "simulation_files":
+        if window.simulation_df.equals(df):
+            df_changed = False
+        window.simulation_df = df
 
     if df_changed:
         window.add_plots()
 
 
-def display_table_on_doubleclick(index: QtCore.QModelIndex, model: QtGui.QStandardItemModel, window: QtWidgets.QMainWindow):
+def display_table_on_doubleclick(index: QtCore.QModelIndex,
+                                 model: QtGui.QStandardItemModel,
+                                 window: QtWidgets.QMainWindow):
     """
     Display the dataframe in a new window upon double-click.
 
@@ -214,7 +223,6 @@ def display_table_on_doubleclick(index: QtCore.QModelIndex, model: QtGui.QStanda
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    name = model.data(index, QtCore.Qt.DisplayRole)
     df = model.data(index, role=Qt.UserRole + 1)
     if df is not None:
         pop_up_table_view(window, df)
@@ -256,7 +264,7 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
     file_name = QFileDialog.getOpenFileName(window, 'Open file', home_dir)[0]
     if file_name != "":  # if a file was selected
         # save the directory for the next use
-        last_dir = os.path.dirname(file_name)
+        last_dir = os.path.dirname(file_name) + "/"
         settings.setValue("last_dir", last_dir)
 
         window.warn_msg.setText("")
@@ -264,16 +272,16 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         # select the first df in the dict for measurements, etc.
         yaml_dict = petab.load_yaml(file_name)["problems"][0]
         window.yaml_dict = yaml_dict
-        window.exp_data = petab.get_measurement_df(last_dir + "/" + yaml_dict[ptc.MEASUREMENT_FILES][0])
-        window.condition_df = petab.get_condition_df(last_dir + "/" + yaml_dict[ptc.CONDITION_FILES][0])
+        window.exp_data = petab.get_measurement_df(last_dir + yaml_dict[ptc.MEASUREMENT_FILES][0])
+        window.condition_df = petab.get_condition_df(last_dir + yaml_dict[ptc.CONDITION_FILES][0])
+        window.observable_df = petab.get_observable_df(last_dir + yaml_dict[ptc.OBSERVABLE_FILES][0])
         window.simulation_df = None
         if ptc.VISUALIZATION_FILES in yaml_dict:
-            window.visualization_df = petab.get_visualization_df(last_dir + "/" + yaml_dict[ptc.VISUALIZATION_FILES][0])
+            window.visualization_df = petab.get_visualization_df(last_dir + yaml_dict[ptc.VISUALIZATION_FILES][0])
         else:
             window.visualization_df = None
             window.add_warning("The YAML file contains no visualization file (default plotted)")
         window.add_plots()
-
 
         window.listWidget = table_tree_view(window, last_dir)
 
@@ -304,13 +312,18 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
             # but is not in exp_data because it causes problems when splitting the replicates
             if ptc.REPLICATE_ID not in window.exp_data.columns and ptc.REPLICATE_ID in sim_data.columns:
                 sim_data.drop(ptc.REPLICATE_ID, axis=1, inplace=True)
-            window.simulation_df = sim_data
-            window.add_plots()
 
-            # insert correlation plot at position 1
-            window.wid.insertWidget(1, window.plot2_widget)
-            window.listWidget = table_tree_view(window, os.path.dirname(file_name))
+            if len(window.yaml_dict[ptc.MEASUREMENT_FILES]) > 1:
+                window.add_warning("Not Implemented Error: Loading a simulation file with "
+                                   "multiple measurement files is currently not supported.")
+            else:
+                window.simulation_df = sim_data
+                window.add_plots()
+
+                # insert correlation plot at position 1
+                window.wid.insertWidget(1, window.plot2_widget)
+                window.listWidget = table_tree_view(window, os.path.dirname(file_name))
 
         # save the directory for the next use
-        last_dir = os.path.dirname(file_name)
+        last_dir = os.path.dirname(file_name) + "/"
         settings.setValue("last_dir", last_dir)

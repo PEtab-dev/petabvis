@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import scipy
-from itertools import chain
 import petab
 import petab.C as ptc
 from PySide2 import QtCore
@@ -46,8 +45,8 @@ class VisuSpecPlot:
         self.simulation_df = simulation_df
         self.plotId = plotId
         self.visualization_df = visualization_df
-        self.scatter_points = {"x":[], "y":[]}
-        self.scatter_points_simulation = {"x":[], "y":[]}
+        self.scatter_points = {"x": [], "y": []}
+        self.scatter_points_simulation = {"x": [], "y": []}
         self.error_bars = []
         self.warnings = ""
         self.has_replicates = petab.measurements.measurements_have_replicates(self.measurement_df)
@@ -70,21 +69,20 @@ class VisuSpecPlot:
 
         self.generate_plot()
 
-
         if self.simulation_df is not None:
             # add the correlation plot (only if a simulation file is provided)
             self.correlation_plot = pg.PlotItem(title="Correlation")
             self.generate_correlation_plot()
-            self.correlation_plot.addItem(pg.InfiniteLine([0,0], angle=45))
+            self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
 
-            #calculate and add the r_squared value
+            # calculate and add the r_squared value
             self.r_squared = self.get_R_squared()
             r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
             r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
             min_value = min(self.scatter_points["y"] + self.scatter_points_simulation["y"])
             max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
             r_squared_text.setPos(min_value, max_value)
-            self.correlation_plot.addItem(r_squared_text, anchor=(0,0), color="k")
+            self.correlation_plot.addItem(r_squared_text, anchor=(0, 0), color="k")
 
     def generate_plot_rows(self, df):
         """
@@ -217,7 +215,6 @@ class VisuSpecPlot:
 
         return(pdi)
 
-
     def generate_correlation_plot(self):
         """
         Generate the scatterplot between the
@@ -232,7 +229,7 @@ class VisuSpecPlot:
         max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
         self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
 
-    def default_plot(self, p_row: plot_row.PlotRow, is_simulation = False):
+    def default_plot(self, p_row: plot_row.PlotRow, is_simulation=False):
         """
         This method is used when the p_row contains no dataset_id
         or no visualization file was provided
@@ -254,8 +251,8 @@ class VisuSpecPlot:
         if ptc.DATASET_ID in self.measurement_df.columns:
             grouping = ptc.DATASET_ID
         else:
-            self.add_warning("Grouped by observable. If you want to specify another grouping option" \
-                                            ", please add \"datasetID\" columns.")
+            self.add_warning("Grouped by observable. If you want to specify another grouping option"
+                             ", please add \"datasetID\" columns.")
         df = self.measurement_df
         y_var = ptc.MEASUREMENT
         if is_simulation:
@@ -276,7 +273,7 @@ class VisuSpecPlot:
                 x_data = x_data + p_row.x_offset
                 y_data = y_data + p_row.y_offset
             else:
-                line_name =  line_name + "_" + df[ptc.OBSERVABLE_ID].iloc[0]
+                line_name = line_name + "_" + df[ptc.OBSERVABLE_ID].iloc[0]
 
             # add points
             if is_simulation:
@@ -306,7 +303,6 @@ class VisuSpecPlot:
                 self.plot.setLogMode(y=True)
                 if self.plot_rows[0].y_scale == "log":
                     self.add_warning("log not supported, using log10 instead (in " + self.plot_title + ")")
-
 
     def check_log_for_zeros(self):
         """
@@ -343,8 +339,6 @@ class VisuSpecPlot:
                     y_simulation = np.asarray(self.simulation_df[ptc.SIMULATION])
                     self.simulation_df[ptc.SIMULATION] = y_simulation + offset
 
-
-
     def add_warning(self, message: str):
         """
         Adds the message to the warnings box
@@ -353,7 +347,7 @@ class VisuSpecPlot:
             message: The message to display
         """
         # filter out double warnings
-        if not message in self.warnings:
+        if message not in self.warnings:
             self.warnings = self.warnings + message + "\n"
 
     def get_R_squared(self):

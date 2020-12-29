@@ -1,26 +1,18 @@
 import argparse
 import sys  # We need sys so that we can pass argv to QApplication
-import os
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import warnings
-import petab
 import petab.C as ptc
 from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import QAction, QFileDialog, \
-    QVBoxLayout, QComboBox, QWidget, QLabel
+from PySide2.QtWidgets import QVBoxLayout, QComboBox, QWidget, QLabel
 from petab import measurements, core
 import pyqtgraph as pg
 
 from . import utils
 from . import visuSpec_plot
 from . import window_functionality
-from petab.visualize.helper_functions import check_ex_exp_columns
-
-
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -35,9 +27,10 @@ class MainWindow(QtWidgets.QMainWindow):
         wid: GraphcisLayoutWidget showing the plots
     """
     def __init__(self, exp_data: pd.DataFrame,
-                 visualization_df: pd.DataFrame,
+                 visualization_df: pd.DataFrame = None,
                  simulation_df: pd.DataFrame = None,
-                 condition_df: pd.DataFrame = None, *args, **kwargs):
+                 condition_df: pd.DataFrame = None,
+                 observable_df: pd.DataFrame = None, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
         # set the background color to white
@@ -50,6 +43,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
         self.condition_df = condition_df
+        self.observable_df = observable_df
         self.exp_data = exp_data
         self.visu_spec_plots = []
         self.wid = QtWidgets.QSplitter()
@@ -104,7 +98,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.clear_QSplitter()
         self.visu_spec_plots.clear()
 
-
         if self.visualization_df is not None:
             # to keep the order of plots consistent with names from the plot selection
             indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
@@ -150,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         # Exit when pressing ctrl + Q
         ctrl = False
-        if (ev.modifiers() and QtCore.Qt.ControlModifier):
+        if (ev.modifiers() & QtCore.Qt.ControlModifier):
             ctrl = True
         if ctrl and ev.key() == QtCore.Qt.Key_Q:
             sys.exit()
