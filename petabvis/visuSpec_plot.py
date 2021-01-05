@@ -39,10 +39,13 @@ class VisuSpecPlot:
     """
     def __init__(self, measurement_df: pd.DataFrame = None,
                  visualization_df: pd.DataFrame = None,
-                 simulation_df: pd.DataFrame = None, plotId: str = ""):
+                 simulation_df: pd.DataFrame = None,
+                 condition_df: pd.DataFrame = None,
+                 plotId: str = ""):
 
         self.measurement_df = measurement_df
         self.simulation_df = simulation_df
+        self.condition_df = condition_df
         self.plotId = plotId
         self.visualization_df = visualization_df
         self.scatter_points = {"x": [], "y": []}
@@ -50,17 +53,16 @@ class VisuSpecPlot:
         self.error_bars = []
         self.warnings = ""
         self.has_replicates = petab.measurements.measurements_have_replicates(self.measurement_df)
-
         # reduce the visualization_df to the relevant rows (by plotId)
         if self.visualization_df is not None:
-            rows = visualization_df["plotId"] == plotId
-            self.visualization_df = visualization_df[rows]
+            # Note the visualization df is already reduced
+            # before creating the visuSpecPlot object
+            self.check_log_for_zeros()
 
         self.plot_title = utils.get_plot_title(self.visualization_df)
         self.plot = pg.PlotItem(title=self.plot_title)
         self.legend = self.plot.addLegend()
 
-        self.check_log_for_zeros()
         self.plot_rows = self.generate_plot_rows(self.measurement_df)  # list of plot_rows
         self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
 
@@ -95,7 +97,7 @@ class VisuSpecPlot:
         if self.visualization_df is not None:
             for _, plot_spec in self.visualization_df.iterrows():
                 if df is not None:
-                    plot_line = plot_row.PlotRow(df, plot_spec)
+                    plot_line = plot_row.PlotRow(df, plot_spec, self.condition_df)
                     plot_rows.append(plot_line)
         return plot_rows
 
@@ -201,7 +203,8 @@ class VisuSpecPlot:
                               name=legend_name)
 
         # Only add error bars when needed
-        if p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED:
+        if p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED\
+                and p_row.plot_type_data != ptc.REPLICATE:
             error_length = p_row.sd
             if p_row.plot_type_data == ptc.MEAN_AND_SEM:
                 error_length = p_row.sem
@@ -311,17 +314,29 @@ class VisuSpecPlot:
         The offset is calculated as the smalles nonzero value times 0.001
         (Also adds the offset to the simulation values).
         """
-
         x_var = utils.get_x_var(self.visualization_df.iloc[0])
         y_var = ptc.MEASUREMENT
-        x_values = np.asarray(self.measurement_df[x_var])
+        if x_var == ptc.TIME:
+            x_values = np.asarray(self.measurement_df[x_var])
+        else:
+            # for concentration plots, each line can have a
+            # different x_var
+            x_values = []
+            for variable in self.visualization_df[ptc.X_VALUES]:
+                x_values = x_values + list(self.condition_df[variable])
+            x_values = np.asarray(x_values)
+
         y_values = np.asarray(self.measurement_df[y_var])
 
         if ptc.X_SCALE in self.visualization_df.columns:
             if 0 in x_values and "log" in self.visualization_df.iloc[0][ptc.X_SCALE]:
                 offset = np.min(x_values[np.nonzero(x_values)]) * 0.001
-                x_values = x_values + offset
-                self.measurement_df[x_var] = x_values
+                if x_var == ptc.TIME:
+                    x_values = x_values + offset
+                    self.measurement_df[x_var] = x_values
+                else:
+                    for variable in self.visualization_df[ptc.X_VALUES]:
+                        self.condition_df[variable] = np.asarray(self.condition_df[variable]) + offset
                 self.add_warning("Unable to take log of 0, added offset of " + str(offset) + " to x-values")
 
                 if self.simulation_df is not None:

@@ -196,15 +196,29 @@ class MainWindow(QtWidgets.QMainWindow):
             for observable_id in observable_ids:
                 rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
                 data = self.exp_data[rows]
-                visuPlot = visuSpec_plot.VisuSpecPlot(data, None, self.simulation_df, plot_id)
+                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=data, visualization_df=None,
+                                                      condition_df=self.condition_df,
+                                                      simulation_df=self.simulation_df, plotId=plot_id)
                 self.visu_spec_plots.append(visuPlot)
                 if visuPlot.warnings:
                     self.add_warning(visuPlot.warnings)
+
         else:
-            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, self.simulation_df, plot_id)
-            self.visu_spec_plots.append(visuPlot)
-            if visuPlot.warnings:
-                self.add_warning(visuPlot.warnings)
+            # reduce the visualization df to the relevant rows (by plotId)
+            rows = self.visualization_df[ptc.PLOT_ID] == plot_id
+            visu_df = self.visualization_df[rows]
+            if ptc.PLOT_TYPE_SIMULATION in visu_df.columns and\
+                    visu_df.iloc[0][ptc.PLOT_TYPE_SIMULATION] == ptc.BAR_PLOT:
+                    # TODO handle barplots
+                    return
+            else:
+                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=self.exp_data,
+                                                      visualization_df=visu_df,
+                                                      condition_df=self.condition_df,
+                                                      simulation_df=self.simulation_df, plotId=plot_id)
+                self.visu_spec_plots.append(visuPlot)
+                if visuPlot.warnings:
+                    self.add_warning(visuPlot.warnings)
 
     def clear_QSplitter(self):
         """

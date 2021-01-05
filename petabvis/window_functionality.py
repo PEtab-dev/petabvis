@@ -274,13 +274,14 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         window.yaml_dict = yaml_dict
         window.exp_data = petab.get_measurement_df(last_dir + yaml_dict[ptc.MEASUREMENT_FILES][0])
         window.condition_df = petab.get_condition_df(last_dir + yaml_dict[ptc.CONDITION_FILES][0])
-        window.observable_df = petab.get_observable_df(last_dir + yaml_dict[ptc.OBSERVABLE_FILES][0])
-        window.simulation_df = None
+        if ptc.OBSERVABLE_FILES in yaml_dict:
+            window.observable_df = petab.get_observable_df(last_dir + yaml_dict[ptc.OBSERVABLE_FILES][0])
         if ptc.VISUALIZATION_FILES in yaml_dict:
             window.visualization_df = petab.get_visualization_df(last_dir + yaml_dict[ptc.VISUALIZATION_FILES][0])
         else:
             window.visualization_df = None
             window.add_warning("The YAML file contains no visualization file (default plotted)")
+        window.simulation_df = None
         window.add_plots()
 
         window.listWidget = table_tree_view(window, last_dir)
