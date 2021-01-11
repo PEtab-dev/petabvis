@@ -12,6 +12,7 @@ import pyqtgraph as pg
 
 from . import utils
 from . import visuSpec_plot
+from . import bar_plot
 from . import window_functionality
 
 
@@ -209,8 +210,13 @@ class MainWindow(QtWidgets.QMainWindow):
             visu_df = self.visualization_df[rows]
             if ptc.PLOT_TYPE_SIMULATION in visu_df.columns and\
                     visu_df.iloc[0][ptc.PLOT_TYPE_SIMULATION] == ptc.BAR_PLOT:
-                    # TODO handle barplots
-                    return
+                    barPlot = bar_plot.BarPlot(measurement_df=self.exp_data,
+                                               visualization_df=visu_df,
+                                               condition_df=self.condition_df,
+                                               simulation_df=self.simulation_df, plotId=plot_id)
+                    # might want to change the name of visu_spec_plots to clarify that
+                    # it can also include bar plots (or change name of visuSpec_plots to line_plots
+                    self.visu_spec_plots.append(barPlot)
             else:
                 visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=self.exp_data,
                                                       visualization_df=visu_df,

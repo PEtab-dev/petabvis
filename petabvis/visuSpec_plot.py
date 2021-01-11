@@ -8,9 +8,10 @@ import pyqtgraph as pg
 
 from . import plot_row
 from . import utils
+from . import plot_class
 
 
-class VisuSpecPlot:
+class VisuSpecPlot(plot_class.PlotClass):
     """
     Can generate a plot based on the given specifications
 
@@ -42,25 +43,17 @@ class VisuSpecPlot:
                  simulation_df: pd.DataFrame = None,
                  condition_df: pd.DataFrame = None,
                  plotId: str = ""):
+        super().__init__(measurement_df, visualization_df, simulation_df,
+                         condition_df, plotId)
 
-        self.measurement_df = measurement_df
-        self.simulation_df = simulation_df
-        self.condition_df = condition_df
-        self.plotId = plotId
-        self.visualization_df = visualization_df
         self.scatter_points = {"x": [], "y": []}
         self.scatter_points_simulation = {"x": [], "y": []}
-        self.error_bars = []
-        self.warnings = ""
-        self.has_replicates = petab.measurements.measurements_have_replicates(self.measurement_df)
         # reduce the visualization_df to the relevant rows (by plotId)
         if self.visualization_df is not None:
             # Note the visualization df is already reduced
             # before creating the visuSpecPlot object
             self.check_log_for_zeros()
 
-        self.plot_title = utils.get_plot_title(self.visualization_df)
-        self.plot = pg.PlotItem(title=self.plot_title)
         self.legend = self.plot.addLegend()
 
         self.plot_rows = self.generate_plot_rows(self.measurement_df)  # list of plot_rows
@@ -120,9 +113,6 @@ class VisuSpecPlot:
             else:
                 pdis.append(self.plot_row_to_plot_data_item(line))
         return pdis
-
-    def getPlot(self):
-        return self.plot
 
     def generate_plot(self):
         """
