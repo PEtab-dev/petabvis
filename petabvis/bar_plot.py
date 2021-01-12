@@ -12,6 +12,21 @@ from . import plot_class
 
 
 class BarPlot(plot_class.PlotClass):
+    """
+     Can generate a bar plot based on the given specifications
+
+     Arguments:
+         measurement_df: PEtab measurement table
+         visualization_df: PEtab visualization table
+         simulation_df: PEtab simulation table
+         condition_df: PEtab condition table
+         plotId: Id of the plot (has to in the visualization_df aswell)
+
+     Attributes:
+         bar_rows: A list of BarRows (one for each visualization df row)
+         bars_data: A df containing the information of each bar
+
+     """
 
     def __init__(self, measurement_df: pd.DataFrame = None,
                  visualization_df: pd.DataFrame = None,
@@ -95,6 +110,12 @@ class BarPlot(plot_class.PlotClass):
         return df
 
     def generate_plot(self):
+        """
+        Generate the plot based on the information in the bars_data df.
+        Add error bars to the plot.
+        Set y-scale to log10 if necessary.
+
+        """
 
         if len(self.bar_rows) > 0:
             # get the axis labels info from the first line of the plot
@@ -124,3 +145,9 @@ class BarPlot(plot_class.PlotClass):
         xax = self.plot.getAxis("bottom")
         ticks = [list(zip(self.bars_data["tick_pos"], self.bars_data["name"]))]
         xax.setTicks(ticks)
+
+        # set y-scale to log if necessary
+        if "log" in self.bar_rows[0].y_scale:
+            self.plot.setLogMode(y=True)
+            if self.plot_rows[0].x_scale == "log":
+                self.add_warning("log not supported, using log10 instead (in " + self.plot_title + ")")

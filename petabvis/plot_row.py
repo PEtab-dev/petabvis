@@ -9,11 +9,15 @@ from . import row_class
 
 class PlotRow(row_class.RowClass):
     """
-    Can add the content of a visualization_df row to a PlotItem
+    Can add the content of a visualization_df row to a PlotItem.
+    Used for line plots.
 
     Attributes:
-        exp_data: PEtab measurement table
-        plot_spec: A single row of a PEtab visualization table
+        x_data: Numpy array of the x-values
+        y_data: Numpy array of the y-values
+        sd: Standard deviation of the replicates
+        sem: Standard error of the mean of the replicates
+        provided noise: Noise of the measurements
     """
     def __init__(self, exp_data: pd.DataFrame,
                  plot_spec: pd.Series, condition_df: pd.DataFrame, ):
@@ -21,8 +25,6 @@ class PlotRow(row_class.RowClass):
         super().__init__(exp_data, plot_spec, condition_df)
 
         # calculate new attributes
-        self.has_replicates = petab.measurements.measurements_have_replicates(self.line_data)
-        self.replicates = utils.split_replicates(self.line_data)
         self.x_data = self.get_x_data()
         self.y_data = self.get_mean_y_data()
         self.sd = utils.sd_replicates(self.line_data, self.x_var, self.is_simulation)

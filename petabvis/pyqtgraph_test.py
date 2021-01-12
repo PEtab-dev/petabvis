@@ -23,9 +23,18 @@ class MainWindow(QtWidgets.QMainWindow):
     Attributes:
         exp_data: PEtab measurement table
         visualization_df: PEtab visualization table
+        yaml_dict: Dictionary of the files in the yaml file
+        condition_df: PEtab condition table
+        observable_df: PEtab observable table
+        plot1_widget: pg.GraphicsLayoutWidget containing the main plot
+        plot2_widget: pg.GraphicsLayoutWidget containing the correlation plot
+        warn_msg: QLabel displaying current warning messages
+        table_window: Popup TableWidget displaying the clicked table
+        tree_view: QTreeView of the yaml file
         visu_spec_plots: A list of VisuSpecPlots
-        cbox: A dropdown menu
-        wid: GraphcisLayoutWidget showing the plots
+        cbox: A dropdown menu for the plots
+        current_list_index: List index of the currently displayed plot
+        wid: QSplitter between main plot and correlation plot
     """
     def __init__(self, exp_data: pd.DataFrame,
                  visualization_df: pd.DataFrame = None,

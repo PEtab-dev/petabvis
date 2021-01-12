@@ -13,26 +13,20 @@ from . import plot_class
 
 class VisuSpecPlot(plot_class.PlotClass):
     """
-    Can generate a plot based on the given specifications
+    Can generate a line plot based on the given specifications
 
     Arguments:
         measurement_df: PEtab measurement table
         visualization_df: PEtab visualization table
+        simulation_df: PEtab simulation table
+        condition_df: PEtab condition table
         plotId: Id of the plot (has to in the visualization_df aswell)
 
     Attributes:
-        measurement_df: PEtab measurement table
-        visualization_df: PEtab visualization table
-        simulation_df: PEtab simulation table
-        plotId: Id of the plot (has to in the visualization_df aswell)
-        plot_title: The title of the plot
-        plot_rows: A list of PlotRow objects
-        scatter_points: A list of length 2 with the x- and y-values
-            of the points
-        warnings: String of warning messages if the input is incorrect
-            or not supported
-        plot: PlotItem containing the lines
-        error_bars: A list of pg.ErrorBarItems
+        scatter_points: A dictionary containing 2 lists for
+            the x- and y-values respectively
+        scatter_points_simulation: A dictionary containing 2 lists for
+            the x- and y-values respectively
         plot_rows: A list of PlotRows
         plot_rows_simulation: A list of PlotRows for simulation data
         exp_lines: A list of PlotDataItems
@@ -320,14 +314,4 @@ class VisuSpecPlot(plot_class.PlotClass):
                     y_simulation = np.asarray(self.simulation_df[ptc.SIMULATION])
                     self.simulation_df[ptc.SIMULATION] = y_simulation + offset
 
-    def add_warning(self, message: str):
-        """
-        Adds the message to the warnings box
-
-        Arguments:
-            message: The message to display
-        """
-        # filter out double warnings
-        if message not in self.warnings:
-            self.warnings = self.warnings + message + "\n"
 

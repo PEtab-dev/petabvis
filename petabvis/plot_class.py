@@ -5,7 +5,31 @@ import scipy
 
 from . import utils
 
+
 class PlotClass:
+    """
+    Arguments:
+        measurement_df: PEtab measurement table
+        visualization_df: PEtab visualization table
+        simulation_df: PEtab simulation table
+        condition_df: PEtab condition table
+        plotId: Id of the plot (has to in the visualization_df aswell)
+
+    Attributes:
+        measurement_df: PEtab measurement table
+        visualization_df: PEtab visualization table
+        simulation_df: PEtab simulation table
+        condition_df: PEtab condition table
+        plotId: Id of the plot (has to in the visualization_df aswell)
+        error_bars: A list of pg.ErrorBarItems
+        warnings: String of warning messages if the input is incorrect
+            or not supported
+        has_replicates: Boolean, true if replicates are present
+        plot_title: The title of the plot
+        plot: PlotItem for the main plot (line or bar)
+        correlation_plot: PlotItem for the correlation plot
+            between measurement and simulation values
+    """
 
     def __init__(self, measurement_df: pd.DataFrame = None,
                  visualization_df: pd.DataFrame = None,
@@ -14,10 +38,10 @@ class PlotClass:
                  plotId: str = ""):
 
         self.measurement_df = measurement_df
+        self.visualization_df = visualization_df
         self.simulation_df = simulation_df
         self.condition_df = condition_df
         self.plotId = plotId
-        self.visualization_df = visualization_df
         self.error_bars = []
         self.warnings = ""
         self.has_replicates = petab.measurements.measurements_have_replicates(self.measurement_df)
@@ -70,6 +94,17 @@ class PlotClass:
               + ", Std Err: " + str(std_err))
 
         return r_value**2
+
+    def add_warning(self, message: str):
+        """
+        Adds the message to the warnings box
+
+        Arguments:
+            message: The message to display
+        """
+        # filter out double warnings
+        if message not in self.warnings:
+            self.warnings = self.warnings + message + "\n"
 
     def getPlot(self):
         return self.plot
