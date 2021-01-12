@@ -40,3 +40,25 @@ class RowClass:
         if self.condition_df is not None and self.x_var != ptc.TIME:
             # reduce the condition df to the relevant rows (by condition id)
             self.condition_df = utils.reduce_condition_df(self.line_data, self.condition_df)
+
+    def get_provided_noise(self):
+        """
+        Get the provided noise from the noiseParameters column
+
+        Returns:
+            The provided noise
+        """
+
+        # Question: take mean of noise for multiple replicates?
+        noise = 0
+        if self.plot_type_data == ptc.PROVIDED:
+            noise = self.line_data[ptc.NOISE_PARAMETERS]
+            noise = np.asarray(noise)
+
+        return noise
+
+    def get_y_variable_name(self):
+        variable = ptc.MEASUREMENT
+        if self.is_simulation:
+            variable = ptc.SIMULATION
+        return variable

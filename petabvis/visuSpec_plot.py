@@ -66,18 +66,8 @@ class VisuSpecPlot(plot_class.PlotClass):
 
         if self.simulation_df is not None:
             # add the correlation plot (only if a simulation file is provided)
-            self.correlation_plot = pg.PlotItem(title="Correlation")
-            self.generate_correlation_plot()
-            self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
-
-            # calculate and add the r_squared value
-            self.r_squared = self.get_R_squared()
-            r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
-            r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
-            min_value = min(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-            max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-            r_squared_text.setPos(min_value, max_value)
-            self.correlation_plot.addItem(r_squared_text, anchor=(0, 0), color="k")
+            # inherited method from PlotClass
+            self.generate_correlation_plot(self.scatter_points["y"], self.scatter_points_simulation["y"])
 
     def generate_plot_rows(self, df):
         """
@@ -193,7 +183,7 @@ class VisuSpecPlot(plot_class.PlotClass):
                               name=legend_name)
 
         # Only add error bars when needed
-        if p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED\
+        if (p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED)\
                 and p_row.plot_type_data != ptc.REPLICATE:
             error_length = p_row.sd
             if p_row.plot_type_data == ptc.MEAN_AND_SEM:
@@ -207,20 +197,6 @@ class VisuSpecPlot(plot_class.PlotClass):
             self.error_bars.append(error)
 
         return(pdi)
-
-    def generate_correlation_plot(self):
-        """
-        Generate the scatterplot between the
-        measurement and simulation values
-        """
-        self.correlation_plot.setLabel("left", "Simulation")
-        self.correlation_plot.setLabel("bottom", "Measurement")
-        self.correlation_plot.plot(self.scatter_points["y"], self.scatter_points_simulation["y"],
-                                   pen=None, symbol='o',
-                                   symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
-        min_value = min(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-        max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-        self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
 
     def default_plot(self, p_row: plot_row.PlotRow, is_simulation=False):
         """
@@ -355,26 +331,3 @@ class VisuSpecPlot(plot_class.PlotClass):
         if message not in self.warnings:
             self.warnings = self.warnings + message + "\n"
 
-    def get_R_squared(self):
-        """
-        Calculate the R^2 value between the measurement
-        and simulation values
-
-        Returns:
-            The R^2 value
-        """
-        if self.simulation_df is not None:
-            x = []
-            y = []
-            for i in range(0, len(self.plot_rows)):
-                measurements = self.plot_rows[i].y_data
-                simulations = self.plot_rows_simulation[i].y_data
-                x = np.concatenate([x, measurements])
-                y = np.concatenate([y, simulations])
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
-            print("Linear Regression Statistics for " + self.plot_title + ":")
-            print("Slope: " + str(slope) + ", Intercept: " + str(intercept)
-                  + ", R-value: " + str(r_value) + ", p-value: " + str(p_value)
-                  + ", Std Err: " + str(std_err))
-
-            return r_value**2

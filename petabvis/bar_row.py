@@ -18,9 +18,9 @@ class BarRow(row_class.RowClass):
 
         # Note: A bar plot has no x_data
         self.y_data = self.get_mean_y_data()
-        #self.sd = utils.sd_replicates(self.line_data, self.x_var, self.is_simulation)
-        #self.sem = utils.sem_replicates(self.line_data, self.x_var, self.is_simulation)
-        #self.provided_noise = self.get_provided_noise()
+        self.sd = self.get_sd()
+        self.sem = self.get_sem()
+        self.provided_noise = self.get_provided_noise()  # in parent class
 
 
     def get_mean_y_data(self):
@@ -29,7 +29,24 @@ class BarRow(row_class.RowClass):
         Returns:
             The y-value
         """
-        y_data = np.mean(self.line_data[ptc.MEASUREMENT])
+        variable = self.get_y_variable_name()
+        y_data = np.mean(self.line_data[variable])
         y_data = y_data + self.y_offset
 
         return y_data
+
+    def get_sd(self):
+        variable = self.get_y_variable_name()
+        y_values = self.line_data[variable]
+        sd = np.std(y_values)
+
+        return sd
+
+    def get_sem(self):
+        variable = self.get_y_variable_name()
+        y_values = self.line_data[variable]
+        sd = self.sd
+        sem = sd / np.sqrt(len(y_values))
+
+        return sem
+

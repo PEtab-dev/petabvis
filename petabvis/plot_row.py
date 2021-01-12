@@ -55,9 +55,7 @@ class PlotRow(row_class.RowClass):
         Returns:
             The y-values
         """
-        variable = ptc.MEASUREMENT
-        if self.is_simulation:
-            variable = ptc.SIMULATION
+        variable = self.get_y_variable_name()  # either measurement or simulation
         y_data = np.asarray(self.replicates[0][variable])
         if self.plot_type_data != ptc.REPLICATE:
             y_data = utils.mean_replicates(self.line_data, self.x_var, variable)
@@ -96,9 +94,7 @@ class PlotRow(row_class.RowClass):
             y_data_replicates: The y-values for each replicate
         """
         y_data = []
-        variable = ptc.MEASUREMENT
-        if self.is_simulation:
-            variable = ptc.SIMULATION
+        variable = self.get_y_variable_name()
         for replicate in self.replicates:
             y_values = np.asarray(replicate[variable])
             y_values = y_values + self.y_offset
@@ -106,14 +102,4 @@ class PlotRow(row_class.RowClass):
 
         return y_data
 
-    def get_provided_noise(self):
-        """
-        Get the provided noise from the noiseParameters column
 
-        Returns:
-            The provided noise
-        """
-        if self.plot_type_data == ptc.PROVIDED:
-            noise = self.line_data[ptc.NOISE_PARAMETERS]
-            noise = np.asarray(noise)
-            return noise
