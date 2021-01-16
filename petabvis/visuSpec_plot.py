@@ -40,8 +40,6 @@ class VisuSpecPlot(plot_class.PlotClass):
         super().__init__(measurement_df, visualization_df, simulation_df,
                          condition_df, plotId)
 
-        self.scatter_points = {"x": [], "y": []}
-        self.scatter_points_simulation = {"x": [], "y": []}
         # reduce the visualization_df to the relevant rows (by plotId)
         if self.visualization_df is not None:
             # Note the visualization df is already reduced
@@ -53,15 +51,26 @@ class VisuSpecPlot(plot_class.PlotClass):
         self.plot_rows = self.generate_plot_rows(self.measurement_df)  # list of plot_rows
         self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
 
+        self.overview_df = pd.DataFrame(columns=["x", "y", "name", "is_simulation"])
+        if self.visualization_df is not None:
+            dfs = [p_row.get_data_df() for p_row in (self.plot_rows + self.plot_rows_simulation)]
+            self.overview_df = pd.concat(dfs, ignore_index=True)
+
         self.exp_lines = self.generate_plot_data_items(self.plot_rows, is_simulation=False)  # list of PlotDataItems (measurements)
         self.simu_lines = self.generate_plot_data_items(self.plot_rows_simulation, is_simulation=True)  # (simulations)
 
+        # make sure the is_simulation column is really boolean because otherwise
+        # the logical not operator ~ causes problems
+        self.overview_df["is_simulation"] = self.overview_df["is_simulation"].astype("bool")
         self.generate_plot()
 
         if self.simulation_df is not None:
             # add the correlation plot (only if a simulation file is provided)
             # inherited method from PlotClass
-            self.generate_correlation_plot(self.scatter_points["y"], self.scatter_points_simulation["y"])
+
+            self.generate_correlation_plot(self.overview_df)
+            #self.generate_correlation_plot(self.scatter_points["y"], self.scatter_points_simulation["y"],
+            #                               self.scatter_points["name"])
 
     def generate_plot_rows(self, df):
         """
@@ -131,10 +140,14 @@ class VisuSpecPlot(plot_class.PlotClass):
                 self.plot.addItem(self.simu_lines[i])
 
         # add point measurements
-        self.plot.plot(self.scatter_points["x"], self.scatter_points["y"],
+        x = self.overview_df[~self.overview_df["is_simulation"]]["x"].tolist()
+        measurements = self.overview_df[~self.overview_df["is_simulation"]]["y"].tolist()
+        self.plot.plot(x, measurements,
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
-        self.plot.plot(self.scatter_points_simulation["x"], self.scatter_points_simulation["y"],
+        x_simulation = self.overview_df[self.overview_df["is_simulation"]]["x"].tolist()
+        simulations = self.overview_df[self.overview_df["is_simulation"]]["y"].tolist()
+        self.plot.plot(x_simulation, simulations,
                        pen=None, symbol='o',
                        symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
 
@@ -166,12 +179,6 @@ class VisuSpecPlot(plot_class.PlotClass):
         legend_name = p_row.legend_name
         if p_row.is_simulation:
             legend_name = legend_name + " simulation"
-            # add points to scatter_points
-            self.scatter_points_simulation["x"] = self.scatter_points_simulation["x"] + p_row.x_data.tolist()
-            self.scatter_points_simulation["y"] = self.scatter_points_simulation["y"] + p_row.y_data.tolist()
-        else:
-            self.scatter_points["x"] = self.scatter_points["x"] + p_row.x_data.tolist()
-            self.scatter_points["y"] = self.scatter_points["y"] + p_row.y_data.tolist()
         pdi = pg.PlotDataItem(p_row.x_data,
                               p_row.y_data,
                               name=legend_name)
@@ -237,15 +244,13 @@ class VisuSpecPlot(plot_class.PlotClass):
                 y_data = y_data + p_row.y_offset
             else:
                 line_name = line_name + "_" + df[ptc.OBSERVABLE_ID].iloc[0]
-
             # add points
             if is_simulation:
-                self.scatter_points_simulation["x"] = self.scatter_points_simulation["x"] + x_data.tolist()
-                self.scatter_points_simulation["y"] = self.scatter_points_simulation["y"] + y_data.tolist()
                 line_name = line_name + " simulation"
+                line_df = pd.DataFrame({"x": x_data.tolist(), "y": y_data.tolist(), "name": group_id, "is_simulation": True})
             else:
-                self.scatter_points["x"] = self.scatter_points["x"] + x_data.tolist()
-                self.scatter_points["y"] = self.scatter_points["y"] + y_data.tolist()
+                line_df = pd.DataFrame({"x": x_data.tolist(), "y": y_data.tolist(), "name": group_id, "is_simulation": False})
+            self.overview_df = self.overview_df.append(line_df, ignore_index=True)
 
             plot_lines.append(pg.PlotDataItem(x_data, y_data, name=line_name))
 

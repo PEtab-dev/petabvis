@@ -2,6 +2,7 @@ import pandas as pd
 import pyqtgraph as pg
 import petab
 import scipy
+import itertools
 
 from . import utils
 
@@ -49,24 +50,26 @@ class PlotClass:
         self.plot = pg.PlotItem(title=self.plot_title)
         self.correlation_plot = pg.PlotItem(title="Correlation")
 
-    def generate_correlation_plot(self, measurements, simulations):
+    def generate_correlation_plot(self, overview_df):
         """
         Generate the scatterplot between the
         measurement and simulation values.
 
         Arguments:
-            measurements: List of measurement values
-            simulations: List of simulation values
+            overview_df: Dataframe containing info about the points
+
         """
+        print(overview_df.dtypes)
+        measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
+        simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
+
+        self.add_points(overview_df)
         self.correlation_plot.setLabel("left", "Simulation")
         self.correlation_plot.setLabel("bottom", "Measurement")
-        self.correlation_plot.plot(measurements, simulations,
-                                   pen=None, symbol='o',
-                                   symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+
         min_value = min(measurements + simulations)
         max_value = max(measurements + simulations)
         self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
-
         self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
 
         # calculate and add the r_squared value
@@ -75,6 +78,48 @@ class PlotClass:
         r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
         r_squared_text.setPos(min_value, max_value)
         self.correlation_plot.addItem(r_squared_text, anchor=(0, 0), color="k")
+
+    def add_points(self, overview_df: pd.DataFrame):
+        """
+        Add the points to the scatterplot and
+        display an info text when clicking on a point.
+
+        Arguments:
+            overview_df: Dataframe containing info about the points
+        """
+        # data
+        measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
+        simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
+        names = overview_df[~overview_df["is_simulation"]]["name"].tolist()
+        x = overview_df[~overview_df["is_simulation"]]["x"].tolist()
+        point_descriptions = [(names[i] + "\nmeasurement: " + str(measurements[i]) +
+                              "\nsimulation: " + str(simulations[i])) +
+                              "\nx: " + str(x[i])
+                              for i in range(len(measurements))]
+
+        # create the scatterplot
+        scatter_plot = pg.ScatterPlotItem(pen=pg.mkPen(None), brush=pg.mkBrush(0, 0, 0))
+        spots = [{'pos': [m, s], 'data': idx} for m, s, idx in zip(measurements, simulations, point_descriptions)]
+        scatter_plot.addPoints(spots)
+        self.correlation_plot.addItem(scatter_plot)
+
+        # add interaction
+        last_clicked = []
+        info_text = pg.TextItem("", anchor=(0, 0), color="k")
+        self.correlation_plot.addItem(info_text)
+        #TODO: add option to remove text again
+        def clicked(plot, points):
+            nonlocal last_clicked
+            nonlocal info_text
+            for p in last_clicked:
+                p.resetPen()
+            for p in points:
+                p.setPen('b', width=2)
+                info_text.setText(str((points[0].data())))
+                info_text.setPos(points[0].pos())
+            last_clicked = points
+
+        scatter_plot.sigClicked.connect(clicked)
 
     def get_R_squared(self, measurements, simulations):
         """

@@ -40,6 +40,8 @@ class RowClass:
 
     def __init__(self, exp_data: pd.DataFrame,
                  plot_spec: pd.Series, condition_df: pd.DataFrame, ):
+        self.x_data = []    # placeholder value, will be overwritten by plot_row
+        self.y_data = []   # placeholder value, will be overwritten by plot_row/bar_row
 
         # set attributes
         self.plot_spec = plot_spec
@@ -74,6 +76,20 @@ class RowClass:
         self.has_replicates = petab.measurements.measurements_have_replicates(self.line_data)
         self.replicates = utils.split_replicates(self.line_data)
 
+    def get_data(self):
+        return {"x": self.x_data, "y": self.y_data, "id": self.dataset_id,
+                "name": self.legend_name, "sd": self.sd, "sem": self.sem,
+                "is_simulation": self.is_simulation}
+
+    def get_data_df(self):
+        name = [self.legend_name for i in range(len(self.y_data))]
+        is_simulation = [self.is_simulation for i in range(len(self.y_data))]
+        if len(self.x_data) == len(self.y_data):
+            df = pd.DataFrame({"x": self.x_data, "y": self.y_data, "name": name, "is_simulation": is_simulation})
+            return df
+
+
+
     def get_provided_noise(self):
         """
         Get the provided noise from the noiseParameters column
@@ -82,7 +98,6 @@ class RowClass:
             The provided noise
         """
 
-        # Question: take mean of noise for multiple replicates?
         noise = 0
         if self.plot_type_data == ptc.PROVIDED:
             noise = self.line_data[ptc.NOISE_PARAMETERS]

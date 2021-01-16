@@ -45,7 +45,7 @@ class CustomTableModel(QAbstractTableModel):
         if orientation == Qt.Horizontal:
             return self.df.columns[section]
         else:
-            return "{}".format(section)
+            return self.df.index[section]
 
     def data(self, index, role=Qt.DisplayRole):
         column = index.column()
