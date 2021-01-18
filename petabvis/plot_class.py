@@ -59,7 +59,6 @@ class PlotClass:
             overview_df: Dataframe containing info about the points
 
         """
-        print(overview_df.dtypes)
         measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
         simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
 
