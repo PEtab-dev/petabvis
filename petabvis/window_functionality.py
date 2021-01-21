@@ -68,10 +68,14 @@ class CustomTableModel(QAbstractTableModel):
 
         return None
 
+    def get_value(self, row, column):
+        return self.df.iloc[row][column]
+
 
 class VisualizaionTableModel(CustomTableModel):
-    def __init__(self, df=None):
+    def __init__(self, df=None, window=None):
         CustomTableModel.__init__(self, df)
+        self.window = window
 
     def flags(self, index):
         if not index.isValid():
@@ -81,6 +85,9 @@ class VisualizaionTableModel(CustomTableModel):
             return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
 
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
+
+    def get_window(self):
+        return self.window
 
 
 class CheckBoxDelegate(QtWidgets.QItemDelegate):
@@ -112,6 +119,11 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
 
         if event.type() == QtCore.QEvent.MouseButtonRelease and event.button() == QtCore.Qt.LeftButton:
             # Change the checkbox-state
+            plotId = model.sourceModel().get_value(index.row(), ptc.PLOT_ID)
+            datasetId = model.sourceModel().get_value(index.row(), ptc.DATASET_ID)
+            window = model.sourceModel().get_window()
+            visu_spec_plot = [visu_spec_plot for visu_spec_plot in window.visu_spec_plots if visu_spec_plot.plotId == plotId][0]
+            visu_spec_plot.add_or_remove_line(datasetId)
             self.setModelData(None, model, index)
             return True
 
@@ -128,12 +140,12 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
 class TableWidget(QWidget):
     """Widget for displaying a PEtab table."""
 
-    def __init__(self, data: pd.DataFrame, add_checkbox_col: bool):
+    def __init__(self, data: pd.DataFrame, add_checkbox_col: bool, window):
         QWidget.__init__(self)
 
         # Set the Model
         if add_checkbox_col:
-            self.model = VisualizaionTableModel(data)
+            self.model = VisualizaionTableModel(data, window)
         else:  # for any other df
             self.model = CustomTableModel(data)
 
@@ -177,7 +189,7 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     add_checkbox_col = False
     if window.visualization_df.equals(df):
         add_checkbox_col = True
-    window.table_window = TableWidget(df, add_checkbox_col=add_checkbox_col)
+    window.table_window = TableWidget(data=df, add_checkbox_col=add_checkbox_col, window=window)
     window.table_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
     window.table_window.show()
 

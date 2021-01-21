@@ -84,8 +84,12 @@ class RowClass:
     def get_data_df(self):
         name = [self.legend_name for i in range(len(self.y_data))]
         is_simulation = [self.is_simulation for i in range(len(self.y_data))]
+        dataset_ids = [self.dataset_id for i in range(len(self.y_data))]
+        x_vars = [self.x_var for i in range(len(self.y_data))]
         if len(self.x_data) == len(self.y_data):
-            df = pd.DataFrame({"x": self.x_data, "y": self.y_data, "name": name, "is_simulation": is_simulation})
+            df = pd.DataFrame({"x": self.x_data, "y": self.y_data, "name": name,
+                               "is_simulation": is_simulation, "dataset_id": dataset_ids,
+                               "x_var": x_vars})
             return df
 
 

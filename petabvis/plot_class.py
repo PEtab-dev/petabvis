@@ -59,24 +59,27 @@ class PlotClass:
             overview_df: Dataframe containing info about the points
 
         """
-        measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
-        simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
+        self.correlation_plot.clear()
 
-        self.add_points(overview_df)
-        self.correlation_plot.setLabel("left", "Simulation")
-        self.correlation_plot.setLabel("bottom", "Measurement")
+        if not overview_df.empty:
+            measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
+            simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
 
-        min_value = min(measurements + simulations)
-        max_value = max(measurements + simulations)
-        self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
-        self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
+            self.add_points(overview_df)
+            self.correlation_plot.setLabel("left", "Simulation")
+            self.correlation_plot.setLabel("bottom", "Measurement")
 
-        # calculate and add the r_squared value
-        self.r_squared = self.get_R_squared(measurements, simulations)
-        r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
-        r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
-        r_squared_text.setPos(min_value, max_value)
-        self.correlation_plot.addItem(r_squared_text, anchor=(0, 0), color="k")
+            min_value = min(measurements + simulations)
+            max_value = max(measurements + simulations)
+            self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
+            self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
+
+            # calculate and add the r_squared value
+            self.r_squared = self.get_R_squared(measurements, simulations)
+            r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
+            r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
+            r_squared_text.setPos(min_value, max_value)
+            self.correlation_plot.addItem(r_squared_text, anchor=(0, 0), color="k")
 
     def add_points(self, overview_df: pd.DataFrame):
         """
@@ -103,20 +106,23 @@ class PlotClass:
         self.correlation_plot.addItem(scatter_plot)
 
         # add interaction
-        last_clicked = []
+        last_clicked = None
         info_text = pg.TextItem("", anchor=(0, 0), color="k")
         self.correlation_plot.addItem(info_text)
         #TODO: add option to remove text again
         def clicked(plot, points):
             nonlocal last_clicked
             nonlocal info_text
-            for p in last_clicked:
-                p.resetPen()
-            for p in points:
-                p.setPen('b', width=2)
+            if last_clicked is not None:
+                last_clicked.resetPen()
+            # remove the text when the same point is clicked twice
+            if last_clicked == points[0] and info_text.textItem.toPlainText() != "":
+                info_text.setText("")
+            else:
+                points[0].setPen('b', width=2)
                 info_text.setText(str((points[0].data())))
                 info_text.setPos(points[0].pos())
-            last_clicked = points
+                last_clicked = points[0]
 
         scatter_plot.sigClicked.connect(clicked)
 
