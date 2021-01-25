@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import petab.C as ptc
-import petab
 
 from . import utils
 from . import row_class
@@ -103,5 +102,3 @@ class PlotRow(row_class.RowClass):
             y_data.append(y_values)
 
         return y_data
-
-

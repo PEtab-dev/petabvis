@@ -2,7 +2,6 @@ import pandas as pd
 import pyqtgraph as pg
 import petab
 import scipy
-import itertools
 
 from . import utils
 
@@ -44,6 +43,7 @@ class PlotClass:
         self.condition_df = condition_df
         self.plotId = plotId
         self.error_bars = []
+        self.disabled_rows = set()  # set of plot_ids that are disabled
         self.warnings = ""
         self.has_replicates = petab.measurements.measurements_have_replicates(self.measurement_df)
         self.plot_title = utils.get_plot_title(self.visualization_df)
@@ -93,12 +93,15 @@ class PlotClass:
         measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
         simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
         names = overview_df[~overview_df["is_simulation"]]["name"].tolist()
-        x = overview_df[~overview_df["is_simulation"]]["x"].tolist()
         point_descriptions = [(names[i] + "\nmeasurement: " + str(measurements[i]) +
-                              "\nsimulation: " + str(simulations[i])) +
-                              "\nx: " + str(x[i])
+                              "\nsimulation: " + str(simulations[i]))
                               for i in range(len(measurements))]
-
+        # only line plots have x-values, barplots do not
+        if "x_label" in overview_df.columns:
+            x = overview_df[~overview_df["is_simulation"]]["x"].tolist()
+            x_label = overview_df[~overview_df["is_simulation"]]["x_label"].tolist()
+            point_descriptions = [(point_descriptions[i] + "\n" + str(x_label[i])) + ": " +
+                                  str(x[i]) for i in range(len(point_descriptions))]
         # create the scatterplot
         scatter_plot = pg.ScatterPlotItem(pen=pg.mkPen(None), brush=pg.mkBrush(0, 0, 0))
         spots = [{'pos': [m, s], 'data': idx} for m, s, idx in zip(measurements, simulations, point_descriptions)]
@@ -109,7 +112,7 @@ class PlotClass:
         last_clicked = None
         info_text = pg.TextItem("", anchor=(0, 0), color="k")
         self.correlation_plot.addItem(info_text)
-        #TODO: add option to remove text again
+
         def clicked(plot, points):
             nonlocal last_clicked
             nonlocal info_text

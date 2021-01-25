@@ -73,6 +73,12 @@ class CustomTableModel(QAbstractTableModel):
 
 
 class VisualizaionTableModel(CustomTableModel):
+    """
+    Special table model for visualization files.
+    Make the first column of the table editable for
+    the checkbox column.
+    Highlight the rows of the currently displayed plot.
+    """
     def __init__(self, df=None, window=None):
         CustomTableModel.__init__(self, df)
         self.window = window
@@ -86,13 +92,23 @@ class VisualizaionTableModel(CustomTableModel):
 
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
+    def data(self, index, role=Qt.DisplayRole):
+        if role == Qt.BackgroundRole:
+            current_plot = self.window.visu_spec_plots[self.window.current_list_index]
+            current_plot_id = current_plot.plotId
+            if self.df[ptc.PLOT_ID][index.row()] == current_plot_id:
+                return QtGui.QColor("yellow")
+        else:
+            return super().data(index, role)
+
     def get_window(self):
         return self.window
 
 
 class CheckBoxDelegate(QtWidgets.QItemDelegate):
     """
-    A delegate that places a fully functioning QCheckBox cell of the column to which it's applied.
+    A delegate that places a fully functioning QCheckBox cell to the column to which it's applied.
+    Used for the visualization table to add the checkbox column and provide it's functionality.
     """
     def __init__(self, parent):
         QtWidgets.QItemDelegate.__init__(self, parent)
@@ -129,12 +145,11 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
 
         return False
 
-    def setModelData (self, editor, model, index):
-        '''
-        The user wanted to change the old state in the opposite.
-        '''
+    def setModelData(self, editor, model, index):
+        """
+        Change the state of the checkbox after it was clicked.
+        """
         model.setData(index, 1 if int(index.data()) == 0 else 0, QtCore.Qt.EditRole)
-
 
 
 class TableWidget(QWidget):
@@ -208,10 +223,12 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     tree_view = window.tree_view
     root_node = model.invisibleRootItem()
 
+    # iterate through the yaml_dict
     for key in window.yaml_dict:
         branch = QtGui.QStandardItem(key)
         is_first_df = True
 
+        # iterate through the files of a yaml_dict entry
         for filename in window.yaml_dict[key]:
             file = QtGui.QStandardItem(filename)
             df = None

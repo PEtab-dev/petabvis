@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import scipy
-import petab
 import petab.C as ptc
 from PySide2 import QtCore
 import pyqtgraph as pg
@@ -47,7 +45,6 @@ class VisuSpecPlot(plot_class.PlotClass):
             self.check_log_for_zeros()
 
         self.legend = self.plot.addLegend()
-        self.disabled_rows = set()  # set of plot_ids that are disabled
 
         # useful to remove them from the plot when disabling lines
         self.datasetId_to_plotDataItem = {}
@@ -61,7 +58,6 @@ class VisuSpecPlot(plot_class.PlotClass):
         self.simu_lines = []  # (simulations)
 
         self.plot_everything()
-
 
     def plot_everything(self):
         """
@@ -100,7 +96,7 @@ class VisuSpecPlot(plot_class.PlotClass):
         Returns:
             overview_df: A dataframe containing an overview of the plotRows
         """
-        overview_df = pd.DataFrame(columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var"])
+        overview_df = pd.DataFrame(columns=["x", "y", "name", "is_simulation", "dataset_id", "x_label"])
         if self.visualization_df is not None:
             dfs = [p_row.get_data_df() for p_row in (self.plot_rows + self.plot_rows_simulation)
                    if p_row.dataset_id not in self.disabled_rows]
@@ -202,16 +198,15 @@ class VisuSpecPlot(plot_class.PlotClass):
             x = df[~df["is_simulation"]]["x"].tolist()
             measurements = df[~df["is_simulation"]]["y"].tolist()
             points = self.plot.plot(x, measurements,
-                           pen=None, symbol='o',
-                           symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+                                    pen=None, symbol='o',
+                                    symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
             self.datasetId_to_points[id] = points
             x_simulation = df[df["is_simulation"]]["x"].tolist()
             simulations = df[df["is_simulation"]]["y"].tolist()
             points = self.plot.plot(x_simulation, simulations,
-                           pen=None, symbol='o',
-                           symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
+                                    pen=None, symbol='o',
+                                    symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
             self.datasetId_to_points[id + "_simulation"] = points
-
 
     def plot_row_to_plot_data_item(self, p_row: plot_row.PlotRow):
         """
@@ -314,7 +309,6 @@ class VisuSpecPlot(plot_class.PlotClass):
         """
         Set the scales to log10 if necessary.
         Default is linear scale.
-
         """
         if len(self.plot_rows) > 0:  # default plots have a linear scale
             if "log" in self.plot_rows[0].x_scale:
@@ -378,33 +372,51 @@ class VisuSpecPlot(plot_class.PlotClass):
         Add the datasetId to the disabled rows if
         it is not in the disabled rows set. Otherwise,
         remove it from the disabled rows set.
+        Then, adjust the plot showing only the enabled rows.
 
         Arguments:
             dataset_id: The datasetId of the row that should
                         be added or removed.
         """
+        # TODO: generate warning for rows without dataset id
         if dataset_id in self.disabled_rows:
             self.disabled_rows.remove(dataset_id)
-            self.enable_row(dataset_id)
+            self.enable_line(dataset_id)
             if self.simulation_df is not None:
-                self.enable_row(dataset_id + "_simulation")
+                self.enable_line(dataset_id + "_simulation")
         else:
             self.disabled_rows.add(dataset_id)
-            self.disable_row(dataset_id)
+            self.disable_line(dataset_id)
             if self.simulation_df is not None:
-                self.disable_row(dataset_id + "_simulation")
+                self.disable_line(dataset_id + "_simulation")
 
         # update the correlation plot
         if self.simulation_df is not None:
             overview_df = self.generate_overview_df()
             self.generate_correlation_plot(overview_df)
 
-    def disable_row(self, dataset_id):
+    def disable_line(self, dataset_id):
+        """
+        Remove the line from the plot matching the dataset id.
+        Also removes the line of the simulation if present.
+
+        Arguments:
+            dataset_id: The dataset id of the line that should be removed.
+        """
         self.plot.removeItem(self.datasetId_to_plotDataItem[dataset_id])
-        self.plot.removeItem(self.datasetId_to_errorbar[dataset_id])
+        if self.datasetId_to_errorbar:  # The plot may not have errorbars
+            self.plot.removeItem(self.datasetId_to_errorbar[dataset_id])
         self.plot.removeItem(self.datasetId_to_points[dataset_id])
 
-    def enable_row(self, dataset_id):
+    def enable_line(self, dataset_id):
+        """
+        Add the line to the plot matching the dataset id.
+        Also add the simulation line if possible.
+
+        Arguments:
+            dataset_id: The dataset id of the line that should be added.
+        """
         self.plot.addItem(self.datasetId_to_plotDataItem[dataset_id])
-        self.plot.addItem(self.datasetId_to_errorbar[dataset_id])
+        if self.datasetId_to_errorbar:  # The plot may not have errorbars
+            self.plot.addItem(self.datasetId_to_errorbar[dataset_id])
         self.plot.addItem(self.datasetId_to_points[dataset_id])

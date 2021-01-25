@@ -76,23 +76,25 @@ class RowClass:
         self.has_replicates = petab.measurements.measurements_have_replicates(self.line_data)
         self.replicates = utils.split_replicates(self.line_data)
 
-    def get_data(self):
-        return {"x": self.x_data, "y": self.y_data, "id": self.dataset_id,
-                "name": self.legend_name, "sd": self.sd, "sem": self.sem,
-                "is_simulation": self.is_simulation}
-
     def get_data_df(self):
+        """
+        Represent the data of this row as a dataframe.
+        Contains the x- and y-values, the name, the dataset id,
+        the name of the x-variable and the boolean is_simulation.
+        Note: Each x-/y-value pair gets their own row in the df.
+
+        Returns
+            df: The dataframe containing the row information.
+        """
         name = [self.legend_name for i in range(len(self.y_data))]
         is_simulation = [self.is_simulation for i in range(len(self.y_data))]
         dataset_ids = [self.dataset_id for i in range(len(self.y_data))]
-        x_vars = [self.x_var for i in range(len(self.y_data))]
+        x_label = [self.x_label for i in range(len(self.y_data))]
         if len(self.x_data) == len(self.y_data):
             df = pd.DataFrame({"x": self.x_data, "y": self.y_data, "name": name,
                                "is_simulation": is_simulation, "dataset_id": dataset_ids,
-                               "x_var": x_vars})
+                               "x_label": x_label})
             return df
-
-
 
     def get_provided_noise(self):
         """
@@ -101,7 +103,6 @@ class RowClass:
         Returns:
             The provided noise
         """
-
         noise = 0
         if self.plot_type_data == ptc.PROVIDED:
             noise = self.line_data[ptc.NOISE_PARAMETERS]

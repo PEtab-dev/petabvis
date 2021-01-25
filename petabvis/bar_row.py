@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
-import petab.C as ptc
-import petab
 
-from . import utils
 from . import row_class
 
 
@@ -22,7 +19,6 @@ class BarRow(row_class.RowClass):
                  plot_spec: pd.Series, condition_df: pd.DataFrame, ):
         super().__init__(exp_data, plot_spec, condition_df)
 
-        # calculate new attributes
         # Note: A bar plot has no x_data
         self.y_data = self.get_mean_y_data()
         self.sd = self.get_sd()
@@ -66,4 +62,3 @@ class BarRow(row_class.RowClass):
         sem = sd / np.sqrt(len(y_values))
 
         return sem
-
