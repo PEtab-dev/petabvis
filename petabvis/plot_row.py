@@ -71,18 +71,15 @@ class PlotRow(row_class.RowClass):
             x_data_replicates: The y-values for each replicate
         """
         x_data = []
+        default_x_values = [df for _, df in self.replicates[0].groupby(self.x_var, sort=True)]
         for replicate in self.replicates:
-            x_values = np.asarray(replicate[self.x_var])
-
-            if ptc.REPLICATE_ID not in self.line_data.columns:
+            if ptc.REPLICATE_ID in self.line_data.columns:
+                x_values = np.asarray(replicate[self.x_var])
                 # when no explicit replicate id is given, we assume that
                 # each replicate uses the same x-values which are determined
                 # by the unique x-values in the data
-
-                x_values = np.asarray(self.replicates[0][self.x_var])
-                # to keep the order intact (only needed if no replicate id col is provided)
-                indexes = np.unique(x_values, return_index=True)[1]
-                x_values = np.asarray([x_values[index] for index in sorted(indexes)])
+            else:
+                x_values = default_x_values
             x_values = x_values + self.x_offset
             x_data.append(x_values)
 
