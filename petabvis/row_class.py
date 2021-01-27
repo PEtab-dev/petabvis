@@ -90,6 +90,8 @@ class RowClass:
                                "is_simulation": self.is_simulation, "dataset_id": self.dataset_id,
                                "x_label": self.x_label})
             return df
+        else:
+            raise Exception("Error: The number of x- and y-values are different")
 
     def get_provided_noise(self):
         """
