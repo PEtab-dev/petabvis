@@ -114,7 +114,4 @@ class RowClass:
         Returns:
             variable: The name of the y-variable
         """
-        variable = ptc.MEASUREMENT
-        if self.is_simulation:
-            variable = ptc.SIMULATION
-        return variable
+        return ptc.SIMULATION if self.is_simulation else ptc.MEASUREMENT
