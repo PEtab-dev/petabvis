@@ -32,10 +32,11 @@ class BarPlot(plot_class.PlotClass):
         super().__init__(measurement_df, visualization_df, simulation_df,
                          condition_df, plotId)
 
+        self.bar_width = 0.4
         # bar_rows also contains simulation bars
         self.bar_rows = []
-        self.bar_rows = self.add_bar_rows(self.measurement_df)  # list of plot_rows
-        self.bar_rows = self.add_bar_rows(self.simulation_df)
+        self.add_bar_rows(self.measurement_df)  # list of plot_rows
+        self.add_bar_rows(self.simulation_df)
 
         # A df containing the information needed to plot the bars
         self.overview_df = pd.DataFrame(columns=["x", "y", "name", "sd", "sem", "provided_noise", "is_simulation", "tick_pos"])
@@ -68,8 +69,6 @@ class BarPlot(plot_class.PlotClass):
                 if df is not None:
                     row = bar_row.BarRow(df, plot_spec, self.condition_df)
                     self.bar_rows.append(row)
-
-        return self.bar_rows
 
     def get_bars_df(self, bar_rows):
         """
@@ -109,8 +108,9 @@ class BarPlot(plot_class.PlotClass):
                 df.loc[index, "tick_pos"] = i
 
             # separate measurement and simulation bars
-            df.loc[~df["is_simulation"], "x"] = df.loc[~df["is_simulation"], "x"] - 0.2
-            df.loc[df["is_simulation"], "x"] = df.loc[df["is_simulation"], "x"] + 0.2
+            bar_separation_shift = self.bar_width/2
+            df.loc[~df["is_simulation"], "x"] -= bar_separation_shift
+            df.loc[df["is_simulation"], "x"] += bar_separation_shift
 
         return df
 
@@ -129,10 +129,10 @@ class BarPlot(plot_class.PlotClass):
             # Add bars
             simu_rows = self.overview_df["is_simulation"]
             bar_item = pg.BarGraphItem(x=self.overview_df[~simu_rows]["x"],
-                                       height=self.overview_df[~simu_rows]["y"], width=0.4)
+                                       height=self.overview_df[~simu_rows]["y"], width=self.bar_width)
             self.plot.addItem(bar_item)  # measurement bars
             bar_item = pg.BarGraphItem(x=self.overview_df[simu_rows]["x"], brush="w",
-                                       height=self.overview_df[simu_rows]["y"], width=0.4)
+                                       height=self.overview_df[simu_rows]["y"], width=self.bar_width)
             self.plot.addItem(bar_item)  # simulation bars
 
             # Add error bars

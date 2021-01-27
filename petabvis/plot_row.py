@@ -25,7 +25,7 @@ class PlotRow(row_class.RowClass):
 
         # calculate new attributes
         self.x_data = self.get_x_data()
-        self.y_data = self.get_mean_y_data()
+        self.y_data = self.get_y_data()
         self.sd = utils.sd_replicates(self.line_data, self.x_var, self.is_simulation)
         self.sem = utils.sem_replicates(self.line_data, self.x_var, self.is_simulation)
         self.provided_noise = self.get_provided_noise()
@@ -50,9 +50,13 @@ class PlotRow(row_class.RowClass):
 
         return x_data
 
-    def get_mean_y_data(self):
+    def get_y_data(self):
         """
-        Return the mean of the y-values that should be plotted
+        Return the mean of the y-values that should be plotted if
+        the plottype is not ptc.REPLICATE.
+        Otherwise, return the y-values of the first replicate.
+
+
         Returns:
             The y-values
         """

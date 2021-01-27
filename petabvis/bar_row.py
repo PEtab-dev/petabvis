@@ -58,7 +58,6 @@ class BarRow(row_class.RowClass):
         """
         variable = self.get_y_variable_name()
         y_values = self.line_data[variable]
-        sd = self.sd
-        sem = sd / np.sqrt(len(y_values))
+        sem = self.sd / np.sqrt(len(y_values))
 
         return sem
