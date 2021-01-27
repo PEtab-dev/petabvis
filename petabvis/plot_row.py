@@ -41,11 +41,11 @@ class PlotRow(row_class.RowClass):
             x_data = self.condition_df[self.x_var]
 
         else:  # for time plots
-            x_data = np.asarray(self.replicates[0][self.x_var])
             if self.has_replicates and self.plot_type_data != ptc.REPLICATE:
                 # to keep the order intact (only needed if no replicate id col is provided)
-                indexes = np.unique(x_data, return_index=True)[1]
-                x_data = np.asarray([x_data[index] for index in sorted(indexes)])
+                x_data = np.asarray([x_values for x_values, df in self.replicates[0].groupby(self.x_var, sort=True)])
+            else:
+                x_data = np.asarray(self.replicates[0][self.x_var])
             x_data = x_data + self.x_offset
 
         return x_data

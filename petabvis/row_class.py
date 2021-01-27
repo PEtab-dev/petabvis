@@ -62,10 +62,9 @@ class RowClass:
         self.is_simulation = ptc.SIMULATION in exp_data.columns
 
         # reduce dfs to relevant rows
-        if self.dataset_id and ptc.DATASET_ID in exp_data:  # != ""
-            self.line_data = exp_data[exp_data[ptc.DATASET_ID] == self.dataset_id]
-        else:
-            self.line_data = exp_data
+        self.line_data = exp_data
+        if self.dataset_id and ptc.DATASET_ID in self.line_data:  # != ""
+            self.line_data = self.line_data[self.line_data[ptc.DATASET_ID] == self.dataset_id]
         if self.y_var:  # != ""
             # filter by y-values if specified
             self.line_data = self.line_data[self.line_data[ptc.OBSERVABLE_ID] == self.y_var]
