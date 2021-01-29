@@ -1,23 +1,23 @@
-# PEtab vis
+# petabvis
 
 An interactive visualization tool for
 [PEtab](https://github.com/PEtab-dev/PEtab) measurement and simulation files.
 
 ## Installation
 
-### From pypi
+### From PyPI
 
 ```shell
 pip3 install petabvis
 ```
 
-### From GitHub repository
+### From GitHub
 
 ```shell
 pip3 install git+https://github.com/PEtab-dev/petabvis.git@main
 ```
 
-### From local source directory
+### From a local copy of the source
 
 From within the root source directory, run:
 
@@ -29,7 +29,7 @@ pip3 install .
 
 1. Run `petabvis`
 2. Select a PEtab yaml file
-3. Optionally select a PEtab measurement file
+3. Optionally select a simulation file
 4. Navigate through the plots
 
 See also `petabvis -h` for command line usage.
