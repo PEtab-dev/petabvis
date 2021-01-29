@@ -5,9 +5,15 @@ An interactive visualization tool for
 
 ## Installation
 
+### From pypi
+
+```shell
+pip3 install petabvis
+```
+
 ### From GitHub repository
 
-```
+```shell
 pip3 install git+https://github.com/ICB-DCM/petab-interactive-viz.git@main
 ```
 
@@ -15,10 +21,15 @@ pip3 install git+https://github.com/ICB-DCM/petab-interactive-viz.git@main
 
 From within the root source directory, run:
 
-```
+```shell
 pip3 install .
 ```
 
 ## Usage
 
-Run `petabvis` or see `petabvis -h` for command line usage.
+1. Run `petabvis`
+2. Select a PEtab yaml file
+3. Optionally select a PEtab measurement file
+4. Navigate through the plots
+
+See also `petabvis -h` for command line usage.
