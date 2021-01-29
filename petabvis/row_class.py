@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-import petab.C as ptc
 import petab
+import petab.C as ptc
 
 from . import utils
 
@@ -15,6 +15,7 @@ class RowClass:
         exp_data: PEtab measurement table
         plot_spec: A single row of a PEtab visualization table
         condition_df: PEtab condition table
+
     Attributes:
         line_data: PEtab measurement or simulation table reduced to relevant rows
         plot_spec: A single row of a PEtab visualization table
@@ -33,15 +34,14 @@ class RowClass:
         plot_type_data:  The type how replicates should be handled,
             can be MeanAndSD, MeanAndSEM, replicate or provided
         is_simulation: Boolean, True if exp_data is a simulation df
-        has_replicates: Booelean, True if replicates are in line_data
+        has_replicates: Boolean, True if replicates are in line_data
         replicates: List of line_data subsets, divided by replicateId
-
     """
 
     def __init__(self, exp_data: pd.DataFrame,
                  plot_spec: pd.Series, condition_df: pd.DataFrame, ):
-        self.x_data = []    # placeholder value, will be overwritten by plot_row
-        self.y_data = []   # placeholder value, will be overwritten by plot_row/bar_row
+        self.x_data = []  # placeholder value, will be overwritten by plot_row
+        self.y_data = []  # placeholder value, will be overwritten by plot_row/bar_row
 
         # set attributes
         self.plot_spec = plot_spec
@@ -64,15 +64,19 @@ class RowClass:
         # reduce dfs to relevant rows
         self.line_data = exp_data
         if self.dataset_id and ptc.DATASET_ID in self.line_data:  # != ""
-            self.line_data = self.line_data[self.line_data[ptc.DATASET_ID] == self.dataset_id]
+            self.line_data = self.line_data[
+                self.line_data[ptc.DATASET_ID] == self.dataset_id]
         if self.y_var:  # != ""
             # filter by y-values if specified
-            self.line_data = self.line_data[self.line_data[ptc.OBSERVABLE_ID] == self.y_var]
+            self.line_data = self.line_data[
+                self.line_data[ptc.OBSERVABLE_ID] == self.y_var]
         if self.condition_df is not None and self.x_var != ptc.TIME:
             # reduce the condition df to the relevant rows (by condition id)
-            self.condition_df = utils.reduce_condition_df(self.line_data, self.condition_df)
+            self.condition_df = utils.reduce_condition_df(self.line_data,
+                                                          self.condition_df)
 
-        self.has_replicates = petab.measurements.measurements_have_replicates(self.line_data)
+        self.has_replicates = petab.measurements.measurements_have_replicates(
+            self.line_data)
         self.replicates = utils.split_replicates(self.line_data)
 
     def get_data_df(self):
@@ -86,12 +90,15 @@ class RowClass:
             df: The dataframe containing the row information.
         """
         if len(self.x_data) == len(self.y_data):
-            df = pd.DataFrame({"x": self.x_data, "y": self.y_data, "name": self.legend_name,
-                               "is_simulation": self.is_simulation, "dataset_id": self.dataset_id,
-                               "x_label": self.x_label})
+            df = pd.DataFrame(
+                {"x": self.x_data, "y": self.y_data, "name": self.legend_name,
+                 "is_simulation": self.is_simulation,
+                 "dataset_id": self.dataset_id,
+                 "x_label": self.x_label})
             return df
         else:
-            raise Exception("Error: The number of x- and y-values are different")
+            raise Exception(
+                "Error: The number of x- and y-values are different")
 
     def get_provided_noise(self):
         """

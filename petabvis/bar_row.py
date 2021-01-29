@@ -15,6 +15,7 @@ class BarRow(row_class.RowClass):
         sem: Standard error of the mean of the replicates
         provided noise: Noise of the measurements
     """
+
     def __init__(self, exp_data: pd.DataFrame,
                  plot_spec: pd.Series, condition_df: pd.DataFrame, ):
         super().__init__(exp_data, plot_spec, condition_df)
