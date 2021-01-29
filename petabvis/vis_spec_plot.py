@@ -317,13 +317,9 @@ class VisSpecPlot(plot_class.PlotClass):
             # add points
             if is_simulation:
                 line_name = line_name + " simulation"
-                line_df = pd.DataFrame(
-                    {"x": x_data.tolist(), "y": y_data.tolist(),
-                     "name": group_id, "is_simulation": True})
-            else:
-                line_df = pd.DataFrame(
-                    {"x": x_data.tolist(), "y": y_data.tolist(),
-                     "name": group_id, "is_simulation": False})
+            line_df = pd.DataFrame(
+                {"x": x_data.tolist(), "y": y_data.tolist(),
+                 "name": group_id, "is_simulation": is_simulation})
             self.overview_df = self.overview_df.append(line_df,
                                                        ignore_index=True)
 
