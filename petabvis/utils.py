@@ -1,7 +1,8 @@
-import petab.C as ptc
+import warnings
+
 import numpy as np
 import pandas as pd
-import warnings
+import petab.C as ptc
 from PySide2 import QtCore
 from PySide2.QtWidgets import QComboBox
 
@@ -26,6 +27,7 @@ def get_legend_name(plot_spec: pd.Series):
 def get_x_var(plot_spec: pd.Series):
     """
     Returns the name of the x variable of the plot specification
+
     Arguments:
        plot_spec: A single row of a visualization df
     Returns:
@@ -41,6 +43,7 @@ def get_x_var(plot_spec: pd.Series):
 def get_y_var(plot_spec: pd.Series):
     """
     Returns the observable which should be plotted on the y-axis
+
     Arguments:
        plot_spec: A single row of a visualization df
     Returns:
@@ -56,8 +59,10 @@ def get_y_var(plot_spec: pd.Series):
 def get_x_offset(plot_spec: pd.Series):
     """
     Returns the x offset
+
     Arguments:
        plot_spec: A single row of a visualization df
+
     Returns:
         The x offset
     """
@@ -71,8 +76,10 @@ def get_x_offset(plot_spec: pd.Series):
 def get_x_scale(plot_spec: pd.Series):
     """
     Returns the scale of the x axis (lin, log or order)
+
     Arguments:
        plot_spec: A single row of a visualization df
+
     Returns:
         The x scale
     """
@@ -87,8 +94,10 @@ def get_x_scale(plot_spec: pd.Series):
 def get_y_scale(plot_spec: pd.Series):
     """
     Returns the scale of the y axis (lin, log or order)
+
     Arguments:
        plot_spec: A single row of a visualization df
+
     Returns:
         The x offset
     """
@@ -102,8 +111,10 @@ def get_y_scale(plot_spec: pd.Series):
 def get_y_offset(plot_spec: pd.Series):
     """
     Returns the y offset
+
     Arguments:
        plot_spec: A single row of a visualization df
+
     Returns:
         The y offset
     """
@@ -117,8 +128,10 @@ def get_y_offset(plot_spec: pd.Series):
 def get_x_label(plot_spec: pd.Series):
     """
     Returns the label of the x axis
+
     Arguments:
        plot_spec: A single row of a visualization df
+
     Returns:
         The label of the x axis
     """
@@ -132,8 +145,10 @@ def get_x_label(plot_spec: pd.Series):
 def get_y_label(plot_spec: pd.Series):
     """
     Returns the label of the y axis
+
     Arguments:
        plot_spec: A single row of a visualization df
+
     Returns:
         The label of the y axis
     """
@@ -147,8 +162,10 @@ def get_y_label(plot_spec: pd.Series):
 def get_dataset_id(plot_spec: pd.Series):
     """
     Returns the dataset id
+
     Arguments:
        plot_spec: A single row of a visualization df
+
     Returns:
         The dataset id
     """
@@ -182,6 +199,7 @@ def reduce_condition_df(line_data, condition_df):
     Arguments:
         line_data: A subset of a measurement df
         condition_df: The condition df
+
     Returns:
         The reduced condition df
     """
@@ -197,11 +215,14 @@ def reduce_condition_df(line_data, condition_df):
     condition_df = condition_df[ind_cond]
     return condition_df
 
+
 def get_plot_title(visualization_df_rows: pd.DataFrame):
     """
     Returns the title of the plot
+
     Arguments:
-       plot_spec: A single row of a visualization df
+       visualization_df_rows: A single row of a visualization df
+
     Returns:
         The plot title
     """
@@ -219,6 +240,7 @@ def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME,
                     y_var: str = ptc.MEASUREMENT):
     """
     Calculate the mean of the replicates.
+
     Note: The line_data already has to be reduced to the relevant
         simulationConditionIds for concentration plots
 
@@ -226,6 +248,7 @@ def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME,
         line_data: A subset of the measurement file
         x_var: Name of the x-variable
         y_var: Name of the y-variable (measurement or simulation)
+
     Returns:
         The mean grouped by x_var
     """
@@ -250,6 +273,7 @@ def sd_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
         x_var: Name of the x-variable
         is_simulation: Boolean to check if the y variable
             is measurement or simulation
+
     Returns:
         The std grouped by x_var
     """
@@ -280,6 +304,7 @@ def sem_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
         x_var: Name of the x-variable
         is_simulation: Boolean to check if the y variable
             is measurement or simulation
+
     Returns:
         The std grouped by x_var
     """
@@ -290,7 +315,8 @@ def sem_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
         grouping = ptc.SIMULATION_CONDITION_ID
 
     sd = sd_replicates(line_data, x_var, is_simulation)
-    n_replicates = [len(replicates) for replicates in line_data.groupby(grouping)]
+    n_replicates = [len(replicates) for replicates in
+                    line_data.groupby(grouping)]
     sem = sd / np.sqrt(n_replicates)
     return sem
 
@@ -299,11 +325,13 @@ def split_replicates(line_data: pd.DataFrame):
     """
     Split the line_data df into replicate dfs based on their
     replicate Id.
+
     If no replicateId column is in the line_data, line_data will
     be returned.
 
     Arguments:
         line_data: A subset of the measurement file
+
     Returns:
         The std grouped by x_var
     """
@@ -317,7 +345,8 @@ def split_replicates(line_data: pd.DataFrame):
     return replicates
 
 
-def add_plotnames_to_cbox(exp_data: pd.DataFrame, visualization_df: pd.DataFrame, cbox: QComboBox):
+def add_plotnames_to_cbox(exp_data: pd.DataFrame,
+                          visualization_df: pd.DataFrame, cbox: QComboBox):
     """
     Add the name of every plot in the visualization df
     to the cbox
@@ -332,10 +361,13 @@ def add_plotnames_to_cbox(exp_data: pd.DataFrame, visualization_df: pd.DataFrame
 
             # to keep the order of plotnames consistent with the plots that are shown
             # for every identical plot_id, the plot_name has to be the same
-            indexes = np.unique(visualization_df[ptc.PLOT_ID], return_index=True)[1]
-            plot_names = [visualization_df[ptc.PLOT_NAME][index] for index in sorted(indexes)]
+            indexes = \
+                np.unique(visualization_df[ptc.PLOT_ID], return_index=True)[1]
+            plot_names = [visualization_df[ptc.PLOT_NAME][index] for index in
+                          sorted(indexes)]
             if len(plot_ids) != len(plot_names):
-                warnings.warn("The number of plot ids should be the same as the number of plot names")
+                warnings.warn(
+                    "The number of plot ids should be the same as the number of plot names")
 
             for name in plot_names:
                 cbox.addItem(name)
@@ -346,7 +378,8 @@ def add_plotnames_to_cbox(exp_data: pd.DataFrame, visualization_df: pd.DataFrame
         # the default plots are grouped by observable ID
         # to keep the order of plots consistent with names from the plot selection
         indexes = np.unique(exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
-        observable_ids = [exp_data[ptc.OBSERVABLE_ID][index] for index in sorted(indexes)]
+        observable_ids = [exp_data[ptc.OBSERVABLE_ID][index] for index in
+                          sorted(indexes)]
         for observable_id in observable_ids:
             cbox.addItem(observable_id)
 

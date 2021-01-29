@@ -1,19 +1,19 @@
 import argparse
 import sys  # We need sys so that we can pass argv to QApplication
+import warnings
 
 import numpy as np
 import pandas as pd
-import warnings
 import petab.C as ptc
+import pyqtgraph as pg
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtWidgets import QVBoxLayout, QComboBox, QWidget, QLabel
 from petab import measurements, core
-import pyqtgraph as pg
 
 from . import utils
-from . import visuSpec_plot
-from . import bar_plot
+from . import vis_spec_plot
 from . import window_functionality
+from .bar_plot import BarPlot
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -36,6 +36,7 @@ class MainWindow(QtWidgets.QMainWindow):
         current_list_index: List index of the currently displayed plot
         wid: QSplitter between main plot and correlation plot
     """
+
     def __init__(self, exp_data: pd.DataFrame,
                  visualization_df: pd.DataFrame = None,
                  simulation_df: pd.DataFrame = None,
@@ -55,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.condition_df = condition_df
         self.observable_df = observable_df
         self.exp_data = exp_data
-        self.visu_spec_plots = []
+        self.vis_spec_plots = []
         self.wid = QtWidgets.QSplitter()
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
         self.plot2_widget = pg.GraphicsLayoutWidget(show=False)
@@ -105,26 +106,30 @@ class MainWindow(QtWidgets.QMainWindow):
         Returns:
             List of PlotItem
         """
-        self.clear_QSplitter()
-        self.visu_spec_plots.clear()
+        self.clear_qsplitter()
+        self.vis_spec_plots.clear()
 
         if self.visualization_df is not None:
             # to keep the order of plots consistent with names from the plot selection
-            indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
-            plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
+            indexes = \
+            np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
+            plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in
+                        sorted(indexes)]
             for plot_id in plot_ids:
-                self.create_and_add_visuPlot(plot_id)
+                self.create_and_add_vis_plot(plot_id)
 
         else:  # default plot when no visu_df is provided
-            self.create_and_add_visuPlot()
+            self.create_and_add_vis_plot()
 
-        plots = [visuPlot.getPlot() for visuPlot in self.visu_spec_plots]
+        plots = [vis_spec_plot.get_plot() for vis_spec_plot in
+                 self.vis_spec_plots]
 
         # update the cbox
         self.cbox.clear()
         # calling this method sets the index of the cbox to 0
         # and thus displays the first plot
-        utils.add_plotnames_to_cbox(self.exp_data, self.visualization_df, self.cbox)
+        utils.add_plotnames_to_cbox(self.exp_data, self.visualization_df,
+                                    self.cbox)
 
         return plots
 
@@ -135,13 +140,15 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             i: index of the selected plot
         """
-        if 0 <= i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
-            self.clear_QSplitter()
-            self.plot1_widget.addItem(self.visu_spec_plots[i].getPlot())
+        if 0 <= i < len(
+                self.vis_spec_plots):  # i is -1 when the cbox is cleared
+            self.clear_qsplitter()
+            self.plot1_widget.addItem(self.vis_spec_plots[i].get_plot())
             self.plot2_widget.hide()
             if self.simulation_df is not None:
                 self.plot2_widget.show()
-                self.plot2_widget.addItem(self.visu_spec_plots[i].correlation_plot)
+                self.plot2_widget.addItem(
+                    self.vis_spec_plots[i].correlation_plot)
             self.current_list_index = i
 
     def keyPressEvent(self, ev):
@@ -153,18 +160,18 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         # Exit when pressing ctrl + Q
         ctrl = False
-        if (ev.modifiers() & QtCore.Qt.ControlModifier):
+        if ev.modifiers() & QtCore.Qt.ControlModifier:
             ctrl = True
         if ctrl and ev.key() == QtCore.Qt.Key_Q:
             sys.exit()
 
-        if(ev.key() == QtCore.Qt.Key_Up):
+        if ev.key() == QtCore.Qt.Key_Up:
             self.index_changed(self.current_list_index - 1)
-        if(ev.key() == QtCore.Qt.Key_Down):
+        if ev.key() == QtCore.Qt.Key_Down:
             self.index_changed(self.current_list_index + 1)
-        if(ev.key() == QtCore.Qt.Key_Left):
+        if ev.key() == QtCore.Qt.Key_Left:
             self.index_changed(self.current_list_index - 1)
-        if(ev.key() == QtCore.Qt.Key_Right):
+        if ev.key() == QtCore.Qt.Key_Right:
             self.index_changed(self.current_list_index + 1)
 
     def add_warning(self, message: str):
@@ -177,7 +184,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if message not in self.warn_msg.text():
             self.warn_msg.setText(self.warn_msg.text() + message + "\n")
 
-    def redirect_warning(self, message, category, filename=None, lineno=None, file=None, line=None):
+    def redirect_warning(self, message, category, filename=None, lineno=None,
+                         file=None, line=None):
         """
         Redirect all warning messages and display them in the window.
 
@@ -187,11 +195,11 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Warning redirected: " + str(message))
         self.add_warning(str(message))
 
-    def create_and_add_visuPlot(self, plot_id=""):
+    def create_and_add_vis_plot(self, plot_id=""):
         """
-        Create a visuSpec_plot object based on the given plot_id.
+        Create a vis_spec_plot object based on the given plot_id.
         If no plot_it is provided the default will be plotted.
-        Add all the warnings of the visuPlot object to the warning text box.
+        Add all the warnings of the vis_plot object to the warning text box.
 
         The actual plotting happens in the index_changed method
 
@@ -201,41 +209,46 @@ class MainWindow(QtWidgets.QMainWindow):
         # split the measurement df by observable when using default plots
         if self.visualization_df is None:
             # to keep the order of plots consistent with names from the plot selection
-            indexes = np.unique(self.exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
-            observable_ids = [self.exp_data[ptc.OBSERVABLE_ID][index] for index in sorted(indexes)]
+            indexes = \
+            np.unique(self.exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
+            observable_ids = [self.exp_data[ptc.OBSERVABLE_ID][index] for index
+                              in sorted(indexes)]
             for observable_id in observable_ids:
                 rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
                 data = self.exp_data[rows]
-                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=data, visualization_df=None,
-                                                      condition_df=self.condition_df,
-                                                      simulation_df=self.simulation_df, plotId=plot_id)
-                self.visu_spec_plots.append(visuPlot)
-                if visuPlot.warnings:
-                    self.add_warning(visuPlot.warnings)
+                vis_plot = vis_spec_plot.VisSpecPlot(
+                    measurement_df=data, visualization_df=None,
+                    condition_df=self.condition_df,
+                    simulation_df=self.simulation_df, plot_id=plot_id)
+                self.vis_spec_plots.append(vis_plot)
+                if vis_plot.warnings:
+                    self.add_warning(vis_plot.warnings)
 
         else:
             # reduce the visualization df to the relevant rows (by plotId)
             rows = self.visualization_df[ptc.PLOT_ID] == plot_id
-            visu_df = self.visualization_df[rows]
-            if ptc.PLOT_TYPE_SIMULATION in visu_df.columns and\
-                    visu_df.iloc[0][ptc.PLOT_TYPE_SIMULATION] == ptc.BAR_PLOT:
-                barPlot = bar_plot.BarPlot(measurement_df=self.exp_data,
-                                           visualization_df=visu_df,
+            vis_df = self.visualization_df[rows]
+            if ptc.PLOT_TYPE_SIMULATION in vis_df.columns and \
+                    vis_df.iloc[0][ptc.PLOT_TYPE_SIMULATION] == ptc.BAR_PLOT:
+                bar_plot = BarPlot(measurement_df=self.exp_data,
+                                           visualization_df=vis_df,
                                            condition_df=self.condition_df,
-                                           simulation_df=self.simulation_df, plotId=plot_id)
+                                           simulation_df=self.simulation_df,
+                                           plot_id=plot_id)
                 # might want to change the name of visu_spec_plots to clarify that
                 # it can also include bar plots (maybe to plots?)
-                self.visu_spec_plots.append(barPlot)
+                self.vis_spec_plots.append(bar_plot)
             else:
-                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=self.exp_data,
-                                                      visualization_df=visu_df,
-                                                      condition_df=self.condition_df,
-                                                      simulation_df=self.simulation_df, plotId=plot_id)
-                self.visu_spec_plots.append(visuPlot)
-                if visuPlot.warnings:
-                    self.add_warning(visuPlot.warnings)
+                vis_plot = vis_spec_plot.VisSpecPlot(
+                    measurement_df=self.exp_data,
+                    visualization_df=vis_df,
+                    condition_df=self.condition_df,
+                    simulation_df=self.simulation_df, plot_id=plot_id)
+                self.vis_spec_plots.append(vis_plot)
+                if vis_plot.warnings:
+                    self.add_warning(vis_plot.warnings)
 
-    def clear_QSplitter(self):
+    def clear_qsplitter(self):
         """
         Clear the GraphicsLayoutWidgets for the
         measurement and correlation plot
@@ -258,11 +271,12 @@ def main():
 
     visualization_df = None
     if args.visualization is not None:
-        visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
+        visualization_df = core.concat_tables(args.visualization,
+                                              core.get_visualization_df)
 
     app = QtWidgets.QApplication(sys.argv)
-    main = MainWindow(exp_data, visualization_df)
-    main.show()
+    main_window = MainWindow(exp_data, visualization_df)
+    main_window.show()
     sys.exit(app.exec_())
 
 

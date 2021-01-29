@@ -16,21 +16,20 @@ class BarPlot(plot_class.PlotClass):
          visualization_df: PEtab visualization table
          simulation_df: PEtab simulation table
          condition_df: PEtab condition table
-         plotId: Id of the plot (has to in the visualization_df aswell)
+         plot_id: Id of the plot (has to in the visualization_df as well)
 
      Attributes:
          bar_rows: A list of BarRows (one for each visualization df row)
          overview_df: A df containing the information of each bar
-
      """
 
     def __init__(self, measurement_df: pd.DataFrame = None,
                  visualization_df: pd.DataFrame = None,
                  simulation_df: pd.DataFrame = None,
                  condition_df: pd.DataFrame = None,
-                 plotId: str = ""):
+                 plot_id: str = ""):
         super().__init__(measurement_df, visualization_df, simulation_df,
-                         condition_df, plotId)
+                         condition_df, plot_id)
 
         self.bar_width = 0.4
         # bar_rows also contains simulation bars
@@ -39,7 +38,9 @@ class BarPlot(plot_class.PlotClass):
         self.add_bar_rows(self.simulation_df)
 
         # A df containing the information needed to plot the bars
-        self.overview_df = pd.DataFrame(columns=["x", "y", "name", "sd", "sem", "provided_noise", "is_simulation", "tick_pos"])
+        self.overview_df = pd.DataFrame(
+            columns=["x", "y", "name", "sd", "sem", "provided_noise",
+                     "is_simulation", "tick_pos"])
 
         self.plot_everything()
 
@@ -81,7 +82,8 @@ class BarPlot(plot_class.PlotClass):
             df: A dataframe with information relevant
                 for plotting a bar (x, y, sd, etc.)
         """
-        bar_rows = [bar_row for bar_row in bar_rows if bar_row.dataset_id not in self.disabled_rows]
+        bar_rows = [bar_row for bar_row in bar_rows if
+                    bar_row.dataset_id not in self.disabled_rows]
 
         x = range(len(bar_rows))
         tick_pos = range(len(bar_rows))
@@ -92,8 +94,10 @@ class BarPlot(plot_class.PlotClass):
         noise = [bar.provided_noise for bar in bar_rows]
         is_simulation = [bar.is_simulation for bar in bar_rows]
 
-        df = pd.DataFrame(list(zip(x, y, names, sd, sem, noise, is_simulation, tick_pos)),
-                          columns=["x", "y", "name", "sd", "sem", "provided_noise", "is_simulation", "tick_pos"])
+        df = pd.DataFrame(
+            list(zip(x, y, names, sd, sem, noise, is_simulation, tick_pos)),
+            columns=["x", "y", "name", "sd", "sem", "provided_noise",
+                     "is_simulation", "tick_pos"])
 
         # Adjust x and tick_pos of the bars when simulation bars are plotted
         # such that they are next to each other
@@ -108,7 +112,7 @@ class BarPlot(plot_class.PlotClass):
                 df.loc[index, "tick_pos"] = i
 
             # separate measurement and simulation bars
-            bar_separation_shift = self.bar_width/2
+            bar_separation_shift = self.bar_width / 2
             df.loc[~df["is_simulation"], "x"] -= bar_separation_shift
             df.loc[df["is_simulation"], "x"] += bar_separation_shift
 
@@ -129,10 +133,13 @@ class BarPlot(plot_class.PlotClass):
             # Add bars
             simu_rows = self.overview_df["is_simulation"]
             bar_item = pg.BarGraphItem(x=self.overview_df[~simu_rows]["x"],
-                                       height=self.overview_df[~simu_rows]["y"], width=self.bar_width)
+                                       height=self.overview_df[~simu_rows][
+                                           "y"], width=self.bar_width)
             self.plot.addItem(bar_item)  # measurement bars
-            bar_item = pg.BarGraphItem(x=self.overview_df[simu_rows]["x"], brush="w",
-                                       height=self.overview_df[simu_rows]["y"], width=self.bar_width)
+            bar_item = pg.BarGraphItem(x=self.overview_df[simu_rows]["x"],
+                                       brush="w",
+                                       height=self.overview_df[simu_rows]["y"],
+                                       width=self.bar_width)
             self.plot.addItem(bar_item)  # simulation bars
 
             # Add error bars
@@ -141,20 +148,24 @@ class BarPlot(plot_class.PlotClass):
                 error_length = self.overview_df["sem"]
             if self.bar_rows[0].plot_type_data == ptc.PROVIDED:
                 error_length = self.overview_df["provided_noise"]
-            error = pg.ErrorBarItem(x=self.overview_df["x"], y=self.overview_df["y"],
-                                    top=error_length, bottom=error_length, beam=0.1)
+            error = pg.ErrorBarItem(x=self.overview_df["x"],
+                                    y=self.overview_df["y"],
+                                    top=error_length, bottom=error_length,
+                                    beam=0.1)
             self.plot.addItem(error)
 
             # set tick names to the legend entry of the bars
             xax = self.plot.getAxis("bottom")
-            ticks = [list(zip(self.overview_df["tick_pos"], self.overview_df["name"]))]
+            ticks = [list(
+                zip(self.overview_df["tick_pos"], self.overview_df["name"]))]
             xax.setTicks(ticks)
 
             # set y-scale to log if necessary
             if "log" in self.bar_rows[0].y_scale:
                 self.plot.setLogMode(y=True)
                 if self.plot_rows[0].x_scale == "log":
-                    self.add_warning("log not supported, using log10 instead (in " + self.plot_title + ")")
+                    self.add_warning(
+                        "log not supported, using log10 instead (in " + self.plot_title + ")")
 
     def add_or_remove_line(self, dataset_id):
         """

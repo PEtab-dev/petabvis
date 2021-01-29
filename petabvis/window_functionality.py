@@ -1,9 +1,10 @@
-# Import after PySide2 to ensure usage of correct Qt library
 import os
 import sys
 from pathlib import Path
 
 import pandas as pd
+import petab
+import petab.C as ptc
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             QSortFilterProxyModel)
@@ -11,9 +12,6 @@ from PySide2.QtGui import QColor
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView,
                                QSizePolicy, QTableView, QWidget, QFileDialog)
-
-import petab
-import petab.C as ptc
 from petab import core
 from petab.visualize.helper_functions import check_ex_exp_columns
 
@@ -75,10 +73,11 @@ class CustomTableModel(QAbstractTableModel):
 class VisualizaionTableModel(CustomTableModel):
     """
     Special table model for visualization files.
-    Make the first column of the table editable for
-    the checkbox column.
+
+    Make the first column of the table editable for the checkbox column.
     Highlight the rows of the currently displayed plot.
     """
+
     def __init__(self, df=None, window=None):
         CustomTableModel.__init__(self, df)
         self.window = window
@@ -88,14 +87,16 @@ class VisualizaionTableModel(CustomTableModel):
             return 0
 
         if index.column() == 0:
-            return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
+            return Qt.ItemIsEditable | Qt.ItemIsEnabled \
+                   | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
 
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
     def data(self, index, role=Qt.DisplayRole):
         if role == Qt.BackgroundRole:
-            current_plot = self.window.visu_spec_plots[self.window.current_list_index]
-            current_plot_id = current_plot.plotId
+            current_plot = self.window.vis_spec_plots[
+                self.window.current_list_index]
+            current_plot_id = current_plot.plot_id
             if self.df[ptc.PLOT_ID][index.row()] == current_plot_id:
                 return QtGui.QColor("yellow")
         else:
@@ -107,15 +108,20 @@ class VisualizaionTableModel(CustomTableModel):
 
 class CheckBoxDelegate(QtWidgets.QItemDelegate):
     """
-    A delegate that places a fully functioning QCheckBox cell to the column to which it's applied.
-    Used for the visualization table to add the checkbox column and provide it's functionality.
+    A delegate that places a fully functioning QCheckBox cell to the column to
+    which it is applied.
+
+    Used for the visualization table to add the checkbox column and provide
+    its functionality.
     """
+
     def __init__(self, parent):
         QtWidgets.QItemDelegate.__init__(self, parent)
 
     def createEditor(self, parent, option, index):
         """
-        Important, otherwise an editor is created if the user clicks in this cell.
+        Important, otherwise an editor is created if the user clicks in this
+        cell.
         """
         return None
 
@@ -123,23 +129,30 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
         """
         Paint a checkbox without the label.
         """
-        self.drawCheck(painter, option, option.rect, QtCore.Qt.Unchecked if int(index.data()) == 0 else QtCore.Qt.Checked)
+        self.drawCheck(painter, option, option.rect,
+                       QtCore.Qt.Unchecked if int(
+                           index.data()) == 0 else QtCore.Qt.Checked)
 
     def editorEvent(self, event, model, option, index):
-        '''
+        """
         Change the data in the model and the state of the checkbox
-        if the user presses the left mousebutton and this cell is editable. Otherwise do nothing.
-        '''
+        if the user presses the left mousebutton and this cell is editable.
+        Otherwise do nothing.
+        """
         if not int(index.flags() & QtCore.Qt.ItemIsEditable) > 0:
             return False
 
-        if event.type() == QtCore.QEvent.MouseButtonRelease and event.button() == QtCore.Qt.LeftButton:
+        if event.type() == QtCore.QEvent.MouseButtonRelease \
+                and event.button() == QtCore.Qt.LeftButton:
             # Change the checkbox-state
-            plotId = model.sourceModel().get_value(index.row(), ptc.PLOT_ID)
-            datasetId = model.sourceModel().get_value(index.row(), ptc.DATASET_ID)
+            plot_id = model.sourceModel().get_value(index.row(), ptc.PLOT_ID)
+            dataset_id = model.sourceModel().get_value(index.row(),
+                                                       ptc.DATASET_ID)
             window = model.sourceModel().get_window()
-            visu_spec_plot = [visu_spec_plot for visu_spec_plot in window.visu_spec_plots if visu_spec_plot.plotId == plotId][0]
-            visu_spec_plot.add_or_remove_line(datasetId)
+            vis_spec_plot = \
+                [vis_spec_plot for vis_spec_plot in window.vis_spec_plots if
+                 vis_spec_plot.plot_id == plot_id][0]
+            vis_spec_plot.add_or_remove_line(dataset_id)
             self.setModelData(None, model, index)
             return True
 
@@ -149,7 +162,8 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
         """
         Change the state of the checkbox after it was clicked.
         """
-        model.setData(index, 1 if int(index.data()) == 0 else 0, QtCore.Qt.EditRole)
+        model.setData(index, 1 if int(index.data()) == 0 else 0,
+                      QtCore.Qt.EditRole)
 
 
 class TableWidget(QWidget):
@@ -180,7 +194,8 @@ class TableWidget(QWidget):
         self.horizontal_header = self.table_view.horizontalHeader()
         self.horizontal_header.setSortIndicator(-1, Qt.DescendingOrder)
         self.vertical_header = self.table_view.verticalHeader()
-        self.horizontal_header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.horizontal_header.setSectionResizeMode(
+            QHeaderView.ResizeToContents)
 
         # QWidget Layout
         self.main_layout = QVBoxLayout()
@@ -204,7 +219,9 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     add_checkbox_col = False
     if window.visualization_df.equals(df):
         add_checkbox_col = True
-    window.table_window = TableWidget(data=df, add_checkbox_col=add_checkbox_col, window=window)
+    window.table_window = TableWidget(data=df,
+                                      add_checkbox_col=add_checkbox_col,
+                                      window=window)
     window.table_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
     window.table_window.show()
 
@@ -262,8 +279,10 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         root_node.appendRow(branch)
 
     tree_view.setModel(model)
-    reconnect(tree_view.clicked, lambda i: exchange_dataframe_on_click(i, model, window))
-    reconnect(tree_view.doubleClicked, lambda i: display_table_on_doubleclick(i, model, window))
+    reconnect(tree_view.clicked,
+              lambda i: exchange_dataframe_on_click(i, model, window))
+    reconnect(tree_view.doubleClicked,
+              lambda i: display_table_on_doubleclick(i, model, window))
 
 
 def reconnect(signal, new_function=None):
@@ -287,9 +306,8 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
                                 model: QtGui.QStandardItemModel,
                                 window: QtWidgets.QMainWindow):
     """
-    Changes the currently plotted dataframe with the one
-    that gets clicked on and replot the data,
-    e.g. switch the measurement or visualization df.
+    Changes the currently plotted dataframe with the one that gets clicked on
+    and replot the data, e.g. switch the measurement or visualization df.
 
     Arguments:
         index: index of the clicked dataframe
@@ -353,16 +371,18 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     """
     open_yaml_file = QAction(QIcon('open.png'), 'Open YAML file...', window)
     open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(x, window))
-    open_simulation_file = QAction(QIcon('open.png'), 'Open simulation file...', window)
-    open_simulation_file.triggered.connect(lambda x: show_simulation_dialog(x, window))
+    open_simulation_file = QAction(QIcon('open.png'),
+                                   'Open simulation file...', window)
+    open_simulation_file.triggered.connect(
+        lambda x: show_simulation_dialog(x, window))
     quit = QAction("Quit", window)
     quit.triggered.connect(sys.exit)
 
     menubar = window.menuBar()
-    fileMenu = menubar.addMenu('&Select File')
-    fileMenu.addAction(open_yaml_file)
-    fileMenu.addAction(open_simulation_file)
-    fileMenu.addAction(quit)
+    file_menu = menubar.addMenu('&Select File')
+    file_menu.addAction(open_yaml_file)
+    file_menu.addAction(open_simulation_file)
+    file_menu.addAction(quit)
 
 
 def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
@@ -391,12 +411,13 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         window.yaml_dict = yaml_dict
         if ptc.VISUALIZATION_FILES not in yaml_dict:
             window.visualization_df = None
-            window.add_warning("The YAML file contains no visualization file (default plotted)")
+            window.add_warning(
+                "The YAML file contains no visualization file (default plotted)")
         window.simulation_df = None
 
         # table_tree_view sets the df attributes of the window
         # equal to the first file of each branch (measurement, visualization, ...)
-        window.listWidget = table_tree_view(window, last_dir)
+        table_tree_view(window, last_dir)
         window.add_plots()
 
 
@@ -412,7 +433,9 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
     settings = QtCore.QSettings("petab", "petabvis")
     if settings.value("last_dir") is not None:
         home_dir = settings.value("last_dir")
-    file_name = QFileDialog.getOpenFileName(window, 'Open simulation file', home_dir)[0]
+    file_name = \
+        QFileDialog.getOpenFileName(window, 'Open simulation file', home_dir)[
+            0]
     if file_name:  # if a file was selected
         if window.exp_data is None:
             window.add_warning("Please open a YAML file first.")
@@ -420,23 +443,27 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
             window.warn_msg.setText("")
             sim_data = core.get_simulation_df(file_name)
             # check columns, and add non-mandatory default columns
-            sim_data, _, _ = check_ex_exp_columns(sim_data, None, None, None, None, None,
-                                                  window.condition_df, sim=True)
-            # delete the replicateId column if it gets added to the simulation table
-            # but is not in exp_data because it causes problems when splitting the replicates
-            if ptc.REPLICATE_ID not in window.exp_data.columns and ptc.REPLICATE_ID in sim_data.columns:
+            sim_data, _, _ = check_ex_exp_columns(
+                sim_data, None, None, None, None, None,
+                window.condition_df, sim=True)
+            # delete the replicateId column if it gets added to the simulation
+            # table but is not in exp_data because it causes problems when
+            # splitting the replicates
+            if ptc.REPLICATE_ID not in window.exp_data.columns \
+                    and ptc.REPLICATE_ID in sim_data.columns:
                 sim_data.drop(ptc.REPLICATE_ID, axis=1, inplace=True)
 
             if len(window.yaml_dict[ptc.MEASUREMENT_FILES]) > 1:
-                window.add_warning("Not Implemented Error: Loading a simulation file with "
-                                   "multiple measurement files is currently not supported.")
+                window.add_warning(
+                    "Not Implemented Error: Loading a simulation file with "
+                    "multiple measurement files is currently not supported.")
             else:
                 window.simulation_df = sim_data
                 window.add_plots()
 
                 # insert correlation plot at position 1
                 window.wid.insertWidget(1, window.plot2_widget)
-                window.listWidget = table_tree_view(window, os.path.dirname(file_name))
+                table_tree_view(window, os.path.dirname(file_name))
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"
