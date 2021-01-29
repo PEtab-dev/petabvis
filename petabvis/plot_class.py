@@ -130,8 +130,8 @@ class PlotClass:
             if last_clicked is not None:
                 last_clicked.resetPen()
             # remove the text when the same point is clicked twice
-            if last_clicked == points[
-                0] and info_text.textItem.toPlainText() != "":
+            if (last_clicked == points[0]
+                    and info_text.textItem.toPlainText() != ""):
                 info_text.setText("")
             else:
                 points[0].setPen('b', width=2)
