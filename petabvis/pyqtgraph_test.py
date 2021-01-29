@@ -12,6 +12,7 @@ import pyqtgraph as pg
 
 from . import utils
 from . import visuSpec_plot
+from . import bar_plot
 from . import window_functionality
 
 
@@ -22,9 +23,18 @@ class MainWindow(QtWidgets.QMainWindow):
     Attributes:
         exp_data: PEtab measurement table
         visualization_df: PEtab visualization table
+        yaml_dict: Dictionary of the files in the yaml file
+        condition_df: PEtab condition table
+        observable_df: PEtab observable table
+        plot1_widget: pg.GraphicsLayoutWidget containing the main plot
+        plot2_widget: pg.GraphicsLayoutWidget containing the correlation plot
+        warn_msg: QLabel displaying current warning messages
+        table_window: Popup TableWidget displaying the clicked table
+        tree_view: QTreeView of the yaml file
         visu_spec_plots: A list of VisuSpecPlots
-        cbox: A dropdown menu
-        wid: GraphcisLayoutWidget showing the plots
+        cbox: A dropdown menu for the plots
+        current_list_index: List index of the currently displayed plot
+        wid: QSplitter between main plot and correlation plot
     """
     def __init__(self, exp_data: pd.DataFrame,
                  visualization_df: pd.DataFrame = None,
@@ -196,15 +206,34 @@ class MainWindow(QtWidgets.QMainWindow):
             for observable_id in observable_ids:
                 rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
                 data = self.exp_data[rows]
-                visuPlot = visuSpec_plot.VisuSpecPlot(data, None, self.simulation_df, plot_id)
+                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=data, visualization_df=None,
+                                                      condition_df=self.condition_df,
+                                                      simulation_df=self.simulation_df, plotId=plot_id)
                 self.visu_spec_plots.append(visuPlot)
                 if visuPlot.warnings:
                     self.add_warning(visuPlot.warnings)
+
         else:
-            visuPlot = visuSpec_plot.VisuSpecPlot(self.exp_data, self.visualization_df, self.simulation_df, plot_id)
-            self.visu_spec_plots.append(visuPlot)
-            if visuPlot.warnings:
-                self.add_warning(visuPlot.warnings)
+            # reduce the visualization df to the relevant rows (by plotId)
+            rows = self.visualization_df[ptc.PLOT_ID] == plot_id
+            visu_df = self.visualization_df[rows]
+            if ptc.PLOT_TYPE_SIMULATION in visu_df.columns and\
+                    visu_df.iloc[0][ptc.PLOT_TYPE_SIMULATION] == ptc.BAR_PLOT:
+                barPlot = bar_plot.BarPlot(measurement_df=self.exp_data,
+                                           visualization_df=visu_df,
+                                           condition_df=self.condition_df,
+                                           simulation_df=self.simulation_df, plotId=plot_id)
+                # might want to change the name of visu_spec_plots to clarify that
+                # it can also include bar plots (maybe to plots?)
+                self.visu_spec_plots.append(barPlot)
+            else:
+                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=self.exp_data,
+                                                      visualization_df=visu_df,
+                                                      condition_df=self.condition_df,
+                                                      simulation_df=self.simulation_df, plotId=plot_id)
+                self.visu_spec_plots.append(visuPlot)
+                if visuPlot.warnings:
+                    self.add_warning(visuPlot.warnings)
 
     def clear_QSplitter(self):
         """

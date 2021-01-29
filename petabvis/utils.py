@@ -174,6 +174,29 @@ def get_plot_type_data(plot_spec: pd.Series):
     return plot_type_data
 
 
+def reduce_condition_df(line_data, condition_df):
+    """
+    Reduce the condition df to the relevant rows based
+    on the unique condition ids in the line_data df
+
+    Arguments:
+        line_data: A subset of a measurement df
+        condition_df: The condition df
+    Returns:
+        The reduced condition df
+    """
+    uni_condition_id, uind = np.unique(
+        line_data[ptc.SIMULATION_CONDITION_ID],
+        return_index=True)
+    # keep the ordering which was given by user from top to bottom
+    # (avoid ordering by names '1','10','11','2',...)'
+    uni_condition_id = uni_condition_id[np.argsort(uind)]
+
+    # extract conditions (plot input) from condition file
+    ind_cond = condition_df.index.isin(uni_condition_id)
+    condition_df = condition_df[ind_cond]
+    return condition_df
+
 def get_plot_title(visualization_df_rows: pd.DataFrame):
     """
     Returns the title of the plot
@@ -192,9 +215,12 @@ def get_plot_title(visualization_df_rows: pd.DataFrame):
     return plot_title
 
 
-def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str = ptc.MEASUREMENT):
+def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME,
+                    y_var: str = ptc.MEASUREMENT):
     """
     Calculate the mean of the replicates.
+    Note: The line_data already has to be reduced to the relevant
+        simulationConditionIds for concentration plots
 
     Arguments:
         line_data: A subset of the measurement file
@@ -203,9 +229,15 @@ def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME, y_var: str =
     Returns:
         The mean grouped by x_var
     """
-    line_data = line_data[[y_var, x_var]]
-    means = line_data.groupby(x_var).mean()
+    grouping = ptc.TIME
+    if x_var != ptc.TIME:
+        # for concentration plots we group by
+        # simulationConditionId
+        grouping = ptc.SIMULATION_CONDITION_ID
+    line_data = line_data[[y_var, grouping]]
+    means = line_data.groupby(grouping).mean()
     means = means[y_var].to_numpy()
+
     return means
 
 
@@ -224,10 +256,17 @@ def sd_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     y_var = ptc.MEASUREMENT
     if is_simulation:
         y_var = ptc.SIMULATION
-    line_data = line_data[[x_var, y_var]]
+
+    grouping = ptc.TIME
+    if x_var != ptc.TIME:
+        # for concentration plots we group by
+        # simulationConditionId
+        grouping = ptc.SIMULATION_CONDITION_ID
+
+    line_data = line_data[[grouping, y_var]]
     # std with ddof = 0 (degrees of freedom)
     # to match np.std that is used in petab
-    sds = line_data.groupby(x_var).std(ddof=0)
+    sds = line_data.groupby(grouping).std(ddof=0)
     sds = sds[y_var].to_numpy()
     return sds
 
@@ -244,8 +283,14 @@ def sem_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
     Returns:
         The std grouped by x_var
     """
+    grouping = ptc.TIME
+    if x_var != ptc.TIME:
+        # for concentration plots we group by
+        # simulationConditionId
+        grouping = ptc.SIMULATION_CONDITION_ID
+
     sd = sd_replicates(line_data, x_var, is_simulation)
-    n_replicates = [len(replicates) for replicates in line_data.groupby(x_var)]
+    n_replicates = [len(replicates) for replicates in line_data.groupby(grouping)]
     sem = sd / np.sqrt(n_replicates)
     return sem
 

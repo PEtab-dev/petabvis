@@ -1,37 +1,30 @@
 import numpy as np
 import pandas as pd
-import scipy
-import petab
 import petab.C as ptc
 from PySide2 import QtCore
 import pyqtgraph as pg
 
 from . import plot_row
 from . import utils
+from . import plot_class
 
 
-class VisuSpecPlot:
+class VisuSpecPlot(plot_class.PlotClass):
     """
-    Can generate a plot based on the given specifications
+    Can generate a line plot based on the given specifications
 
     Arguments:
         measurement_df: PEtab measurement table
         visualization_df: PEtab visualization table
+        simulation_df: PEtab simulation table
+        condition_df: PEtab condition table
         plotId: Id of the plot (has to in the visualization_df aswell)
 
     Attributes:
-        measurement_df: PEtab measurement table
-        visualization_df: PEtab visualization table
-        simulation_df: PEtab simulation table
-        plotId: Id of the plot (has to in the visualization_df aswell)
-        plot_title: The title of the plot
-        plot_rows: A list of PlotRow objects
-        scatter_points: A list of length 2 with the x- and y-values
-            of the points
-        warnings: String of warning messages if the input is incorrect
-            or not supported
-        plot: PlotItem containing the lines
-        error_bars: A list of pg.ErrorBarItems
+        scatter_points: A dictionary containing 2 lists for
+            the x- and y-values respectively
+        scatter_points_simulation: A dictionary containing 2 lists for
+            the x- and y-values respectively
         plot_rows: A list of PlotRows
         plot_rows_simulation: A list of PlotRows for simulation data
         exp_lines: A list of PlotDataItems
@@ -39,50 +32,77 @@ class VisuSpecPlot:
     """
     def __init__(self, measurement_df: pd.DataFrame = None,
                  visualization_df: pd.DataFrame = None,
-                 simulation_df: pd.DataFrame = None, plotId: str = ""):
-
-        self.measurement_df = measurement_df
-        self.simulation_df = simulation_df
-        self.plotId = plotId
-        self.visualization_df = visualization_df
-        self.scatter_points = {"x": [], "y": []}
-        self.scatter_points_simulation = {"x": [], "y": []}
-        self.error_bars = []
-        self.warnings = ""
-        self.has_replicates = petab.measurements.measurements_have_replicates(self.measurement_df)
+                 simulation_df: pd.DataFrame = None,
+                 condition_df: pd.DataFrame = None,
+                 plotId: str = ""):
+        super().__init__(measurement_df, visualization_df, simulation_df,
+                         condition_df, plotId)
 
         # reduce the visualization_df to the relevant rows (by plotId)
         if self.visualization_df is not None:
-            rows = visualization_df["plotId"] == plotId
-            self.visualization_df = visualization_df[rows]
+            # Note the visualization df is already reduced
+            # before creating the visuSpecPlot object
+            self.check_log_for_zeros()
 
-        self.plot_title = utils.get_plot_title(self.visualization_df)
-        self.plot = pg.PlotItem(title=self.plot_title)
         self.legend = self.plot.addLegend()
 
-        self.check_log_for_zeros()
+        # useful to remove them from the plot when disabling lines
+        self.datasetId_to_plotDataItem = {}
+        self.datasetId_to_errorbar = {}
+        self.datasetId_to_points = {}
+
+        self.plot_rows = []  # list of plot_rows
+        self.plot_rows_simulation = []
+        self.overview_df = pd.DataFrame(columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var"])
+        self.exp_lines = []  # list of PlotDataItems (measurements)
+        self.simu_lines = []  # (simulations)
+
+        self.plot_everything()
+
+    def plot_everything(self):
+        """
+        Generate the list of plotRows (one for each line in the visualization file).
+        Create the overview_df based on the plotRows with respect to disabled rows.
+        Create a list of plotDataItems for each plotRow.
+        Generate the plot based on the plotDataItems.
+        Generate the correlation plot if a simulation file is provided based on the overview df
+        """
+        self.plot.clear()
+        self.error_bars = []
         self.plot_rows = self.generate_plot_rows(self.measurement_df)  # list of plot_rows
         self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
+        self.overview_df = self.generate_overview_df()
 
-        self.exp_lines = self.generate_plot_data_items(self.plot_rows, is_simulation=False)  # list of PlotDataItems (measurements)
+        self.exp_lines = self.generate_plot_data_items(self.plot_rows,
+                                                       is_simulation=False)  # list of PlotDataItems (measurements)
         self.simu_lines = self.generate_plot_data_items(self.plot_rows_simulation, is_simulation=True)  # (simulations)
 
+        # make sure the is_simulation column is really boolean because otherwise
+        # the logical not operator ~ causes problems
+        self.overview_df["is_simulation"] = self.overview_df["is_simulation"].astype("bool")
         self.generate_plot()
 
         if self.simulation_df is not None:
             # add the correlation plot (only if a simulation file is provided)
-            self.correlation_plot = pg.PlotItem(title="Correlation")
-            self.generate_correlation_plot()
-            self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
+            # inherited method from PlotClass
+            self.generate_correlation_plot(self.overview_df)
 
-            # calculate and add the r_squared value
-            self.r_squared = self.get_R_squared()
-            r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
-            r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0), color="k")
-            min_value = min(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-            max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-            r_squared_text.setPos(min_value, max_value)
-            self.correlation_plot.addItem(r_squared_text, anchor=(0, 0), color="k")
+    def generate_overview_df(self):
+        """
+        Generate the overview df containing the x- and y-data, the name,
+        the dataset_id, the x_var and simulation information of all enabled
+        plotRows.
+
+        Returns:
+            overview_df: A dataframe containing an overview of the plotRows
+        """
+        overview_df = pd.DataFrame(columns=["x", "y", "name", "is_simulation", "dataset_id", "x_label"])
+        if self.visualization_df is not None:
+            dfs = [p_row.get_data_df() for p_row in (self.plot_rows + self.plot_rows_simulation)
+                   if p_row.dataset_id not in self.disabled_rows]
+            if dfs:
+                overview_df = pd.concat(dfs, ignore_index=True)
+        return overview_df
 
     def generate_plot_rows(self, df):
         """
@@ -95,7 +115,7 @@ class VisuSpecPlot:
         if self.visualization_df is not None:
             for _, plot_spec in self.visualization_df.iterrows():
                 if df is not None:
-                    plot_line = plot_row.PlotRow(df, plot_spec)
+                    plot_line = plot_row.PlotRow(df, plot_spec, self.condition_df)
                     plot_rows.append(plot_line)
         return plot_rows
 
@@ -116,11 +136,9 @@ class VisuSpecPlot:
                 plot_lines = self.default_plot(line, is_simulation=is_simulation)
                 pdis = pdis + plot_lines
             else:
-                pdis.append(self.plot_row_to_plot_data_item(line))
+                if line.dataset_id not in self.disabled_rows:
+                    pdis.append(self.plot_row_to_plot_data_item(line))
         return pdis
-
-    def getPlot(self):
-        return self.plot
 
     def generate_plot(self):
         """
@@ -145,7 +163,7 @@ class VisuSpecPlot:
         # color the plot so measurements and simulations
         # have the same color but are different from other
         # measurements
-        num_lines = len(self.exp_lines)
+        num_lines = len(self.plot_rows)
         for i, line in enumerate(self.exp_lines):
             color = pg.intColor(i, hues=num_lines)
             line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
@@ -154,13 +172,7 @@ class VisuSpecPlot:
                 self.simu_lines[i].setPen(color, style=QtCore.Qt.SolidLine, width=2)
                 self.plot.addItem(self.simu_lines[i])
 
-        # add point measurements
-        self.plot.plot(self.scatter_points["x"], self.scatter_points["y"],
-                       pen=None, symbol='o',
-                       symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
-        self.plot.plot(self.scatter_points_simulation["x"], self.scatter_points_simulation["y"],
-                       pen=None, symbol='o',
-                       symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
+        self.add_measurements_points()
 
         # Errorbars do not support log scales
         if self.plot_rows and ("log" in self.plot_rows[0].x_scale or "log" in self.plot_rows[0].y_scale):
@@ -176,12 +188,30 @@ class VisuSpecPlot:
 
         return self.plot
 
+    def add_measurements_points(self):
+        """
+        Add the measurement points to the plot
+        """
+        dataset_ids = np.unique(self.overview_df["dataset_id"])
+        for id in dataset_ids:
+            df = self.overview_df[self.overview_df["dataset_id"] == id]
+            x = df[~df["is_simulation"]]["x"].tolist()
+            measurements = df[~df["is_simulation"]]["y"].tolist()
+            points = self.plot.plot(x, measurements,
+                                    pen=None, symbol='o',
+                                    symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
+            self.datasetId_to_points[id] = points
+            x_simulation = df[df["is_simulation"]]["x"].tolist()
+            simulations = df[df["is_simulation"]]["y"].tolist()
+            points = self.plot.plot(x_simulation, simulations,
+                                    pen=None, symbol='o',
+                                    symbolBrush=pg.mkBrush(255, 255, 255), symbolSize=6)
+            self.datasetId_to_points[id + "_simulation"] = points
+
     def plot_row_to_plot_data_item(self, p_row: plot_row.PlotRow):
         """
         Creates a PlotDataItem based on the PlotRow.
         Also, generate an error bar and measurement points.
-        and append them to self.scatter_points and self.error_bars = []
-        respectively.
 
         Arguments:
             p_row: The PlotRow object that contains the information
@@ -190,18 +220,16 @@ class VisuSpecPlot:
         legend_name = p_row.legend_name
         if p_row.is_simulation:
             legend_name = legend_name + " simulation"
-            # add points to scatter_points
-            self.scatter_points_simulation["x"] = self.scatter_points_simulation["x"] + p_row.x_data.tolist()
-            self.scatter_points_simulation["y"] = self.scatter_points_simulation["y"] + p_row.y_data.tolist()
+        pdi = pg.PlotDataItem(p_row.x_data, p_row.y_data, name=legend_name)
+        # add it to the dict (used for disabling rows by dataset_id)
+        if p_row.is_simulation:
+            self.datasetId_to_plotDataItem[p_row.dataset_id + "_simulation"] = pdi
         else:
-            self.scatter_points["x"] = self.scatter_points["x"] + p_row.x_data.tolist()
-            self.scatter_points["y"] = self.scatter_points["y"] + p_row.y_data.tolist()
-        pdi = pg.PlotDataItem(p_row.x_data,
-                              p_row.y_data,
-                              name=legend_name)
+            self.datasetId_to_plotDataItem[p_row.dataset_id] = pdi
 
         # Only add error bars when needed
-        if p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED:
+        if (p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED)\
+                and p_row.plot_type_data != ptc.REPLICATE:
             error_length = p_row.sd
             if p_row.plot_type_data == ptc.MEAN_AND_SEM:
                 error_length = p_row.sem
@@ -212,22 +240,13 @@ class VisuSpecPlot:
                 beam_width = np.max(p_row.x_data) / 100
             error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data, top=error_length, bottom=error_length, beam=beam_width)
             self.error_bars.append(error)
+            # add it to the dict (used for disabling rows by dataset_id)
+            if p_row.is_simulation:
+                self.datasetId_to_errorbar[p_row.dataset_id + "_simulation"] = error
+            else:
+                self.datasetId_to_errorbar[p_row.dataset_id] = error
 
         return(pdi)
-
-    def generate_correlation_plot(self):
-        """
-        Generate the scatterplot between the
-        measurement and simulation values
-        """
-        self.correlation_plot.setLabel("left", "Simulation")
-        self.correlation_plot.setLabel("bottom", "Measurement")
-        self.correlation_plot.plot(self.scatter_points["y"], self.scatter_points_simulation["y"],
-                                   pen=None, symbol='o',
-                                   symbolBrush=pg.mkBrush(0, 0, 0), symbolSize=6)
-        min_value = min(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-        max_value = max(self.scatter_points["y"] + self.scatter_points_simulation["y"])
-        self.correlation_plot.setRange(xRange=(min_value, max_value), yRange=(min_value, max_value))
 
     def default_plot(self, p_row: plot_row.PlotRow, is_simulation=False):
         """
@@ -274,15 +293,13 @@ class VisuSpecPlot:
                 y_data = y_data + p_row.y_offset
             else:
                 line_name = line_name + "_" + df[ptc.OBSERVABLE_ID].iloc[0]
-
             # add points
             if is_simulation:
-                self.scatter_points_simulation["x"] = self.scatter_points_simulation["x"] + x_data.tolist()
-                self.scatter_points_simulation["y"] = self.scatter_points_simulation["y"] + y_data.tolist()
                 line_name = line_name + " simulation"
+                line_df = pd.DataFrame({"x": x_data.tolist(), "y": y_data.tolist(), "name": group_id, "is_simulation": True})
             else:
-                self.scatter_points["x"] = self.scatter_points["x"] + x_data.tolist()
-                self.scatter_points["y"] = self.scatter_points["y"] + y_data.tolist()
+                line_df = pd.DataFrame({"x": x_data.tolist(), "y": y_data.tolist(), "name": group_id, "is_simulation": False})
+            self.overview_df = self.overview_df.append(line_df, ignore_index=True)
 
             plot_lines.append(pg.PlotDataItem(x_data, y_data, name=line_name))
 
@@ -292,7 +309,6 @@ class VisuSpecPlot:
         """
         Set the scales to log10 if necessary.
         Default is linear scale.
-
         """
         if len(self.plot_rows) > 0:  # default plots have a linear scale
             if "log" in self.plot_rows[0].x_scale:
@@ -311,17 +327,29 @@ class VisuSpecPlot:
         The offset is calculated as the smalles nonzero value times 0.001
         (Also adds the offset to the simulation values).
         """
-
         x_var = utils.get_x_var(self.visualization_df.iloc[0])
         y_var = ptc.MEASUREMENT
-        x_values = np.asarray(self.measurement_df[x_var])
+        if x_var == ptc.TIME:
+            x_values = np.asarray(self.measurement_df[x_var])
+        else:
+            # for concentration plots, each line can have a
+            # different x_var
+            x_values = []
+            for variable in self.visualization_df[ptc.X_VALUES]:
+                x_values = x_values + list(self.condition_df[variable])
+            x_values = np.asarray(x_values)
+
         y_values = np.asarray(self.measurement_df[y_var])
 
         if ptc.X_SCALE in self.visualization_df.columns:
             if 0 in x_values and "log" in self.visualization_df.iloc[0][ptc.X_SCALE]:
                 offset = np.min(x_values[np.nonzero(x_values)]) * 0.001
-                x_values = x_values + offset
-                self.measurement_df[x_var] = x_values
+                if x_var == ptc.TIME:
+                    x_values = x_values + offset
+                    self.measurement_df[x_var] = x_values
+                else:
+                    for variable in self.visualization_df[ptc.X_VALUES]:
+                        self.condition_df[variable] = np.asarray(self.condition_df[variable]) + offset
                 self.add_warning("Unable to take log of 0, added offset of " + str(offset) + " to x-values")
 
                 if self.simulation_df is not None:
@@ -339,37 +367,56 @@ class VisuSpecPlot:
                     y_simulation = np.asarray(self.simulation_df[ptc.SIMULATION])
                     self.simulation_df[ptc.SIMULATION] = y_simulation + offset
 
-    def add_warning(self, message: str):
+    def add_or_remove_line(self, dataset_id):
         """
-        Adds the message to the warnings box
+        Add the datasetId to the disabled rows if
+        it is not in the disabled rows set. Otherwise,
+        remove it from the disabled rows set.
+        Then, adjust the plot showing only the enabled rows.
 
         Arguments:
-            message: The message to display
+            dataset_id: The datasetId of the row that should
+                        be added or removed.
         """
-        # filter out double warnings
-        if message not in self.warnings:
-            self.warnings = self.warnings + message + "\n"
+        # TODO: generate warning for rows without dataset id
+        if dataset_id in self.disabled_rows:
+            self.disabled_rows.remove(dataset_id)
+            self.enable_line(dataset_id)
+            if self.simulation_df is not None:
+                self.enable_line(dataset_id + "_simulation")
+        else:
+            self.disabled_rows.add(dataset_id)
+            self.disable_line(dataset_id)
+            if self.simulation_df is not None:
+                self.disable_line(dataset_id + "_simulation")
 
-    def get_R_squared(self):
-        """
-        Calculate the R^2 value between the measurement
-        and simulation values
-
-        Returns:
-            The R^2 value
-        """
+        # update the correlation plot
         if self.simulation_df is not None:
-            x = []
-            y = []
-            for i in range(0, len(self.plot_rows)):
-                measurements = self.plot_rows[i].y_data
-                simulations = self.plot_rows_simulation[i].y_data
-                x = np.concatenate([x, measurements])
-                y = np.concatenate([y, simulations])
-            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(x, y)
-            print("Linear Regression Statistics for " + self.plot_title + ":")
-            print("Slope: " + str(slope) + ", Intercept: " + str(intercept)
-                  + ", R-value: " + str(r_value) + ", p-value: " + str(p_value)
-                  + ", Std Err: " + str(std_err))
+            overview_df = self.generate_overview_df()
+            self.generate_correlation_plot(overview_df)
 
-            return r_value**2
+    def disable_line(self, dataset_id):
+        """
+        Remove the line from the plot matching the dataset id.
+        Also removes the line of the simulation if present.
+
+        Arguments:
+            dataset_id: The dataset id of the line that should be removed.
+        """
+        self.plot.removeItem(self.datasetId_to_plotDataItem[dataset_id])
+        if self.datasetId_to_errorbar:  # The plot may not have errorbars
+            self.plot.removeItem(self.datasetId_to_errorbar[dataset_id])
+        self.plot.removeItem(self.datasetId_to_points[dataset_id])
+
+    def enable_line(self, dataset_id):
+        """
+        Add the line to the plot matching the dataset id.
+        Also add the simulation line if possible.
+
+        Arguments:
+            dataset_id: The dataset id of the line that should be added.
+        """
+        self.plot.addItem(self.datasetId_to_plotDataItem[dataset_id])
+        if self.datasetId_to_errorbar:  # The plot may not have errorbars
+            self.plot.addItem(self.datasetId_to_errorbar[dataset_id])
+        self.plot.addItem(self.datasetId_to_points[dataset_id])
