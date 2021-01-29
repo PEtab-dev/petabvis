@@ -28,7 +28,7 @@ pip3 install .
 ## Usage
 
 1. Run `petabvis`
-2. Select a PEtab yaml file
+2. Select a PEtab YAML file
 3. Optionally select a simulation file
 4. Navigate through the plots
 
