@@ -14,7 +14,7 @@ pip3 install petabvis
 ### From GitHub repository
 
 ```shell
-pip3 install git+https://github.com/ICB-DCM/petab-interactive-viz.git@main
+pip3 install git+https://github.com/PEtab-dev/petab-interactive-viz.git@main
 ```
 
 ### From local source directory
