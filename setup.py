@@ -32,8 +32,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'petabvis=petabvis.pyqtgraph_test:main',
-            'petabvis2=petabvis.main:main',
+            'petabvis=petabvis.main:main',
         ],
     },
 

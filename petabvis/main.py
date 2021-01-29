@@ -1,227 +1,270 @@
-#!/usr/bin/env python3
-
 import argparse
-import sys
+import sys  # We need sys so that we can pass argv to QApplication
 
 import numpy as np
 import pandas as pd
-import petab
+import warnings
 import petab.C as ptc
-from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt, Slot,
-                            QItemSelectionModel, QSortFilterProxyModel)
-from PySide2.QtGui import QColor
-from PySide2.QtWidgets import (QAction, QApplication, QVBoxLayout, QHeaderView,
-                               QMainWindow, QSizePolicy, QTableView, QWidget)
-
-# Import after PySide2 to ensure usage of correct Qt library
+from PySide2 import QtWidgets, QtCore, QtGui
+from PySide2.QtWidgets import QVBoxLayout, QComboBox, QWidget, QLabel
+from petab import measurements, core
 import pyqtgraph as pg
 
-# Enable Ctrl+C
-# FIXME remove in production
-import signal
-signal.signal(signal.SIGINT, signal.SIG_DFL)
+from . import utils
+from . import visuSpec_plot
+from . import bar_plot
+from . import window_functionality
 
 
-def read_data(mes, sim):
-    """Read PEtab tables"""
-    simulations = petab.get_simulation_df(sim)
-    measurements = petab.get_measurement_df(mes)
-    # FIXME adding some noise that measurements and simulations differ
-    measurements[ptc.SIMULATION] = np.random.normal(
-        simulations[ptc.SIMULATION], simulations[ptc.SIMULATION] * 0.1)
-    return measurements
+class MainWindow(QtWidgets.QMainWindow):
+    """
+    The main window
 
+    Attributes:
+        exp_data: PEtab measurement table
+        visualization_df: PEtab visualization table
+        yaml_dict: Dictionary of the files in the yaml file
+        condition_df: PEtab condition table
+        observable_df: PEtab observable table
+        plot1_widget: pg.GraphicsLayoutWidget containing the main plot
+        plot2_widget: pg.GraphicsLayoutWidget containing the correlation plot
+        warn_msg: QLabel displaying current warning messages
+        table_window: Popup TableWidget displaying the clicked table
+        tree_view: QTreeView of the yaml file
+        visu_spec_plots: A list of VisuSpecPlots
+        cbox: A dropdown menu for the plots
+        current_list_index: List index of the currently displayed plot
+        wid: QSplitter between main plot and correlation plot
+    """
+    def __init__(self, exp_data: pd.DataFrame,
+                 visualization_df: pd.DataFrame = None,
+                 simulation_df: pd.DataFrame = None,
+                 condition_df: pd.DataFrame = None,
+                 observable_df: pd.DataFrame = None, *args, **kwargs):
 
-class MainWindow(QMainWindow):
-    """The main window"""
-
-    def __init__(self, widget):
-        QMainWindow.__init__(self)
+        super(MainWindow, self).__init__(*args, **kwargs)
+        # set the background color to white
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
+        pg.setConfigOption("antialias", True)
+        self.resize(1000, 600)
         self.setWindowTitle("PEtab-vis")
+        self.yaml_dict = None
+        self.visualization_df = visualization_df
+        self.simulation_df = simulation_df
+        self.condition_df = condition_df
+        self.observable_df = observable_df
+        self.exp_data = exp_data
+        self.visu_spec_plots = []
+        self.wid = QtWidgets.QSplitter()
+        self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
+        self.plot2_widget = pg.GraphicsLayoutWidget(show=False)
+        self.wid.addWidget(self.plot1_widget)
+        # plot2_widget will be added to the QSplitter when
+        # a simulation file is opened
+        self.cbox = QComboBox()  # dropdown menu to select plots
+        self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
+        self.warn_msg = QLabel("")
+        # The new window that pops up to display a table
+        self.table_window = None
+        self.tree_view = QtGui.QTreeView(self)
+        self.tree_view.setHeaderHidden(True)
+        self.wid.addWidget(self.tree_view)
+        self.current_list_index = 0
 
-        # Menu
-        self.menu = self.menuBar()
-        self.file_menu = self.menu.addMenu("File")
+        warnings.showwarning = self.redirect_warning
 
-        # Exit action
-        exit_action = QAction("Exit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.exit_app)
-        self.file_menu.addAction(exit_action)
+        window_functionality.add_file_selector(self)
+        if self.exp_data is not None:
+            self.add_plots()
 
-        # Status bar
-        self.status = self.statusBar()
-        self.status.showMessage("Data loaded")
+        # the layout of the plot-list and message textbox
+        lower_layout = QVBoxLayout()
+        lower_layout.addWidget(self.cbox)
+        lower_layout.addWidget(self.warn_msg)
+        lower_widget = QWidget()
+        lower_widget.setLayout(lower_layout)
+        split_plots_and_warnings = QtWidgets.QSplitter()
+        split_plots_and_warnings.setOrientation(QtCore.Qt.Vertical)
+        split_plots_and_warnings.addWidget(self.wid)
+        split_plots_and_warnings.addWidget(lower_widget)
 
-        # Window dimensions
-        # geometry = app.desktop().availableGeometry(self)
-        # self.setFixedSize(geometry.width() * 0.8, geometry.height() * 0.7)
+        layout = QVBoxLayout()
+        layout.addWidget(split_plots_and_warnings)
+
+        widget = QWidget()
+        widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-    @Slot()
-    def exit_app(self, checked):
-        sys.exit()
+    def add_plots(self):
+        """
+        Adds the current visuSpecPlots to the main window,
+        removes the old ones and updates the
+        cbox (dropdown list)
 
+        Returns:
+            List of PlotItem
+        """
+        self.clear_QSplitter()
+        self.visu_spec_plots.clear()
 
-class CustomTableModel(QAbstractTableModel):
-    """PEtab data table model"""
+        if self.visualization_df is not None:
+            # to keep the order of plots consistent with names from the plot selection
+            indexes = np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
+            plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in sorted(indexes)]
+            for plot_id in plot_ids:
+                self.create_and_add_visuPlot(plot_id)
 
-    def __init__(self, data=None):
-        QAbstractTableModel.__init__(self)
-        self.load_data(data)
-        self.df = data
+        else:  # default plot when no visu_df is provided
+            self.create_and_add_visuPlot()
 
-    def load_data(self, data):
-        for x in data:
-            setattr(self, x, data[x])
-        self.column_count = data.shape[1]
-        self.row_count = data.shape[0]
+        plots = [visuPlot.getPlot() for visuPlot in self.visu_spec_plots]
 
-    def rowCount(self, parent=QModelIndex()):
-        return self.row_count
+        # update the cbox
+        self.cbox.clear()
+        # calling this method sets the index of the cbox to 0
+        # and thus displays the first plot
+        utils.add_plotnames_to_cbox(self.exp_data, self.visualization_df, self.cbox)
 
-    def columnCount(self, parent=QModelIndex()):
-        return self.column_count
+        return plots
 
-    def headerData(self, section, orientation, role=None):
-        if role != Qt.DisplayRole:
-            return None
+    def index_changed(self, i: int):
+        """
+        Changes the displayed plot to the one selected in the dropdown list
 
-        if orientation == Qt.Horizontal:
-            return self.df.columns[section]
+        Arguments:
+            i: index of the selected plot
+        """
+        if 0 <= i < len(self.visu_spec_plots):  # i is -1 when the cbox is cleared
+            self.clear_QSplitter()
+            self.plot1_widget.addItem(self.visu_spec_plots[i].getPlot())
+            self.plot2_widget.hide()
+            if self.simulation_df is not None:
+                self.plot2_widget.show()
+                self.plot2_widget.addItem(self.visu_spec_plots[i].correlation_plot)
+            self.current_list_index = i
+
+    def keyPressEvent(self, ev):
+        """
+        Changes the displayed plot by pressing arrow keys
+
+        Arguments:
+            ev: key event
+        """
+        # Exit when pressing ctrl + Q
+        ctrl = False
+        if (ev.modifiers() & QtCore.Qt.ControlModifier):
+            ctrl = True
+        if ctrl and ev.key() == QtCore.Qt.Key_Q:
+            sys.exit()
+
+        if(ev.key() == QtCore.Qt.Key_Up):
+            self.index_changed(self.current_list_index - 1)
+        if(ev.key() == QtCore.Qt.Key_Down):
+            self.index_changed(self.current_list_index + 1)
+        if(ev.key() == QtCore.Qt.Key_Left):
+            self.index_changed(self.current_list_index - 1)
+        if(ev.key() == QtCore.Qt.Key_Right):
+            self.index_changed(self.current_list_index + 1)
+
+    def add_warning(self, message: str):
+        """
+        Adds the message to the warnings box
+
+        Arguments:
+            message: The message to display
+        """
+        if message not in self.warn_msg.text():
+            self.warn_msg.setText(self.warn_msg.text() + message + "\n")
+
+    def redirect_warning(self, message, category, filename=None, lineno=None, file=None, line=None):
+        """
+        Redirect all warning messages and display them in the window.
+
+        Arguments:
+            message: The message of the warning
+        """
+        print("Warning redirected: " + str(message))
+        self.add_warning(str(message))
+
+    def create_and_add_visuPlot(self, plot_id=""):
+        """
+        Create a visuSpec_plot object based on the given plot_id.
+        If no plot_it is provided the default will be plotted.
+        Add all the warnings of the visuPlot object to the warning text box.
+
+        The actual plotting happens in the index_changed method
+
+        Arguments:
+            plot_id: The plotId of the plot
+        """
+        # split the measurement df by observable when using default plots
+        if self.visualization_df is None:
+            # to keep the order of plots consistent with names from the plot selection
+            indexes = np.unique(self.exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
+            observable_ids = [self.exp_data[ptc.OBSERVABLE_ID][index] for index in sorted(indexes)]
+            for observable_id in observable_ids:
+                rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
+                data = self.exp_data[rows]
+                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=data, visualization_df=None,
+                                                      condition_df=self.condition_df,
+                                                      simulation_df=self.simulation_df, plotId=plot_id)
+                self.visu_spec_plots.append(visuPlot)
+                if visuPlot.warnings:
+                    self.add_warning(visuPlot.warnings)
+
         else:
-            return "{}".format(section)
+            # reduce the visualization df to the relevant rows (by plotId)
+            rows = self.visualization_df[ptc.PLOT_ID] == plot_id
+            visu_df = self.visualization_df[rows]
+            if ptc.PLOT_TYPE_SIMULATION in visu_df.columns and\
+                    visu_df.iloc[0][ptc.PLOT_TYPE_SIMULATION] == ptc.BAR_PLOT:
+                barPlot = bar_plot.BarPlot(measurement_df=self.exp_data,
+                                           visualization_df=visu_df,
+                                           condition_df=self.condition_df,
+                                           simulation_df=self.simulation_df, plotId=plot_id)
+                # might want to change the name of visu_spec_plots to clarify that
+                # it can also include bar plots (maybe to plots?)
+                self.visu_spec_plots.append(barPlot)
+            else:
+                visuPlot = visuSpec_plot.VisuSpecPlot(measurement_df=self.exp_data,
+                                                      visualization_df=visu_df,
+                                                      condition_df=self.condition_df,
+                                                      simulation_df=self.simulation_df, plotId=plot_id)
+                self.visu_spec_plots.append(visuPlot)
+                if visuPlot.warnings:
+                    self.add_warning(visuPlot.warnings)
 
-    def data(self, index, role=Qt.DisplayRole):
-        column = index.column()
-        row = index.row()
+    def clear_QSplitter(self):
+        """
+        Clear the GraphicsLayoutWidgets for the
+        measurement and correlation plot
+        """
+        self.plot1_widget.clear()
+        self.plot2_widget.clear()
 
-        if role == Qt.DisplayRole:
-            return str(self.df.iloc[row, column])
-
-        elif role == Qt.BackgroundRole:
-            return QColor(Qt.white)
-
-        elif role == Qt.TextAlignmentRole:
-            return Qt.AlignRight
-
-        return None
-
-
-class Widget(QWidget):
-    """Main widget"""
-
-    def __init__(self, data: pd.DataFrame):
-        QWidget.__init__(self)
-
-        # Getting the Model
-        self.model = CustomTableModel(data)
-
-        # Creating a QTableView
-        self.table_view = QTableView()
-        self.filter_proxy = QSortFilterProxyModel()
-        self.filter_proxy.setSourceModel(self.model)
-        self.table_view.setModel(self.filter_proxy)
-        self.table_view.setSortingEnabled(True)
-
-        # QTableView Headers
-        self.horizontal_header = self.table_view.horizontalHeader()
-        self.vertical_header = self.table_view.verticalHeader()
-        self.horizontal_header.setSectionResizeMode(
-            QHeaderView.ResizeToContents)
-        self.vertical_header.setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.horizontal_header.setStretchLastSection(True)
-
-        # Create PyQtGraph stuff
-        self.glw = pg.GraphicsLayoutWidget(show=True, title="Test")
-        pg.setConfigOptions(antialias=True)
-        p = self.glw.addPlot(title="Measurements and simulation trajectories")
-        grouped = data.groupby(
-            [ptc.OBSERVABLE_ID, ptc.SIMULATION_CONDITION_ID,
-             ptc.PREEQUILIBRATION_CONDITION_ID])
-        for name, group in grouped:
-            p.plot(group[ptc.TIME].values, group[ptc.MEASUREMENT].values, pen=(255, 0, 0),
-                   symbol='t', name=f"measurements {name}")
-            p.plot(group[ptc.TIME].values, group[ptc.SIMULATION].values, pen=(0, 255, 0),
-                   symbol='t', name=f"simulations {name}")
-
-        p = self.glw.addPlot(title="Correlation")
-        #p.plot(data[ptc.MEASUREMENT], data[ptc.SIMULATION], pen=None, symbol='t', name="...")
-        n = 10
-        s1 = pg.ScatterPlotItem(size=10, pen=pg.mkPen(None),
-                                brush=pg.mkBrush(255, 255, 255, 120))
-        spots = [{'pos': [m, s], 'data': idx} for m, s, idx in zip(data[ptc.MEASUREMENT], data[ptc.SIMULATION], data.index.values)]
-        s1.addPoints(spots)
-        p.addItem(s1)
-        last_clicked = []
-
-        def clicked(plot, points):
-            nonlocal last_clicked
-            for p in last_clicked:
-                p.resetPen()
-            print("clicked points", [point.data() for point in points])
-            for p in points:
-                p.setPen('b', width=2)
-            last_clicked = points
-
-        s1.sigClicked.connect(clicked)
-
-        lr = pg.RectROI([0, 0], [1, 1], removable=True, sideScalers=True, centered=True)
-
-        def print_corr_plot_selection():
-            min_mes, min_sim = lr.pos()
-            max_mes, max_sim = lr.pos() + lr.size()
-            sel = data[(data[ptc.MEASUREMENT] >= min_mes)
-                       & (data[ptc.MEASUREMENT] <= max_mes)
-                       & (data[ptc.SIMULATION] >= min_sim)
-                       & (data[ptc.SIMULATION] <= max_sim)
-                       ]
-            print(sel)
-
-            # TODO can probably be done more efficiently
-            for i in range(self.table_view.model().rowCount()):
-                if i in sel.index.values:
-                    action = QItemSelectionModel.Select
-                else:
-                    action = QItemSelectionModel.Deselect
-
-                ix = self.table_view.model().index(i, 0)
-                # TODO select full row
-                self.table_view.selectionModel().select(ix, action)
-
-            # TODO: separate table view for selection
-        lr.sigRegionChanged.connect(print_corr_plot_selection)
-        p.addItem(lr)
-
-        # QWidget Layout
-        self.main_layout = QVBoxLayout()
-        size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-
-        size.setHorizontalStretch(1)
-        self.table_view.setSizePolicy(size)
-        self.main_layout.addWidget(self.table_view)
-
-        self.main_layout.addWidget(self.glw)
-
-        self.setLayout(self.main_layout)
 
 def main():
     options = argparse.ArgumentParser()
-    options.add_argument("-m", "--measurement", type=str, required=True,
-                         help="PEtab measurement file", )
-    options.add_argument("-s", "--simulation", type=str, required=True,
-                         help="PEtab simulation file", )
+    options.add_argument("-m", "--measurement", type=str, required=False,
+                         help="PEtab measurement file", default=None)
+    options.add_argument("-v", "--visualization", type=str, required=False,
+                         help="PEtab visualization file", default=None)
     args = options.parse_args()
 
-    data = read_data(args.measurement, args.simulation)
+    exp_data = None
+    if args.measurement is not None:
+        exp_data = measurements.get_measurement_df(args.measurement)
 
-    app = QApplication(sys.argv)
-    widget = Widget(data)
-    window = MainWindow(widget)
-    window.show()
+    visualization_df = None
+    if args.visualization is not None:
+        visualization_df = core.concat_tables(args.visualization, core.get_visualization_df)
 
+    app = QtWidgets.QApplication(sys.argv)
+    main = MainWindow(exp_data, visualization_df)
+    main.show()
     sys.exit(app.exec_())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
