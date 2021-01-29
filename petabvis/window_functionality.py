@@ -149,9 +149,10 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
             dataset_id = model.sourceModel().get_value(index.row(),
                                                        ptc.DATASET_ID)
             window = model.sourceModel().get_window()
-            vis_spec_plot = \
-                [vis_spec_plot for vis_spec_plot in window.vis_spec_plots if
-                 vis_spec_plot.plot_id == plot_id][0]
+            # Set `vis_spec_plot` to the one that matches `plot_id`
+            for vis_spec_plot in window.vis_spec_plots:
+                if vis_spec_plot.plot_id == plot_id:
+                    break
             vis_spec_plot.add_or_remove_line(dataset_id)
             self.setModelData(None, model, index)
             return True
