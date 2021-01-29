@@ -1,26 +1,2 @@
-attrs==20.2.0
-certifi==2020.6.20
-colorama==0.4.3
-cycler==0.10.0
-jsonschema==3.2.0
-kiwisolver==1.2.0
-matplotlib==3.3.1
-mpmath==1.1.0
-numpy==1.19.2
-pandas==1.1.2
-petab==0.1.8
-Pillow==7.2.0
-pkg-resources==0.0.0
-pyparsing==2.4.7
-pyqtgraph==0.11.0
-pyrsistent==0.16.0
-PySide2==5.15.1
-python-dateutil==2.8.1
-python-libsbml==5.18.3
-pytz==2020.1
-PyYAML==5.3.1
-scipy==1.5.2
-seaborn==0.11.0
-shiboken2==5.15.1
-six==1.15.0
-sympy==1.6.2
+# use requirements from setup.py
+-e .
