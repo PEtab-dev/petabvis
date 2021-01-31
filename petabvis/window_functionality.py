@@ -406,6 +406,8 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         settings.setValue("last_dir", last_dir)
 
         window.warn_msg.setText("")
+        window.warnings.clear()
+        window.warning_counter.clear()
 
         # select the first df in the dict for measurements, etc.
         yaml_dict = petab.load_yaml(file_name)["problems"][0]
@@ -441,6 +443,9 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
             window.add_warning("Please open a YAML file first.")
         else:
             window.warn_msg.setText("")
+            window.warnings.clear()
+            window.warning_counter.clear()
+
             sim_data = core.get_simulation_df(file_name)
             # check columns, and add non-mandatory default columns
             sim_data, _, _ = check_ex_exp_columns(

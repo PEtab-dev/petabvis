@@ -66,6 +66,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.warn_msg = QLabel("")
+        self.warnings = []
+        self.warning_counter = {}
         # The new window that pops up to display a table
         self.table_window = None
         self.tree_view = QtGui.QTreeView(self)
@@ -111,10 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self.visualization_df is not None:
             # to keep the order of plots consistent with names from the plot selection
-            indexes = \
-            np.unique(self.visualization_df[ptc.PLOT_ID], return_index=True)[1]
-            plot_ids = [self.visualization_df[ptc.PLOT_ID][index] for index in
-                        sorted(indexes)]
+            plot_ids = list(self.visualization_df[ptc.PLOT_ID].unique())
             for plot_id in plot_ids:
                 self.create_and_add_vis_plot(plot_id)
 
@@ -181,8 +180,24 @@ class MainWindow(QtWidgets.QMainWindow):
         Arguments:
             message: The message to display
         """
-        if message not in self.warn_msg.text():
-            self.warn_msg.setText(self.warn_msg.text() + message + "\n")
+        if message not in self.warnings:
+            self.warnings.append(message)
+            self.warning_counter[message] = 1
+        else:
+            self.warning_counter[message] += 1
+        self.warn_msg.setText(self.warnings_to_string())
+
+    def warnings_to_string(self):
+        """
+        Convert the list of warnings to a string and
+        indicate the number of occurences
+
+        Returns:
+            Self.warnings as a string
+        """
+        return     "\n".join([warning if self.warning_counter[warning] <= 1
+                   else warning + " (occured {} times)".format(str(self.warning_counter[warning]))
+                   for warning in self.warnings])
 
     def redirect_warning(self, message, category, filename=None, lineno=None,
                          file=None, line=None):
@@ -209,17 +224,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # split the measurement df by observable when using default plots
         if self.visualization_df is None:
             # to keep the order of plots consistent with names from the plot selection
-            indexes = \
-            np.unique(self.exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
-            observable_ids = [self.exp_data[ptc.OBSERVABLE_ID][index] for index
-                              in sorted(indexes)]
+            observable_ids = list(self.exp_data[ptc.OBSERVABLE_ID].unique())
             for observable_id in observable_ids:
                 rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
                 data = self.exp_data[rows]
+                simulation_df = self.simulation_df
+                if simulation_df is not None:
+                    rows = self.simulation_df[ptc.OBSERVABLE_ID] == observable_id
+                    simulation_df = self.simulation_df[rows]
                 vis_plot = vis_spec_plot.VisSpecPlot(
                     measurement_df=data, visualization_df=None,
                     condition_df=self.condition_df,
-                    simulation_df=self.simulation_df, plot_id=plot_id)
+                    simulation_df=simulation_df, plot_id=plot_id)
                 self.vis_spec_plots.append(vis_plot)
                 if vis_plot.warnings:
                     self.add_warning(vis_plot.warnings)

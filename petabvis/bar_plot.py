@@ -103,8 +103,7 @@ class BarPlot(plot_class.PlotClass):
         # such that they are next to each other
         if self.simulation_df is not None:
             # to keep the order of bars consistent
-            indexes = np.unique(df["name"], return_index=True)[1]
-            names = [df["name"][index] for index in sorted(indexes)]
+            names = list(df["name"].unique())
             for i, name in enumerate(names):
                 # set measurement and simulation bars to same x based on name
                 index = df[df["name"] == name].index

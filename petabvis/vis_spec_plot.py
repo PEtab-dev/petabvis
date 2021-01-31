@@ -174,7 +174,7 @@ class VisSpecPlot(plot_class.PlotClass):
         # color the plot so measurements and simulations
         # have the same color but are different from other
         # measurements
-        num_lines = len(self.plot_rows)
+        num_lines = len(self.exp_lines)
         for i, line in enumerate(self.exp_lines):
             color = pg.intColor(i, hues=num_lines)
             line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
@@ -184,7 +184,7 @@ class VisSpecPlot(plot_class.PlotClass):
                                           width=2)
                 self.plot.addItem(self.simu_lines[i])
 
-        self.add_measurements_points()
+        self.add_all_measurements_points()
 
         # Errorbars do not support log scales
         if self.plot_rows and (
@@ -202,27 +202,42 @@ class VisSpecPlot(plot_class.PlotClass):
 
         return self.plot
 
-    def add_measurements_points(self):
+    def add_all_measurements_points(self):
         """
-        Add the measurement points to the plot
+        Add all measurement points to the plot
         """
-        dataset_ids = np.unique(self.overview_df["dataset_id"])
-        for id in dataset_ids:
-            df = self.overview_df[self.overview_df["dataset_id"] == id]
-            x = df[~df["is_simulation"]]["x"].tolist()
-            measurements = df[~df["is_simulation"]]["y"].tolist()
-            points = self.plot.plot(x, measurements,
-                                    pen=None, symbol='o',
-                                    symbolBrush=pg.mkBrush(0, 0, 0),
-                                    symbolSize=6)
-            self.datasetId_to_points[id] = points
-            x_simulation = df[df["is_simulation"]]["x"].tolist()
-            simulations = df[df["is_simulation"]]["y"].tolist()
-            points = self.plot.plot(x_simulation, simulations,
-                                    pen=None, symbol='o',
-                                    symbolBrush=pg.mkBrush(255, 255, 255),
-                                    symbolSize=6)
-            self.datasetId_to_points[id + "_simulation"] = points
+        if self.overview_df['dataset_id'].isnull().values.any():
+            # default plots have nan as dataset ids
+            self.add_measurement_points_from_df(self.overview_df)
+        else:
+            dataset_ids = np.unique(self.overview_df["dataset_id"])
+            for id in dataset_ids:
+                df = self.overview_df[self.overview_df["dataset_id"] == id]
+                self.add_measurement_points_from_df(df, dataset_id=id)
+
+
+    def add_measurement_points_from_df(self, df, dataset_id = ""):
+        """
+        Add all measurement and simulation points
+        present in the dataframe.
+
+        Arguments:
+            df: The dataframe specifying the data points
+        """
+        x = df[~df["is_simulation"]]["x"].tolist()
+        measurements = df[~df["is_simulation"]]["y"].tolist()
+        points = self.plot.plot(x, measurements,
+                                pen=None, symbol='o',
+                                symbolBrush=pg.mkBrush(0, 0, 0),
+                                symbolSize=6)
+        self.datasetId_to_points[dataset_id] = points
+        x_simulation = df[df["is_simulation"]]["x"].tolist()
+        simulations = df[df["is_simulation"]]["y"].tolist()
+        points = self.plot.plot(x_simulation, simulations,
+                                pen=None, symbol='o',
+                                symbolBrush=pg.mkBrush(255, 255, 255),
+                                symbolSize=6)
+        self.datasetId_to_points[dataset_id + "_simulation"] = points
 
     def plot_row_to_plot_data_item(self, p_row: plot_row.PlotRow):
         """
@@ -314,7 +329,7 @@ class VisSpecPlot(plot_class.PlotClass):
                 y_data = y_data + p_row.y_offset
             else:
                 line_name = line_name + "_" + df[ptc.OBSERVABLE_ID].iloc[0]
-            # add points
+            # create overview_df for adding points
             if is_simulation:
                 line_name = line_name + " simulation"
             line_df = pd.DataFrame(
@@ -368,7 +383,7 @@ class VisSpecPlot(plot_class.PlotClass):
 
         if ptc.X_SCALE in self.visualization_df.columns:
             if 0 in x_values and "log" in self.visualization_df.iloc[0][
-                ptc.X_SCALE]:
+                    ptc.X_SCALE]:
                 offset = np.min(x_values[np.nonzero(x_values)]) * 0.001
                 if x_var == ptc.TIME:
                     x_values = x_values + offset
@@ -387,7 +402,7 @@ class VisSpecPlot(plot_class.PlotClass):
 
         if ptc.Y_SCALE in self.visualization_df.columns:
             if 0 in y_values and "log" in self.visualization_df.iloc[0][
-                ptc.Y_SCALE]:
+                    ptc.Y_SCALE]:
                 offset = np.min(y_values[np.nonzero(y_values)]) * 0.001
                 y_values = y_values + offset
                 self.measurement_df[y_var] = y_values
