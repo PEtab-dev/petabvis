@@ -361,7 +361,7 @@ def add_plotnames_to_cbox(exp_data: pd.DataFrame,
 
             # to keep the order of plotnames consistent with the plots that are shown
             # for every identical plot_id, the plot_name has to be the same
-            plot_names = list(visualization_df[ptc.PLOT_ID].unique())
+            plot_names = list(visualization_df[ptc.PLOT_NAME].unique())
             if len(plot_ids) != len(plot_names):
                 warnings.warn(
                     "The number of plot ids should be the same as the number of plot names")
