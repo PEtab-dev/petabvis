@@ -103,6 +103,7 @@ class PlotClass:
             (names[i] + "\nmeasurement: " + str(measurements[i]) +
              "\nsimulation: " + str(simulations[i]))
             for i in range(len(measurements))]
+
         # only line plots have x-values, barplots do not
         if "x_label" in overview_df.columns:
             x = overview_df[~overview_df["is_simulation"]]["x"].tolist()
@@ -111,6 +112,7 @@ class PlotClass:
             point_descriptions = [
                 (point_descriptions[i] + "\n" + str(x_label[i])) + ": " +
                 str(x[i]) for i in range(len(point_descriptions))]
+
         # create the scatterplot
         scatter_plot = pg.ScatterPlotItem(pen=pg.mkPen(None),
                                           brush=pg.mkBrush(0, 0, 0))

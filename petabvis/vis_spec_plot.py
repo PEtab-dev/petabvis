@@ -177,8 +177,13 @@ class VisSpecPlot(plot_class.PlotClass):
         num_lines = len(self.exp_lines)
         for i, line in enumerate(self.exp_lines):
             color = pg.intColor(i, hues=num_lines)
-            line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
-            self.plot.addItem(line)
+            if isinstance(line, list):
+                for replicate in line:
+                    replicate.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
+                    self.plot.addItem(replicate)
+            else:
+                line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
+                self.plot.addItem(line)
             if len(self.simu_lines) > 0:
                 self.simu_lines[i].setPen(color, style=QtCore.Qt.SolidLine,
                                           width=2)
@@ -241,7 +246,11 @@ class VisSpecPlot(plot_class.PlotClass):
 
     def plot_row_to_plot_data_item(self, p_row: plot_row.PlotRow):
         """
-        Creates a PlotDataItem based on the PlotRow.
+        Creates a list of PlotDataItems based on the PlotRow.
+        If the plotTypeData is not ptc.REPLICATE, the list will
+        contain only one PlotDataItem.
+        Otherwise, the number of PlotDataItems will be equal to
+        the number of replicates in the plot_row.
         Also, generate an error bar and measurement points.
 
         Arguments:
@@ -251,7 +260,23 @@ class VisSpecPlot(plot_class.PlotClass):
         legend_name = p_row.legend_name
         if p_row.is_simulation:
             legend_name = legend_name + " simulation"
-        pdi = pg.PlotDataItem(p_row.x_data, p_row.y_data, name=legend_name)
+
+        pdi = []
+        if p_row.plot_type_data == ptc.REPLICATE:
+            x_data = p_row.get_replicate_x_data()
+            y_data = p_row.get_replicate_y_data()
+            first_replicate = True
+            for x, y in zip(x_data, y_data):
+                if first_replicate:
+                    pdi.append(pg.PlotDataItem(x, y, name=legend_name))
+                    first_replicate = False
+                else:
+                    # if all would replicate have a legend_name,
+                    # that name would be duplicated in the legend
+                    pdi.append(pg.PlotDataItem(x, y))
+        else:
+            pdi.append(pg.PlotDataItem(p_row.x_data, p_row.y_data, name=legend_name))
+
         # add it to the dict (used for disabling rows by dataset_id)
         if p_row.is_simulation:
             self.datasetId_to_plotDataItem[
@@ -451,10 +476,16 @@ class VisSpecPlot(plot_class.PlotClass):
         Arguments:
             dataset_id: The dataset id of the line that should be removed.
         """
-        self.plot.removeItem(self.datasetId_to_plotDataItem[dataset_id])
+        if isinstance(self.datasetId_to_plotDataItem[dataset_id], list):
+            for line in self.datasetId_to_plotDataItem[dataset_id]:
+                self.plot.removeItem(line)
+        else:
+            self.plot.removeItem(self.datasetId_to_plotDataItem[dataset_id])
+
+        self.plot.removeItem(self.datasetId_to_points[dataset_id])
+
         if self.datasetId_to_errorbar:  # The plot may not have error bars
             self.plot.removeItem(self.datasetId_to_errorbar[dataset_id])
-        self.plot.removeItem(self.datasetId_to_points[dataset_id])
 
     def enable_line(self, dataset_id):
         """
@@ -464,7 +495,9 @@ class VisSpecPlot(plot_class.PlotClass):
         Arguments:
             dataset_id: The dataset id of the line that should be added.
         """
-        self.plot.addItem(self.datasetId_to_plotDataItem[dataset_id])
+        if isinstance(self.datasetId_to_plotDataItem[dataset_id], list):
+            for line in self.datasetId_to_plotDataItem[dataset_id]:
+                self.plot.addItem(line)
         if self.datasetId_to_errorbar:  # The plot may not have error bars
             self.plot.addItem(self.datasetId_to_errorbar[dataset_id])
         self.plot.addItem(self.datasetId_to_points[dataset_id])

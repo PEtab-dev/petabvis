@@ -97,6 +97,8 @@ class RowClass:
                  "x_label": self.x_label})
             return df
         else:
+            print(len(self.x_data))
+            print(len(self.y_data))
             raise Exception(
                 "Error: The number of x- and y-values are different")
 

@@ -218,7 +218,8 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
         df: The dataframe to display
     """
     add_checkbox_col = False
-    if window.visualization_df.equals(df):
+    if window.visualization_df is not None\
+            and window.visualization_df.equals(df):
         add_checkbox_col = True
     window.table_window = TableWidget(data=df,
                                       add_checkbox_col=add_checkbox_col,
