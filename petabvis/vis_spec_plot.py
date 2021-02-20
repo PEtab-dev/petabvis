@@ -45,8 +45,6 @@ class VisSpecPlot(plot_class.PlotClass):
             # before creating the visuSpecPlot object
             self.check_log_for_zeros()
 
-        self.legend = self.plot.addLegend()
-
         # useful to remove them from the plot when disabling lines
         self.datasetId_to_plotDataItem = {}
         self.datasetId_to_errorbar = {}
@@ -171,24 +169,7 @@ class VisSpecPlot(plot_class.PlotClass):
             if self.simulation_df is not None:
                 self.simu_lines = self.default_plot(None, is_simulation=True)
 
-        # color the plot so measurements and simulations
-        # have the same color but are different from other
-        # measurements
-        num_lines = len(self.exp_lines)
-        for i, line in enumerate(self.exp_lines):
-            color = pg.intColor(i, hues=num_lines)
-            if isinstance(line, list):
-                for replicate in line:
-                    replicate.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
-                    self.plot.addItem(replicate)
-            else:
-                line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
-                self.plot.addItem(line)
-            if len(self.simu_lines) > 0:
-                self.simu_lines[i].setPen(color, style=QtCore.Qt.SolidLine,
-                                          width=2)
-                self.plot.addItem(self.simu_lines[i])
-
+        self.color_plot()
         self.add_all_measurements_points()
 
         # Errorbars do not support log scales
@@ -207,21 +188,46 @@ class VisSpecPlot(plot_class.PlotClass):
 
         return self.plot
 
+
+    def color_plot(self):
+        # color the plot so measurements and simulations
+        # have the same color but are different from other
+        # measurements
+        num_lines = len(self.exp_lines)
+        for i, lines in enumerate(self.exp_lines):
+            color = pg.intColor(i, hues=num_lines)
+            # normally "lines" contains only one element
+            # except for replicates
+            for line in lines:
+                line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
+                self.plot.addItem(line)
+            if len(self.simu_lines) > 0:
+                for line in self.simu_lines[i]:
+                    line.setPen(color, style=QtCore.Qt.SolidLine,
+                                width=2)
+                    self.plot.addItem(line)
+
+
     def add_all_measurements_points(self):
         """
         Add all measurement points to the plot
         """
         if self.overview_df['dataset_id'].isnull().values.any():
             # default plots have nan as dataset ids
-            self.add_measurement_points_from_df(self.overview_df)
+            group_ids = self.overview_df["grouping_ids"].unique()
+            for i, id in enumerate(group_ids):
+                df = self.overview_df[self.overview_df["grouping_ids"] == id]
+                color = pg.intColor(i, hues=len(group_ids))
+                self.add_measurement_points_from_df(df, color=color)
         else:
-            dataset_ids = np.unique(self.overview_df["dataset_id"])
-            for id in dataset_ids:
+            dataset_ids = self.overview_df["dataset_id"].unique()
+            for i, id in enumerate(dataset_ids):
                 df = self.overview_df[self.overview_df["dataset_id"] == id]
-                self.add_measurement_points_from_df(df, dataset_id=id)
+                color = pg.intColor(i, hues=len(self.exp_lines))
+                self.add_measurement_points_from_df(df, dataset_id=id, color = color)
 
 
-    def add_measurement_points_from_df(self, df, dataset_id = ""):
+    def add_measurement_points_from_df(self, df, dataset_id = "", color = "k"):
         """
         Add all measurement and simulation points
         present in the dataframe.
@@ -231,18 +237,22 @@ class VisSpecPlot(plot_class.PlotClass):
         """
         x = df[~df["is_simulation"]]["x"].tolist()
         measurements = df[~df["is_simulation"]]["y"].tolist()
-        points = self.plot.plot(x, measurements,
-                                pen=None, symbol='o',
-                                symbolBrush=pg.mkBrush(0, 0, 0),
-                                symbolSize=6)
+        points = pg.PlotDataItem(x, measurements,
+                                 pen=None,
+                                 symbolPen=pg.mkPen("k"), symbol='o',
+                                 symbolBrush=pg.mkBrush(color),
+                                 symbolSize=7)
         self.datasetId_to_points[dataset_id] = points
+        self.plot.addItem(points)
         x_simulation = df[df["is_simulation"]]["x"].tolist()
         simulations = df[df["is_simulation"]]["y"].tolist()
-        points = self.plot.plot(x_simulation, simulations,
-                                pen=None, symbol='o',
-                                symbolBrush=pg.mkBrush(255, 255, 255),
-                                symbolSize=6)
+        points = pg.PlotDataItem(x_simulation, simulations,
+                                 pen=None,
+                                 symbol='t', symbolPen=pg.mkPen("k"),
+                                 symbolBrush=pg.mkBrush(color),
+                                 symbolSize=7)
         self.datasetId_to_points[dataset_id + "_simulation"] = points
+        self.plot.addItem(points)
 
     def plot_row_to_plot_data_item(self, p_row: plot_row.PlotRow):
         """
@@ -294,7 +304,7 @@ class VisSpecPlot(plot_class.PlotClass):
                 error_length = p_row.provided_noise
             beam_width = 0
             if len(p_row.x_data) > 0:  # p_row.x_data could be empty
-                beam_width = np.max(p_row.x_data) / 100
+                beam_width = (np.max(p_row.x_data) - np.min(p_row.x_data)) / 100
             error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data,
                                     top=error_length, bottom=error_length,
                                     beam=beam_width)
@@ -339,6 +349,8 @@ class VisSpecPlot(plot_class.PlotClass):
             df = self.simulation_df
             y_var = ptc.SIMULATION
 
+        beam_width = (np.max(df[ptc.TIME]) - np.min(df[ptc.TIME])) / 100
+
         for group_id in np.unique(df[grouping]):
             line_data = df[df[grouping] == group_id]
             data = line_data[[y_var, ptc.TIME]]
@@ -359,11 +371,19 @@ class VisSpecPlot(plot_class.PlotClass):
                 line_name = line_name + " simulation"
             line_df = pd.DataFrame(
                 {"x": x_data.tolist(), "y": y_data.tolist(),
-                 "name": group_id, "is_simulation": is_simulation})
+                 "name": group_id, "is_simulation": is_simulation,
+                 "grouping_ids": group_id})
             self.overview_df = self.overview_df.append(line_df,
                                                        ignore_index=True)
 
-            plot_lines.append(pg.PlotDataItem(x_data, y_data, name=line_name))
+            plot_lines.append([pg.PlotDataItem(x_data, y_data, name=line_name)])
+
+            # add error bars
+            sd = utils.sd_replicates(line_data, ptc.TIME, is_simulation)
+            error = pg.ErrorBarItem(x=x_data, y=y_data,
+                                    top=sd, bottom=sd,
+                                    beam=beam_width)
+            self.error_bars.append(error)
 
         return plot_lines
 

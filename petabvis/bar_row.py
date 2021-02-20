@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from . import row_class
+import petab.C as ptc
 
 
 class BarRow(row_class.RowClass):
@@ -38,6 +39,16 @@ class BarRow(row_class.RowClass):
 
         return y_data
 
+    def get_replicate_y_data(self):
+        y_data = []
+        variable = self.get_y_variable_name()  # either measurement or simulation
+        for replicate in self.replicates:
+            y_values = np.mean(replicate[variable])
+            y_values = y_values + self.y_offset
+            y_data.append(y_values)
+
+        return y_data
+
     def get_sd(self):
         """
         Return the standard deviation of the y-values that should be plotted.
@@ -49,6 +60,15 @@ class BarRow(row_class.RowClass):
         sd = np.std(y_values)
 
         return sd
+
+    def get_replicate_sd(self):
+        sds = []
+        for replicate in self.replicates:
+            variable = self.get_y_variable_name()
+            y_values = replicate[variable]
+            sd = np.std(y_values)
+            sds.append(sd)
+        return sds
 
     def get_sem(self):
         """
@@ -62,3 +82,26 @@ class BarRow(row_class.RowClass):
         sem = self.sd / np.sqrt(len(y_values))
 
         return sem
+
+    def get_data_df(self):
+        """
+        Represent the data of this row as a dataframe.
+        Contains the x- and y-values, the name, the dataset id,
+        the name of the x-variable and the boolean is_simulation.
+        Note: Each x-/y-value pair gets their own row in the df.
+
+        Returns
+            df: The dataframe containing the row information.
+        """
+        if self.plot_type_data == ptc.REPLICATE:
+            y = self.get_replicate_y_data()
+            sd = self.get_replicate_sd()
+        else:
+            y = [self.y_data]
+            sd = self.sd
+        df = pd.DataFrame(
+            {"y": y, "name": self.legend_name,
+             "is_simulation": self.is_simulation,
+             "dataset_id": self.dataset_id,
+             "sd": sd, "sem": self.sem})
+        return df

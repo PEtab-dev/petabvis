@@ -2,7 +2,6 @@ import argparse
 import sys  # We need sys so that we can pass argv to QApplication
 import warnings
 
-import numpy as np
 import pandas as pd
 import petab.C as ptc
 import pyqtgraph as pg
@@ -49,7 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pg.setConfigOption('foreground', 'k')
         pg.setConfigOption("antialias", True)
         self.resize(1000, 600)
-        self.setWindowTitle("PEtab-vis")
+        self.setWindowTitle("petabvis")
         self.yaml_dict = None
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
