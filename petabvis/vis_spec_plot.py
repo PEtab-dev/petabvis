@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 import petab.C as ptc
 import pyqtgraph as pg
-from PySide2 import QtCore
 
 from . import plot_class
 from . import plot_row
 from . import utils
+from . import dotted_line
 
 
 class VisSpecPlot(plot_class.PlotClass):
@@ -21,14 +21,10 @@ class VisSpecPlot(plot_class.PlotClass):
         plot_id: Id of the plot (has to in the visualization_df aswell)
 
     Attributes:
-        scatter_points: A dictionary containing 2 lists for
-            the x- and y-values respectively
-        scatter_points_simulation: A dictionary containing 2 lists for
-            the x- and y-values respectively
         plot_rows: A list of PlotRows
         plot_rows_simulation: A list of PlotRows for simulation data
-        exp_lines: A list of PlotDataItems
-        simu_lines: A list of PlotDataItems for simulation data
+        dotted_lines: A list of DottedLines
+        dotted_simulation_lines: A list of DottedLines for simulation data
     """
 
     def __init__(self, measurement_df: pd.DataFrame = None,
@@ -46,16 +42,15 @@ class VisSpecPlot(plot_class.PlotClass):
             self.check_log_for_zeros()
 
         # useful to remove them from the plot when disabling lines
-        self.datasetId_to_plotDataItem = {}
-        self.datasetId_to_errorbar = {}
-        self.datasetId_to_points = {}
+        self.datasetId_to_dotted_line = {}
 
         self.plot_rows = []  # list of plot_rows
         self.plot_rows_simulation = []
         self.overview_df = pd.DataFrame(
             columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var"])
-        self.exp_lines = []  # list of PlotDataItems (measurements)
-        self.simu_lines = []  # (simulations)
+
+        self.dotted_lines = []
+        self.dotted_simulation_lines = []
 
         self.plot_everything()
 
@@ -68,16 +63,13 @@ class VisSpecPlot(plot_class.PlotClass):
         Generate the correlation plot if a simulation file is provided based on the overview df
         """
         self.plot.clear()
-        self.error_bars = []
         self.plot_rows = self.generate_plot_rows(
             self.measurement_df)  # list of plot_rows
         self.plot_rows_simulation = self.generate_plot_rows(self.simulation_df)
         self.overview_df = self.generate_overview_df()
 
-        self.exp_lines = self.generate_plot_data_items(self.plot_rows,
-                                                       is_simulation=False)  # list of PlotDataItems (measurements)
-        self.simu_lines = self.generate_plot_data_items(
-            self.plot_rows_simulation, is_simulation=True)  # (simulations)
+        self.dotted_lines = self.generate_dotted_lines(self.plot_rows)
+        self.dotted_simulation_lines = self.generate_dotted_lines(self.plot_rows_simulation, is_simulation=True)
 
         # make sure the is_simulation column is really boolean because otherwise
         # the logical not operator ~ causes problems
@@ -126,36 +118,35 @@ class VisSpecPlot(plot_class.PlotClass):
                     plot_rows.append(plot_line)
         return plot_rows
 
-    def generate_plot_data_items(self, plot_rows, is_simulation: bool = False):
+    def generate_dotted_lines(self, plot_rows, is_simulation: bool = False):
         """
-        Generate a list of PlotDataItems based on
-        a list of PlotRows
+        Generate a list of DottedLines based on
+        a list of PlotRows.
 
         Arguments:
-            plot_rows: A list of PlotRow objects
-            is_simulation: True plot_rows belong to a simulation df
+            plot_rows: A list of PlotRow objects.
+            is_simulation: True plot_rows belong to a simulation df.
 
         Returns:
-            pdis: A list of PlotDataItems
+            dotted_lines: A list of DottedLines.
         """
-        pdis = []  # list of PlotDataItems
+        dotted_lines = []  # list of PlotDataItems
         for line in plot_rows:
             if line.dataset_id == "":
                 plot_lines = self.default_plot(line,
                                                is_simulation=is_simulation)
-                pdis = pdis + plot_lines
+                dotted_lines = dotted_lines + plot_lines
             else:
                 if line.dataset_id not in self.disabled_rows:
-                    pdis.append(self.plot_row_to_plot_data_item(line))
-        return pdis
+                    dotted_lines.append(self.plot_row_to_dotted_line(line))
+        return dotted_lines
 
     def generate_plot(self):
         """
-        Generate a pyqtgraph PlotItem based on exp_lines
-        and simu_lines (both are DataPlotItem lists
+        Generate a pyqtgraph PlotItem based on dotted_lines.
 
         Returns:
-            pyqtgraph PlotItem
+            plot: pyqtgraph PlotItem.
         """
         if len(self.plot_rows) > 0:
             # get the axis labels info from the first line of the plot
@@ -165,158 +156,41 @@ class VisSpecPlot(plot_class.PlotClass):
         else:  # when no visualization file was provided
             self.plot.setLabel("left", "measurement")
             self.plot.setLabel("bottom", "time")
-            self.exp_lines = self.default_plot(None)
+            self.dotted_lines = self.default_plot(None)
             if self.simulation_df is not None:
-                self.simu_lines = self.default_plot(None, is_simulation=True)
+                self.dotted_simulation_lines = self.default_plot(None, is_simulation=True)
 
-        self.color_plot()
-        self.add_all_measurements_points()
+        num_lines = len(self.dotted_lines)
+        for i, dot_line in enumerate(self.dotted_lines):
+            color = pg.intColor(i, hues=num_lines)
+            dot_line.add_to_plot(self.plot, color)
+            if self.dotted_simulation_lines:
+                self.dotted_simulation_lines[i].add_to_plot(self.plot, color)
 
         # Errorbars do not support log scales
-        if self.plot_rows and (
-                "log" in self.plot_rows[0].x_scale or "log" in self.plot_rows[
-            0].y_scale):
-            if len(self.error_bars) > 0:
-                self.warnings = self.warnings + "Errorbars are not supported with log scales (in " \
-                                + self.plot_title + ")\n"
-        else:
-            # add error bars
-            for error_bar in self.error_bars:
-                self.plot.addItem(error_bar)
+        if self.plot_rows and ("log" in
+                               self.plot_rows[0].x_scale or "log" in self.plot_rows[
+                                0].y_scale) and self.plot_rows[0].plot_type_data != ptc.REPLICATE:
+            self.warnings = self.warnings + "Errorbars are not supported with log scales (in " \
+                            + self.plot_title + ")\n"
 
         self.set_scales()
 
         return self.plot
 
-
-    def color_plot(self):
-        # color the plot so measurements and simulations
-        # have the same color but are different from other
-        # measurements
-        num_lines = len(self.exp_lines)
-        for i, lines in enumerate(self.exp_lines):
-            color = pg.intColor(i, hues=num_lines)
-            # normally "lines" contains only one element
-            # except for replicates
-            for line in lines:
-                line.setPen(color, style=QtCore.Qt.DashDotLine, width=2)
-                self.plot.addItem(line)
-            if len(self.simu_lines) > 0:
-                for line in self.simu_lines[i]:
-                    line.setPen(color, style=QtCore.Qt.SolidLine,
-                                width=2)
-                    self.plot.addItem(line)
-
-
-    def add_all_measurements_points(self):
+    def plot_row_to_dotted_line(self, p_row: plot_row.PlotRow):
         """
-        Add all measurement points to the plot
-        """
-        if self.overview_df['dataset_id'].isnull().values.any():
-            # default plots have nan as dataset ids
-            group_ids = self.overview_df["grouping_ids"].unique()
-            for i, id in enumerate(group_ids):
-                df = self.overview_df[self.overview_df["grouping_ids"] == id]
-                color = pg.intColor(i, hues=len(group_ids))
-                self.add_measurement_points_from_df(df, color=color)
-        else:
-            dataset_ids = self.overview_df["dataset_id"].unique()
-            for i, id in enumerate(dataset_ids):
-                df = self.overview_df[self.overview_df["dataset_id"] == id]
-                color = pg.intColor(i, hues=len(self.exp_lines))
-                self.add_measurement_points_from_df(df, dataset_id=id, color = color)
-
-
-    def add_measurement_points_from_df(self, df, dataset_id = "", color = "k"):
-        """
-        Add all measurement and simulation points
-        present in the dataframe.
-
-        Arguments:
-            df: The dataframe specifying the data points
-        """
-        x = df[~df["is_simulation"]]["x"].tolist()
-        measurements = df[~df["is_simulation"]]["y"].tolist()
-        points = pg.PlotDataItem(x, measurements,
-                                 pen=None,
-                                 symbolPen=pg.mkPen("k"), symbol='o',
-                                 symbolBrush=pg.mkBrush(color),
-                                 symbolSize=7)
-        self.datasetId_to_points[dataset_id] = points
-        self.plot.addItem(points)
-        x_simulation = df[df["is_simulation"]]["x"].tolist()
-        simulations = df[df["is_simulation"]]["y"].tolist()
-        points = pg.PlotDataItem(x_simulation, simulations,
-                                 pen=None,
-                                 symbol='t', symbolPen=pg.mkPen("k"),
-                                 symbolBrush=pg.mkBrush(color),
-                                 symbolSize=7)
-        self.datasetId_to_points[dataset_id + "_simulation"] = points
-        self.plot.addItem(points)
-
-    def plot_row_to_plot_data_item(self, p_row: plot_row.PlotRow):
-        """
-        Creates a list of PlotDataItems based on the PlotRow.
-        If the plotTypeData is not ptc.REPLICATE, the list will
-        contain only one PlotDataItem.
-        Otherwise, the number of PlotDataItems will be equal to
-        the number of replicates in the plot_row.
-        Also, generate an error bar and measurement points.
+        Creates DottedLine based on the PlotRow.
 
         Arguments:
             p_row: The PlotRow object that contains the information
-             of the line that is added
+             of the added line
         """
-        legend_name = p_row.legend_name
-        if p_row.is_simulation:
-            legend_name = legend_name + " simulation"
+        dot_line = dotted_line.DottedLine()
+        dot_line.initialize_from_plot_row(p_row)
+        self.datasetId_to_dotted_line[dot_line.dataset_id] = dot_line
 
-        pdi = []
-        if p_row.plot_type_data == ptc.REPLICATE:
-            x_data = p_row.get_replicate_x_data()
-            y_data = p_row.get_replicate_y_data()
-            first_replicate = True
-            for x, y in zip(x_data, y_data):
-                if first_replicate:
-                    pdi.append(pg.PlotDataItem(x, y, name=legend_name))
-                    first_replicate = False
-                else:
-                    # if all would replicate have a legend_name,
-                    # that name would be duplicated in the legend
-                    pdi.append(pg.PlotDataItem(x, y))
-        else:
-            pdi.append(pg.PlotDataItem(p_row.x_data, p_row.y_data, name=legend_name))
-
-        # add it to the dict (used for disabling rows by dataset_id)
-        if p_row.is_simulation:
-            self.datasetId_to_plotDataItem[
-                p_row.dataset_id + "_simulation"] = pdi
-        else:
-            self.datasetId_to_plotDataItem[p_row.dataset_id] = pdi
-
-        # Only add error bars when needed
-        if (p_row.has_replicates or p_row.plot_type_data == ptc.PROVIDED) \
-                and p_row.plot_type_data != ptc.REPLICATE:
-            error_length = p_row.sd
-            if p_row.plot_type_data == ptc.MEAN_AND_SEM:
-                error_length = p_row.sem
-            if p_row.plot_type_data == ptc.PROVIDED:
-                error_length = p_row.provided_noise
-            beam_width = 0
-            if len(p_row.x_data) > 0:  # p_row.x_data could be empty
-                beam_width = (np.max(p_row.x_data) - np.min(p_row.x_data)) / 100
-            error = pg.ErrorBarItem(x=p_row.x_data, y=p_row.y_data,
-                                    top=error_length, bottom=error_length,
-                                    beam=beam_width)
-            self.error_bars.append(error)
-            # add it to the dict (used for disabling rows by dataset_id)
-            if p_row.is_simulation:
-                self.datasetId_to_errorbar[
-                    p_row.dataset_id + "_simulation"] = error
-            else:
-                self.datasetId_to_errorbar[p_row.dataset_id] = error
-
-        return pdi
+        return dot_line
 
     def default_plot(self, p_row: plot_row.PlotRow, is_simulation=False):
         """
@@ -324,11 +198,12 @@ class VisSpecPlot(plot_class.PlotClass):
         or no visualization file was provided.
 
         Therefore, the whole dataset will be visualized in a single plot.
-        The plotDataItems created here will be added to self.exp_lines.
+        The DottedLines created here will be added to self.dotted_lines.
 
         Arguments:
             p_row: The PlotRow object that contains the information
              of the line that is added
+            is_simulation: Boolean
 
         Returns:
             List of Plot_Data_Items
@@ -345,9 +220,11 @@ class VisSpecPlot(plot_class.PlotClass):
                 "grouping option, please add \"datasetID\" columns.")
         df = self.measurement_df
         y_var = ptc.MEASUREMENT
+        symbol = "o"  # circle of measurement, triangle for simulation
         if is_simulation:
             df = self.simulation_df
             y_var = ptc.SIMULATION
+            symbol = "t"
 
         beam_width = (np.max(df[ptc.TIME]) - np.min(df[ptc.TIME])) / 100
 
@@ -376,14 +253,20 @@ class VisSpecPlot(plot_class.PlotClass):
             self.overview_df = self.overview_df.append(line_df,
                                                        ignore_index=True)
 
-            plot_lines.append([pg.PlotDataItem(x_data, y_data, name=line_name)])
-
             # add error bars
             sd = utils.sd_replicates(line_data, ptc.TIME, is_simulation)
             error = pg.ErrorBarItem(x=x_data, y=y_data,
                                     top=sd, bottom=sd,
                                     beam=beam_width)
-            self.error_bars.append(error)
+
+            lines = [pg.PlotDataItem(x_data, y_data, name=line_name)]
+            points = [pg.PlotDataItem(x_data, y_data, pen=None,
+                                      symbolPen=pg.mkPen("k"),
+                                      symbol=symbol, symbolSize=7)]
+            error_bars = [error]
+            dot_line = dotted_line.DottedLine()
+            dot_line.initialize(lines, points, error_bars, group_id, is_simulation)
+            plot_lines.append(dot_line)
 
         return plot_lines
 
@@ -471,7 +354,6 @@ class VisSpecPlot(plot_class.PlotClass):
             dataset_id: The datasetId of the row that should
                         be added or removed.
         """
-        # TODO: generate warning for rows without dataset id
         if dataset_id in self.disabled_rows:
             self.disabled_rows.remove(dataset_id)
             self.enable_line(dataset_id)
@@ -496,16 +378,8 @@ class VisSpecPlot(plot_class.PlotClass):
         Arguments:
             dataset_id: The dataset id of the line that should be removed.
         """
-        if isinstance(self.datasetId_to_plotDataItem[dataset_id], list):
-            for line in self.datasetId_to_plotDataItem[dataset_id]:
-                self.plot.removeItem(line)
-        else:
-            self.plot.removeItem(self.datasetId_to_plotDataItem[dataset_id])
-
-        self.plot.removeItem(self.datasetId_to_points[dataset_id])
-
-        if self.datasetId_to_errorbar:  # The plot may not have error bars
-            self.plot.removeItem(self.datasetId_to_errorbar[dataset_id])
+        line = self.datasetId_to_dotted_line[dataset_id]
+        line.disable_in_plot(self.plot)
 
     def enable_line(self, dataset_id):
         """
@@ -515,9 +389,6 @@ class VisSpecPlot(plot_class.PlotClass):
         Arguments:
             dataset_id: The dataset id of the line that should be added.
         """
-        if isinstance(self.datasetId_to_plotDataItem[dataset_id], list):
-            for line in self.datasetId_to_plotDataItem[dataset_id]:
-                self.plot.addItem(line)
-        if self.datasetId_to_errorbar:  # The plot may not have error bars
-            self.plot.addItem(self.datasetId_to_errorbar[dataset_id])
-        self.plot.addItem(self.datasetId_to_points[dataset_id])
+        line = self.datasetId_to_dotted_line[dataset_id]
+        line.enable_in_plot(self.plot)
+

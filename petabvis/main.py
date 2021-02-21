@@ -194,9 +194,10 @@ class MainWindow(QtWidgets.QMainWindow):
         Returns:
             Self.warnings as a string
         """
-        return     "\n".join([warning if self.warning_counter[warning] <= 1
-                   else warning + " (occured {} times)".format(str(self.warning_counter[warning]))
-                   for warning in self.warnings])
+        return "\n".join([warning if self.warning_counter[warning] <= 1
+                          else warning + " (occured {} times)".format(
+                            str(self.warning_counter[warning]))
+                          for warning in self.warnings])
 
     def redirect_warning(self, message, category, filename=None, lineno=None,
                          file=None, line=None):
