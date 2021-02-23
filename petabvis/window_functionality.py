@@ -6,9 +6,7 @@ import pandas as pd
 import petab
 import petab.C as ptc
 from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt,
-                            QSortFilterProxyModel)
-from PySide2.QtGui import QColor
+from PySide2.QtCore import (Qt, QSortFilterProxyModel)
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView,
                                QSizePolicy, QTableView, QWidget, QFileDialog)
@@ -23,6 +21,7 @@ class TableWidget(QWidget):
 
     def __init__(self, data: pd.DataFrame, add_checkbox_col: bool, window):
         QWidget.__init__(self)
+        self.window = window
 
         # Set the Model
         if add_checkbox_col:
@@ -61,6 +60,11 @@ class TableWidget(QWidget):
 
         self.setLayout(self.main_layout)
 
+    def closeEvent(self, event):
+        if self in self.window.popup_windows:
+            self.window.popup_windows.remove(self)
+        super().closeEvent(event)
+
 
 def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     """
@@ -74,11 +78,12 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     if window.visualization_df is not None\
             and window.visualization_df.equals(df):
         add_checkbox_col = True
-    window.table_window = TableWidget(data=df,
-                                      add_checkbox_col=add_checkbox_col,
-                                      window=window)
-    window.table_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
-    window.table_window.show()
+    popup_window = TableWidget(data=df,
+                               add_checkbox_col=add_checkbox_col,
+                               window=window)
+    popup_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
+    popup_window.show()
+    window.popup_windows.append(popup_window)
 
 
 def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
@@ -95,9 +100,16 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     tree_view = window.tree_view
     root_node = model.invisibleRootItem()
 
+    tidy_names = {ptc.MEASUREMENT_FILES: "Measurement Tables",
+                  ptc.VISUALIZATION_FILES: "Visualization Tables",
+                  ptc.CONDITION_FILES: "Condition Tables",
+                  ptc.OBSERVABLE_FILES: "Observable Tables",
+                  ptc.SBML_FILES: "SBML Files"}
+
     # iterate through the yaml_dict
     for key in window.yaml_dict:
-        branch = QtGui.QStandardItem(key)
+        branch = QtGui.QStandardItem(tidy_names[key])
+        branch.setEditable(False)
         is_first_df = True
 
         # iterate through the files of a yaml_dict entry
@@ -135,7 +147,8 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
 
     tree_view.setModel(model)
     reconnect(tree_view.clicked,
-              lambda i: exchange_dataframe_on_click(i, model, window))
+              lambda i: exchange_dataframe_on_click(i, model,
+                                                    window, tidy_names))
     reconnect(tree_view.doubleClicked,
               lambda i: display_table_on_doubleclick(i, model, window))
 
@@ -159,7 +172,8 @@ def reconnect(signal, new_function=None):
 
 def exchange_dataframe_on_click(index: QtCore.QModelIndex,
                                 model: QtGui.QStandardItemModel,
-                                window: QtWidgets.QMainWindow):
+                                window: QtWidgets.QMainWindow,
+                                tidy_names: dict):
     """
     Changes the currently plotted dataframe with the one that gets clicked on
     and replot the data, e.g. switch the measurement or visualization df.
@@ -177,19 +191,19 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
     df_changed = True
     if df is None:
         return
-    if parent_name == ptc.MEASUREMENT_FILES:
+    if parent_name == tidy_names[ptc.MEASUREMENT_FILES]:
         if window.exp_data.equals(df):
             df_changed = False
         window.exp_data = df
-    if parent_name == ptc.VISUALIZATION_FILES:
+    if parent_name == tidy_names[ptc.VISUALIZATION_FILES]:
         if window.visualization_df.equals(df):
             df_changed = False
         window.visualization_df = df
-    if parent_name == ptc.CONDITION_FILES:
+    if parent_name == tidy_names[ptc.CONDITION_FILES]:
         if window.condition_df.equals(df):
             df_changed = False
         window.condition_df = df
-    if parent_name == ptc.OBSERVABLE_FILES:
+    if parent_name == tidy_names[ptc.OBSERVABLE_FILES]:
         if window.observable_df.equals(df):
             df_changed = False
         window.observable_df = df
@@ -269,18 +283,21 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
         if ptc.VISUALIZATION_FILES not in yaml_dict:
             window.visualization_df = None
             window.add_warning(
-                "The YAML file contains no visualization file (default plotted)")
+                "The YAML file contains no "
+                "visualization file (default plotted)")
         window.simulation_df = None
 
         # table_tree_view sets the df attributes of the window
-        # equal to the first file of each branch (measurement, visualization, ...)
+        # equal to the first file of each branch
+        # (measurement, visualization, ...)
         table_tree_view(window, last_dir)
         window.add_plots()
 
 
 def show_simulation_dialog(window: QtWidgets.QMainWindow):
     """
-    Display a file selector window when clicking on the select simulation file button,
+    Display a file selector window when clicking
+    on the select simulation file button,
     then add the simulation lines to the plots.
 
     Arguments:

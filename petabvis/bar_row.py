@@ -41,7 +41,8 @@ class BarRow(row_class.RowClass):
 
     def get_replicate_y_data(self):
         y_data = []
-        variable = self.get_y_variable_name()  # either measurement or simulation
+        # variable is either measurement or simulation
+        variable = self.get_y_variable_name()
         for replicate in self.replicates:
             y_values = np.mean(replicate[variable])
             y_values = y_values + self.y_offset

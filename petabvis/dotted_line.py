@@ -45,7 +45,8 @@ class DottedLine:
         self.generate_line_and_points()
 
         # Only add error bars when needed
-        if (self.p_row.has_replicates or self.p_row.plot_type_data == ptc.PROVIDED) \
+        if (self.p_row.has_replicates or
+            self.p_row.plot_type_data == ptc.PROVIDED) \
                 and self.p_row.plot_type_data != ptc.REPLICATE:
             self.add_error_bars()
 
@@ -92,7 +93,8 @@ class DottedLine:
                                               self.p_row.y_data,
                                               name=legend_name))
 
-        self.points.append(pg.PlotDataItem(self.p_row.x_data, self.p_row.y_data, pen=None,
+        self.points.append(pg.PlotDataItem(self.p_row.x_data,
+                                           self.p_row.y_data, pen=None,
                                            symbolPen=pg.mkPen("k"),
                                            symbol=symbol, symbolSize=7))
 
@@ -108,13 +110,14 @@ class DottedLine:
             error_length = self.p_row.provided_noise
         beam_width = 0
         if len(self.p_row.x_data) > 0:  # self.p_row.x_data could be empty
-            beam_width = (np.max(self.p_row.x_data) - np.min(self.p_row.x_data)) / 100
+            beam_width = (np.max(self.p_row.x_data) -
+                          np.min(self.p_row.x_data)) / 100
         error = pg.ErrorBarItem(x=self.p_row.x_data, y=self.p_row.y_data,
                                 top=error_length, bottom=error_length,
                                 beam=beam_width)
         self.error_bars.append(error)
 
-    def add_to_plot(self, plot, color="k"):
+    def add_to_plot(self, plot, color="k", add_error_bars=True):
         """
         Add all lines, points and error bars of
         this object to the provided plot.
@@ -137,9 +140,9 @@ class DottedLine:
             line_points.setSymbolBrush(color)
         for error_bars in self.error_bars:
             error_bars.setData(pen=pg.mkPen(color))
-        self.enable_in_plot(plot)
+        self.enable_in_plot(plot, add_error_bars)
 
-    def enable_in_plot(self, plot):
+    def enable_in_plot(self, plot, add_error_bars=True):
         """
         Add all lines, points and error bars of
         this object to the provided plot.
@@ -148,8 +151,9 @@ class DottedLine:
             plot.addItem(line)
         for line_points in self.points:
             plot.addItem(line_points)
-        for error_bars in self.error_bars:
-            plot.addItem(error_bars)
+        if add_error_bars:
+            for error_bars in self.error_bars:
+                plot.addItem(error_bars)
 
     def disable_in_plot(self, plot):
         """

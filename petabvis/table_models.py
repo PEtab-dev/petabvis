@@ -11,12 +11,12 @@ class CustomTableModel(QAbstractTableModel):
         QAbstractTableModel.__init__(self)
         self.load_data(df)
         self.df = df
+        self.row_count = df.shape[0]
+        self.column_count = df.shape[1]
 
     def load_data(self, data):
         for x in data:
             setattr(self, x, data[x])
-        self.column_count = data.shape[1]
-        self.row_count = data.shape[0]
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
         row = index.row()
@@ -99,7 +99,6 @@ class MeasurementTableModel(CustomTableModel):
 
     Highlight the rows of the currently displayed plot.
     """
-
     def __init__(self, df=None, window=None):
         CustomTableModel.__init__(self, df)
         self.window = window
@@ -108,30 +107,47 @@ class MeasurementTableModel(CustomTableModel):
         self.current_observable_ids = []
 
     def data(self, index, role=Qt.DisplayRole):
-        if role != Qt.BackgroundRole or self.window.visualization_df is None:
+        if role != Qt.BackgroundRole:
             return super().data(index, role)
 
         current_plot = self.window.vis_spec_plots[
             self.window.current_list_index]
+        # for default plots, plot_id is the observableId
+        # otherwise it is the datasetId
         plot_id = current_plot.plot_id
+        row = self.df.iloc[index.row()]
 
-        #only recalculate the plot_ids and observable ids if the current plot changes
+        # for default plots
+        if self.window.visualization_df is None:
+            if row[ptc.OBSERVABLE_ID] == plot_id:
+                return QtGui.QColor("yellow")
+            else:
+                return super().data(index, role)
+
+        # only recalculate the plot_ids and
+        # observable ids if the current plot changes
         if plot_id != self.current_plot_id:
             vis_df = self.window.visualization_df
             if ptc.DATASET_ID in vis_df.columns:
-                self.current_dataset_ids = list(vis_df[vis_df[ptc.PLOT_ID] == plot_id][ptc.DATASET_ID].unique())
+                self.current_dataset_ids = list(vis_df[
+                    vis_df[ptc.PLOT_ID] == plot_id]
+                    [ptc.DATASET_ID].unique())
             if ptc.Y_VALUES in vis_df.columns:
-                self.current_observable_ids = list(vis_df[vis_df[ptc.PLOT_ID] == plot_id][ptc.Y_VALUES].unique())
+                self.current_observable_ids = list(vis_df[
+                    vis_df[ptc.PLOT_ID] == plot_id]
+                    [ptc.Y_VALUES].unique())
             self.current_plot_id = plot_id
-
-        row = self.df.iloc[index.row()]
 
         correct_dataset_id = True
         correct_observable_id = True
         if self.current_dataset_ids and ptc.DATASET_ID in row.index:
-            correct_dataset_id = row[ptc.DATASET_ID] in self.current_dataset_ids
+            disabled_ids = current_plot.disabled_rows
+            correct_dataset_id = row[ptc.DATASET_ID] in \
+                self.current_dataset_ids and row[ptc.DATASET_ID] \
+                not in disabled_ids
         if self.current_observable_ids:
-            correct_observable_id = row[ptc.OBSERVABLE_ID] in self.current_observable_ids
+            correct_observable_id = row[ptc.OBSERVABLE_ID] \
+                                    in self.current_observable_ids
         if correct_dataset_id and correct_observable_id:
             return QtGui.QColor("yellow")
 
@@ -139,8 +155,6 @@ class MeasurementTableModel(CustomTableModel):
 
     def get_window(self):
         return self.window
-
-
 
 
 class CheckBoxDelegate(QtWidgets.QItemDelegate):
@@ -168,7 +182,7 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
         """
         self.drawCheck(painter, option, option.rect,
                        QtCore.Qt.Unchecked if int(
-                           index.data()) == 0 else QtCore.Qt.Checked)
+                        index.data()) == 0 else QtCore.Qt.Checked)
 
     def editorEvent(self, event, model, option, index):
         """
@@ -181,11 +195,15 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
 
         if event.type() == QtCore.QEvent.MouseButtonRelease \
                 and event.button() == QtCore.Qt.LeftButton:
+
+            window = model.sourceModel().get_window()
+            if ptc.DATASET_ID not in window.visualization_df.columns:
+                window.add_warning("Lines without datasetId " +
+                                   "can not be removed")
             # Change the checkbox-state
             plot_id = model.sourceModel().get_value(index.row(), ptc.PLOT_ID)
             dataset_id = model.sourceModel().get_value(index.row(),
                                                        ptc.DATASET_ID)
-            window = model.sourceModel().get_window()
             # Set `vis_spec_plot` to the one that matches `plot_id`
             for vis_spec_plot in window.vis_spec_plots:
                 if vis_spec_plot.plot_id == plot_id:
@@ -202,4 +220,3 @@ class CheckBoxDelegate(QtWidgets.QItemDelegate):
         """
         model.setData(index, 1 if int(index.data()) == 0 else 0,
                       QtCore.Qt.EditRole)
-

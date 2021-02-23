@@ -110,7 +110,9 @@ class BarPlot(plot_class.PlotClass):
         for i, name in enumerate(names):
             # set measurement and simulation bars to same x based on name
             index = df[df["name"] == name].index
-            df.loc[index, "x"] = i - np.linspace(start=0, stop=self.bar_width, num=len(df[df["name"] == name].index))
+            df.loc[index, "x"] = i - \
+                np.linspace(start=0, stop=self.bar_width,
+                            num=len(df[df["name"] == name].index))
             df.loc[index, "tick_pos"] = i - self.bar_width/2
 
         # Adjust x and tick_pos of the bars when simulation bars are plotted
@@ -124,18 +126,15 @@ class BarPlot(plot_class.PlotClass):
                 index = df[(df["name"] == name) & (df["is_simulation"])].index
                 num_replicates = len(df.loc[index].index)
                 shift_start = self.bar_width/(2*num_replicates)
-                df.loc[index, "x"] = i + np.linspace(start=shift_start,
-                                                     stop=self.bar_width + shift_start,
-                                                     num=num_replicates)
+                df.loc[index, "x"] = i + \
+                    np.linspace(start=shift_start,
+                                stop=self.bar_width + shift_start,
+                                num=num_replicates)
                 index = df[(df["name"] == name) & (~df["is_simulation"])].index
-                df.loc[index, "x"] = i - np.linspace(start=shift_start,
-                                                     stop=self.bar_width + shift_start,
-                                                     num=num_replicates)
-
-            # separate measurement and simulation bars
-            bar_separation_shift = self.bar_width / 2
-            #df.loc[~df["is_simulation"], "x"] -= bar_separation_shift
-            #df.loc[df["is_simulation"], "x"] += bar_separation_shift
+                df.loc[index, "x"] = i - \
+                    np.linspace(start=shift_start,
+                                stop=self.bar_width + shift_start,
+                                num=num_replicates)
 
         return df
 
@@ -154,7 +153,8 @@ class BarPlot(plot_class.PlotClass):
             bar_width = self.bar_width
             # adjust the barwidth when plotting replicates
             if self.bar_rows[0].plot_type_data == ptc.REPLICATE:
-                max_num_replicates = max(len(bar.replicates) for bar in self.bar_rows)
+                max_num_replicates = max(len(bar.replicates) for bar
+                                         in self.bar_rows)
                 bar_width = self.bar_width / max_num_replicates
 
             # Add bars
@@ -162,13 +162,15 @@ class BarPlot(plot_class.PlotClass):
             bar_item = pg.BarGraphItem(x=self.overview_df[~simu_rows]["x"],
                                        height=self.overview_df[~simu_rows][
                                         "y"], width=bar_width,
-                                       pen=pg.mkPen("b", width=2), name="measurement")
+                                       pen=pg.mkPen("b", width=2),
+                                       name="measurement")
             self.plot.addItem(bar_item)  # measurement bars
             if self.simulation_df is not None:
                 bar_item = pg.BarGraphItem(x=self.overview_df[simu_rows]["x"],
                                            name="simulation",
                                            height=self.overview_df[simu_rows]["y"],
-                                           width=bar_width, pen=pg.mkPen("y", width=2))
+                                           width=bar_width,
+                                           pen=pg.mkPen("y", width=2))
                 self.plot.addItem(bar_item)  # simulation bars
 
             # Add error bars
@@ -194,7 +196,8 @@ class BarPlot(plot_class.PlotClass):
                 self.plot.setLogMode(y=True)
                 if self.plot_rows[0].x_scale == "log":
                     self.add_warning(
-                        "log not supported, using log10 instead (in " + self.plot_title + ")")
+                        "log not supported, using log10 " +
+                        "instead (in " + self.plot_title + ")")
 
     def add_or_remove_line(self, dataset_id):
         """

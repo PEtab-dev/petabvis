@@ -51,7 +51,8 @@ class PlotRow(row_class.RowClass):
 
         else:  # for time plots
             if self.has_replicates:
-                # to keep the order intact (only needed if no replicate id col is provided)
+                # to keep the order intact
+                # (only needed if no replicate id col is provided)
                 x_data = np.array(sorted(set(self.replicates[0][self.x_var])))
             else:
                 x_data = np.asarray(self.replicates[0][self.x_var])
@@ -76,7 +77,8 @@ class PlotRow(row_class.RowClass):
         if self.plot_type_data == ptc.REPLICATE:
             return np.hstack(self.get_replicate_y_data())
 
-        variable = self.get_y_variable_name()  # either measurement or simulation
+        # variable is either measurement or simulation
+        variable = self.get_y_variable_name()
         y_data = utils.mean_replicates(self.line_data, self.x_var,
                                        variable)
         y_data = y_data + self.y_offset
@@ -130,7 +132,8 @@ class PlotRow(row_class.RowClass):
             y_data_replicates: The y-values for each replicate
         """
         y_data = []
-        variable = self.get_y_variable_name()  # either measurement or simulation
+        # variable is either measurement or simulation
+        variable = self.get_y_variable_name()
         for replicate in self.replicates:
             y_values = utils.mean_replicates(replicate, self.x_var,
                                              variable)

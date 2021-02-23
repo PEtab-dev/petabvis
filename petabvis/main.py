@@ -69,6 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.warning_counter = {}
         # The new window that pops up to display a table
         self.table_window = None
+        self.popup_windows = []
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
         self.wid.addWidget(self.tree_view)
@@ -111,7 +112,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vis_spec_plots.clear()
 
         if self.visualization_df is not None:
-            # to keep the order of plots consistent with names from the plot selection
+            # to keep the order of plots consistent
+            # with names from the plot selection
             plot_ids = list(self.visualization_df[ptc.PLOT_ID].unique())
             for plot_id in plot_ids:
                 self.create_and_add_vis_plot(plot_id)
@@ -223,19 +225,19 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         # split the measurement df by observable when using default plots
         if self.visualization_df is None:
-            # to keep the order of plots consistent with names from the plot selection
             observable_ids = list(self.exp_data[ptc.OBSERVABLE_ID].unique())
             for observable_id in observable_ids:
                 rows = self.exp_data[ptc.OBSERVABLE_ID] == observable_id
                 data = self.exp_data[rows]
                 simulation_df = self.simulation_df
                 if simulation_df is not None:
-                    rows = self.simulation_df[ptc.OBSERVABLE_ID] == observable_id
+                    rows = self.simulation_df[ptc.OBSERVABLE_ID]\
+                           == observable_id
                     simulation_df = self.simulation_df[rows]
                 vis_plot = vis_spec_plot.VisSpecPlot(
                     measurement_df=data, visualization_df=None,
                     condition_df=self.condition_df,
-                    simulation_df=simulation_df, plot_id=plot_id)
+                    simulation_df=simulation_df, plot_id=observable_id)
                 self.vis_spec_plots.append(vis_plot)
                 if vis_plot.warnings:
                     self.add_warning(vis_plot.warnings)
@@ -247,11 +249,12 @@ class MainWindow(QtWidgets.QMainWindow):
             if ptc.PLOT_TYPE_SIMULATION in vis_df.columns and \
                     vis_df.iloc[0][ptc.PLOT_TYPE_SIMULATION] == ptc.BAR_PLOT:
                 bar_plot = BarPlot(measurement_df=self.exp_data,
-                                           visualization_df=vis_df,
-                                           condition_df=self.condition_df,
-                                           simulation_df=self.simulation_df,
-                                           plot_id=plot_id)
-                # might want to change the name of visu_spec_plots to clarify that
+                                   visualization_df=vis_df,
+                                   condition_df=self.condition_df,
+                                   simulation_df=self.simulation_df,
+                                   plot_id=plot_id)
+                # might want to change the name of
+                # visu_spec_plots to clarify that
                 # it can also include bar plots (maybe to plots?)
                 self.vis_spec_plots.append(bar_plot)
             else:

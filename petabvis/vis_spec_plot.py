@@ -56,11 +56,14 @@ class VisSpecPlot(plot_class.PlotClass):
 
     def plot_everything(self):
         """
-        Generate the list of plotRows (one for each line in the visualization file).
-        Create the overview_df based on the plotRows with respect to disabled rows.
+        Generate the list of plotRows
+        (one for each line in the visualization file).
+        Create the overview_df based on the plotRows
+        with respect to disabled rows.
         Create a list of plotDataItems for each plotRow.
         Generate the plot based on the plotDataItems.
-        Generate the correlation plot if a simulation file is provided based on the overview df
+        Generate the correlation plot if a simulation
+        file is provided based on the overview df
         """
         self.plot.clear()
         self.plot_rows = self.generate_plot_rows(
@@ -69,9 +72,11 @@ class VisSpecPlot(plot_class.PlotClass):
         self.overview_df = self.generate_overview_df()
 
         self.dotted_lines = self.generate_dotted_lines(self.plot_rows)
-        self.dotted_simulation_lines = self.generate_dotted_lines(self.plot_rows_simulation, is_simulation=True)
+        self.dotted_simulation_lines = self.generate_dotted_lines(
+            self.plot_rows_simulation, is_simulation=True)
 
-        # make sure the is_simulation column is really boolean because otherwise
+        # make sure the is_simulation column
+        # is really boolean because otherwise
         # the logical not operator ~ causes problems
         self.overview_df["is_simulation"] = self.overview_df[
             "is_simulation"].astype("bool")
@@ -94,7 +99,8 @@ class VisSpecPlot(plot_class.PlotClass):
         overview_df = pd.DataFrame(
             columns=["x", "y", "name", "is_simulation", "dataset_id",
                      "x_label"])
-        if self.visualization_df is not None:
+        if self.visualization_df is not None and \
+                ptc.DATASET_ID in self.visualization_df.columns:
             dfs = [p_row.get_data_df() for p_row in
                    (self.plot_rows + self.plot_rows_simulation)
                    if p_row.dataset_id not in self.disabled_rows]
@@ -158,21 +164,28 @@ class VisSpecPlot(plot_class.PlotClass):
             self.plot.setLabel("bottom", "time")
             self.dotted_lines = self.default_plot(None)
             if self.simulation_df is not None:
-                self.dotted_simulation_lines = self.default_plot(None, is_simulation=True)
+                self.dotted_simulation_lines = \
+                    self.default_plot(None, is_simulation=True)
+
+        add_error_bars = True
+        # Errorbars do not support log scales
+        if self.plot_rows and \
+                ("log" in self.plot_rows[0].x_scale or "log"
+                 in self.plot_rows[0].y_scale) and \
+                self.plot_rows[0].plot_type_data != ptc.REPLICATE:
+            self.add_warning("Errorbars are not supported with log"
+                             " scales (in " + self.plot_title + ")")
+            add_error_bars = False
 
         num_lines = len(self.dotted_lines)
         for i, dot_line in enumerate(self.dotted_lines):
             color = pg.intColor(i, hues=num_lines)
-            dot_line.add_to_plot(self.plot, color)
+            dot_line.add_to_plot(self.plot, color,
+                                 add_error_bars=add_error_bars)
             if self.dotted_simulation_lines:
-                self.dotted_simulation_lines[i].add_to_plot(self.plot, color)
-
-        # Errorbars do not support log scales
-        if self.plot_rows and ("log" in
-                               self.plot_rows[0].x_scale or "log" in self.plot_rows[
-                                0].y_scale) and self.plot_rows[0].plot_type_data != ptc.REPLICATE:
-            self.warnings = self.warnings + "Errorbars are not supported with log scales (in " \
-                            + self.plot_title + ")\n"
+                self.dotted_simulation_lines[i]\
+                    .add_to_plot(self.plot, color,
+                                 add_error_bars=add_error_bars)
 
         self.set_scales()
 
@@ -265,7 +278,8 @@ class VisSpecPlot(plot_class.PlotClass):
                                       symbol=symbol, symbolSize=7)]
             error_bars = [error]
             dot_line = dotted_line.DottedLine()
-            dot_line.initialize(lines, points, error_bars, group_id, is_simulation)
+            dot_line.initialize(lines, points, error_bars,
+                                group_id, is_simulation)
             plot_lines.append(dot_line)
 
         return plot_lines
@@ -280,12 +294,14 @@ class VisSpecPlot(plot_class.PlotClass):
                 self.plot.setLogMode(x=True)
                 if self.plot_rows[0].x_scale == "log":
                     self.add_warning(
-                        "log not supported, using log10 instead (in " + self.plot_title + ")")
+                        "log not supported, using " +
+                        "log10 instead (in " + self.plot_title + ")")
             if "log" in self.plot_rows[0].y_scale:
                 self.plot.setLogMode(y=True)
                 if self.plot_rows[0].y_scale == "log":
                     self.add_warning(
-                        "log not supported, using log10 instead (in " + self.plot_title + ")")
+                        "log not supported, using " +
+                        "log10 instead (in " + self.plot_title + ")")
 
     def check_log_for_zeros(self):
         """
@@ -391,4 +407,3 @@ class VisSpecPlot(plot_class.PlotClass):
         """
         line = self.datasetId_to_dotted_line[dataset_id]
         line.enable_in_plot(self.plot)
-
