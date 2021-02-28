@@ -272,13 +272,14 @@ class VisSpecPlot(plot_class.PlotClass):
                                     top=sd, bottom=sd,
                                     beam=beam_width)
 
-            lines = [pg.PlotDataItem(x_data, y_data, name=line_name)]
-            points = [pg.PlotDataItem(x_data, y_data, pen=None,
-                                      symbolPen=pg.mkPen("k"),
-                                      symbol=symbol, symbolSize=7)]
+            lines = [pg.PlotDataItem(x_data, y_data, name=line_name,
+                                     symbolPen=pg.mkPen("k"),
+                                     symbol=symbol,
+                                     symbolSize=7)]
+
             error_bars = [error]
             dot_line = dotted_line.DottedLine()
-            dot_line.initialize(lines, points, error_bars,
+            dot_line.initialize(lines, error_bars,
                                 group_id, is_simulation)
             plot_lines.append(dot_line)
 

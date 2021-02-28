@@ -48,6 +48,8 @@ class PlotClass:
         self.has_replicates = petab.measurements.measurements_have_replicates(
             self.measurement_df)
         self.plot_title = utils.get_plot_title(self.visualization_df)
+        if not self.plot_title:
+            self.plot_title = self.plot_id
         self.plot = pg.PlotItem(title=self.plot_title)
         self.correlation_plot = pg.PlotItem(title="Correlation")
         self.legend = self.plot.addLegend()
