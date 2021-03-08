@@ -96,11 +96,9 @@ class BarPlot(plot_class.PlotClass):
         Generate a dataframe containing plotting information
         of the individual bars.
 
-        Arguments:
-            bar_rows: A list of BarRow objects
         Returns:
-            df: A dataframe with information relevant
-                for plotting a bar (x, y, sd, etc.)
+            A dataframe with information relevant
+            for plotting a bar (x, y, sd, etc.)
         """
         df = self.generate_overview_df()
 
@@ -110,13 +108,10 @@ class BarPlot(plot_class.PlotClass):
             for i_replicate, i_row in enumerate(name_df.index):
                 x[i_row] = i_name - np.linspace(start=0, stop=self.bar_width, num=len(name_df.index))[i_replicate]
                 tick_pos[i_row] = i_name - self.bar_width / 2
-        df = df.assign(x=x, tick_pos=tick_pos)
 
         # Adjust x and tick_pos of the bars when simulation bars are plotted
         # such that they are next to each other
         if self.simulation_df is not None:
-            x = df["x"].tolist()
-            tick_pos = df["tick_pos"].tolist()
             for i_name, (name, name_df) in enumerate(df.groupby('name')):
                 num_replicates = len(name_df.index) / 2  # /2 due to simulation
                 shift_start = self.bar_width / (2 * num_replicates)
@@ -132,9 +127,8 @@ class BarPlot(plot_class.PlotClass):
                                         stop=self.bar_width + shift_start,
                                         num=int(num_replicates))[i_replicate]
                     x[i_row] = i_name - shift
-            df = df.assign(x=x, tick_pos=tick_pos)
 
-        return df
+        return df.assign(x=x, tick_pos=tick_pos)
 
     def generate_plot(self):
         """
