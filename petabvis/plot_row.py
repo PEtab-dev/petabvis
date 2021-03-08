@@ -96,7 +96,7 @@ class PlotRow(row_class.RowClass):
 
         if self.x_var != ptc.TIME:
             x_values = np.asarray(self.condition_df[self.x_var])
-            x_values += self.x_offset
+            x_values = x_values + self.x_offset
             # the x-values are the same for replicates of
             # concentration plots, thus we repeat them until
             # the x- and y-values have the same length
@@ -119,7 +119,7 @@ class PlotRow(row_class.RowClass):
                 # each replicate uses the same x-values which are determined
                 # by the unique x-values in the data
                 x_values = default_x_values
-            x_values += self.x_offset
+            x_values = x_values + self.x_offset
             x_data.append(x_values)
 
         return x_data

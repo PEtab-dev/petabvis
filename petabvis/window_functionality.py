@@ -29,7 +29,7 @@ class TableWidget(QWidget):
         elif window.exp_data.equals(data):  # for any other df
             self.model = table_models.MeasurementTableModel(data, window)
         else:
-            self.model = table_models.CustomTableModel(data)
+            self.model = table_models.PetabTableModel(data)
 
         # Creating a QTableView
         self.table_view = QTableView()

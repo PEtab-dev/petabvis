@@ -4,7 +4,7 @@ from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt)
 from PySide2.QtGui import QColor
 
 
-class CustomTableModel(QAbstractTableModel):
+class PetabTableModel(QAbstractTableModel):
     """PEtab data table model."""
 
     def __init__(self, df=None):
@@ -57,7 +57,7 @@ class CustomTableModel(QAbstractTableModel):
         return self.df.iloc[row][column]
 
 
-class VisualizationTableModel(CustomTableModel):
+class VisualizationTableModel(PetabTableModel):
     """
     Special table model for visualization files.
 
@@ -66,7 +66,7 @@ class VisualizationTableModel(CustomTableModel):
     """
 
     def __init__(self, df=None, window=None):
-        CustomTableModel.__init__(self, df)
+        PetabTableModel.__init__(self, df)
         self.window = window
 
     def flags(self, index):
@@ -93,14 +93,14 @@ class VisualizationTableModel(CustomTableModel):
         return self.window
 
 
-class MeasurementTableModel(CustomTableModel):
+class MeasurementTableModel(PetabTableModel):
     """
     Special table model for measurement files.
 
     Highlight the rows of the currently displayed plot.
     """
     def __init__(self, df=None, window=None):
-        CustomTableModel.__init__(self, df)
+        PetabTableModel.__init__(self, df)
         self.window = window
         self.current_plot_id = ""
         self.current_dataset_ids = []

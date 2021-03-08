@@ -50,7 +50,7 @@ class BarPlot(plot_class.PlotClass):
         If a simulation df is given, also generate the correlation plot.
         """
         self.plot.clear()
-        self.overview_df = self.get_bars_df(self.bar_rows)
+        self.overview_df = self.get_bars_df()
 
         self.generate_plot()
 
@@ -91,7 +91,7 @@ class BarPlot(plot_class.PlotClass):
                 overview_df = pd.concat(dfs, ignore_index=True)
         return overview_df
 
-    def get_bars_df(self, bar_rows):
+    def get_bars_df(self):
         """
         Generate a dataframe containing plotting information
         of the individual bars.
@@ -103,38 +103,36 @@ class BarPlot(plot_class.PlotClass):
                 for plotting a bar (x, y, sd, etc.)
         """
         df = self.generate_overview_df()
-        df["x"] = range(len(df.index))
-        df["tick_pos"] = range(len(df.index))
 
-        names = list(df["name"].unique())
-        for i, name in enumerate(names):
-            # set measurement and simulation bars to same x based on name
-            index = df[df["name"] == name].index
-            df.loc[index, "x"] = i - \
-                np.linspace(start=0, stop=self.bar_width,
-                            num=len(df[df["name"] == name].index))
-            df.loc[index, "tick_pos"] = i - self.bar_width/2
+        x = list(range(len(df.index)))
+        tick_pos = list(range(len(df.index)))
+        for i_name, (name, name_df) in enumerate(df.groupby('name')):
+            for i_replicate, i_row in enumerate(name_df.index):
+                x[i_row] = i_name - np.linspace(start=0, stop=self.bar_width, num=len(name_df.index))[i_replicate]
+                tick_pos[i_row] = i_name - self.bar_width / 2
+        df = df.assign(x=x, tick_pos=tick_pos)
 
         # Adjust x and tick_pos of the bars when simulation bars are plotted
         # such that they are next to each other
         if self.simulation_df is not None:
-            names = list(df["name"].unique())
-            for i, name in enumerate(names):
-                # set measurement and simulation bars to same x based on name
-                index = df[df["name"] == name].index
-                df.loc[index, "tick_pos"] = i
-                index = df[(df["name"] == name) & (df["is_simulation"])].index
-                num_replicates = len(df.loc[index].index)
-                shift_start = self.bar_width/(2*num_replicates)
-                df.loc[index, "x"] = i + \
-                    np.linspace(start=shift_start,
-                                stop=self.bar_width + shift_start,
-                                num=num_replicates)
-                index = df[(df["name"] == name) & (~df["is_simulation"])].index
-                df.loc[index, "x"] = i - \
-                    np.linspace(start=shift_start,
-                                stop=self.bar_width + shift_start,
-                                num=num_replicates)
+            x = df["x"].tolist()
+            tick_pos = df["tick_pos"].tolist()
+            for i_name, (name, name_df) in enumerate(df.groupby('name')):
+                num_replicates = len(name_df.index) / 2  # /2 due to simulation
+                shift_start = self.bar_width / (2 * num_replicates)
+                for i_replicate, i_row in enumerate(name_df[name_df["is_simulation"]].index):
+                    tick_pos[i_row] = i_name
+                    shift = np.linspace(start=shift_start,
+                                        stop=self.bar_width + shift_start,
+                                        num=int(num_replicates))[i_replicate]
+                    x[i_row] = i_name + shift
+                for i_replicate, i_row in enumerate(name_df[~name_df["is_simulation"]].index):
+                    tick_pos[i_row] = i_name
+                    shift = np.linspace(start=shift_start,
+                                        stop=self.bar_width + shift_start,
+                                        num=int(num_replicates))[i_replicate]
+                    x[i_row] = i_name - shift
+            df = df.assign(x=x, tick_pos=tick_pos)
 
         return df
 
