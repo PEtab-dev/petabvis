@@ -141,7 +141,7 @@ class VisSpecPlot(plot_class.PlotClass):
             if line.dataset_id == "":
                 plot_lines = self.default_plot(line,
                                                is_simulation=is_simulation)
-                dotted_lines = dotted_lines + plot_lines
+                dotted_lines += plot_lines
             else:
                 if line.dataset_id not in self.disabled_rows:
                     dotted_lines.append(self.plot_row_to_dotted_line(line))
