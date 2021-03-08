@@ -7,7 +7,7 @@ from . import plot_row
 
 class DottedLine:
     """
-    Useful class for plotting lines with points and error bars.
+    Class for plotting lines with points and error bars.
     """
     def __init__(self):
         """
