@@ -27,7 +27,7 @@ class DottedLine:
         self.color = "k"
         self.style = QtCore.Qt.DashDotLine
 
-    def initialize_from_plot_row(self, p_row):
+    def initialize_from_plot_row(self, p_row: PlotRow):
         """
         Initialize all attributes with the information
         of the provided PlotRow.
