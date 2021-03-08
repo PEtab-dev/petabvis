@@ -100,10 +100,8 @@ class RowClass:
                  "x_label": self.x_label})
             return df
         else:
-            print(len(self.x_data))
-            print(len(self.y_data))
             raise Exception(
-                "Error: The number of x- and y-values are different")
+                f"Error: The number of x and y values must be equal. Number of x values: {len(self.x_data)}. Number of y values: {len(self.y_data)}")
 
     def get_provided_noise(self):
         """
