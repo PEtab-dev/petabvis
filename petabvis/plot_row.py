@@ -137,6 +137,6 @@ class PlotRow(row_class.RowClass):
         for replicate in self.replicates:
             y_values = utils.mean_replicates(replicate, self.x_var,
                                              variable)
-            y_values = y_values + self.y_offset
+            y_values += self.y_offset
             y_data.append(y_values)
         return y_data
