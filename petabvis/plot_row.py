@@ -119,7 +119,7 @@ class PlotRow(row_class.RowClass):
                 # each replicate uses the same x-values which are determined
                 # by the unique x-values in the data
                 x_values = default_x_values
-            x_values = x_values + self.x_offset
+            x_values += self.x_offset
             x_data.append(x_values)
 
         return x_data
