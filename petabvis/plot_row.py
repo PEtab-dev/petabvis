@@ -106,7 +106,7 @@ class PlotRow(row_class.RowClass):
                           in range(int(len(self.y_data)/len(x_values)))]
                 return x_data
             else:
-                raise Exception("Error occured when deriving the x-values"
+                raise Exception("Error occurred when deriving the x-values "
                                 "for replicates of a concentration plot")
 
         default_x_values = [x for _, x in
