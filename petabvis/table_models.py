@@ -57,7 +57,7 @@ class CustomTableModel(QAbstractTableModel):
         return self.df.iloc[row][column]
 
 
-class VisualizaionTableModel(CustomTableModel):
+class VisualizationTableModel(CustomTableModel):
     """
     Special table model for visualization files.
 

@@ -3,6 +3,7 @@ import petab.C as ptc
 import pyqtgraph as pg
 from PySide2 import QtCore
 
+from . import plot_row
 
 class DottedLine:
     """
@@ -27,7 +28,7 @@ class DottedLine:
         self.color = "k"
         self.style = QtCore.Qt.DashDotLine
 
-    def initialize_from_plot_row(self, p_row: PlotRow):
+    def initialize_from_plot_row(self, p_row: plot_row.PlotRow):
         """
         Initialize all attributes with the information
         of the provided PlotRow.

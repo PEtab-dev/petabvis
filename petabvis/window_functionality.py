@@ -25,7 +25,7 @@ class TableWidget(QWidget):
 
         # Set the Model
         if add_checkbox_col:
-            self.model = table_models.VisualizaionTableModel(data, window)
+            self.model = table_models.VisualizationTableModel(data, window)
         elif window.exp_data.equals(data):  # for any other df
             self.model = table_models.MeasurementTableModel(data, window)
         else:
