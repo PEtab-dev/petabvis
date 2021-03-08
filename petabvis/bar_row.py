@@ -64,8 +64,8 @@ class BarRow(row_class.RowClass):
 
     def get_replicate_sd(self):
         sds = []
+        variable = self.get_y_variable_name()
         for replicate in self.replicates:
-            variable = self.get_y_variable_name()
             y_values = replicate[variable]
             sd = np.std(y_values)
             sds.append(sd)
