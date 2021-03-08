@@ -6,165 +6,14 @@ import pandas as pd
 import petab
 import petab.C as ptc
 from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt,
-                            QSortFilterProxyModel)
-from PySide2.QtGui import QColor
+from PySide2.QtCore import (Qt, QSortFilterProxyModel)
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView,
                                QSizePolicy, QTableView, QWidget, QFileDialog)
 from petab import core
 from petab.visualize.helper_functions import check_ex_exp_columns
 
-
-class CustomTableModel(QAbstractTableModel):
-    """PEtab data table model."""
-
-    def __init__(self, df=None):
-        QAbstractTableModel.__init__(self)
-        self.load_data(df)
-        self.df = df
-
-    def load_data(self, data):
-        for x in data:
-            setattr(self, x, data[x])
-        self.column_count = data.shape[1]
-        self.row_count = data.shape[0]
-
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
-        row = index.row()
-        column = index.column()
-        self.df.iloc[row, column] = value
-        return True
-
-    def rowCount(self, parent=QModelIndex()):
-        return self.row_count
-
-    def columnCount(self, parent=QModelIndex()):
-        return self.column_count
-
-    def headerData(self, section, orientation, role=None):
-        if role != Qt.DisplayRole:
-            return None
-
-        if orientation == Qt.Horizontal:
-            return self.df.columns[section]
-        else:
-            return self.df.index[section]
-
-    def data(self, index, role=Qt.DisplayRole):
-        column = index.column()
-        row = index.row()
-
-        if role == Qt.DisplayRole:
-            return str(self.df.iloc[row, column])
-
-        elif role == Qt.BackgroundRole:
-            return QColor(Qt.white)
-
-        elif role == Qt.TextAlignmentRole:
-            return Qt.AlignRight
-
-        return None
-
-    def get_value(self, row, column):
-        return self.df.iloc[row][column]
-
-
-class VisualizaionTableModel(CustomTableModel):
-    """
-    Special table model for visualization files.
-
-    Make the first column of the table editable for the checkbox column.
-    Highlight the rows of the currently displayed plot.
-    """
-
-    def __init__(self, df=None, window=None):
-        CustomTableModel.__init__(self, df)
-        self.window = window
-
-    def flags(self, index):
-        if not index.isValid():
-            return 0
-
-        if index.column() == 0:
-            return Qt.ItemIsEditable | Qt.ItemIsEnabled \
-                   | Qt.ItemIsSelectable | Qt.ItemIsUserCheckable
-
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled
-
-    def data(self, index, role=Qt.DisplayRole):
-        if role == Qt.BackgroundRole:
-            current_plot = self.window.vis_spec_plots[
-                self.window.current_list_index]
-            current_plot_id = current_plot.plot_id
-            if self.df[ptc.PLOT_ID][index.row()] == current_plot_id:
-                return QtGui.QColor("yellow")
-        else:
-            return super().data(index, role)
-
-    def get_window(self):
-        return self.window
-
-
-class CheckBoxDelegate(QtWidgets.QItemDelegate):
-    """
-    A delegate that places a fully functioning QCheckBox cell to the column to
-    which it is applied.
-
-    Used for the visualization table to add the checkbox column and provide
-    its functionality.
-    """
-
-    def __init__(self, parent):
-        QtWidgets.QItemDelegate.__init__(self, parent)
-
-    def createEditor(self, parent, option, index):
-        """
-        Important, otherwise an editor is created if the user clicks in this
-        cell.
-        """
-        return None
-
-    def paint(self, painter, option, index):
-        """
-        Paint a checkbox without the label.
-        """
-        self.drawCheck(painter, option, option.rect,
-                       QtCore.Qt.Unchecked if int(
-                           index.data()) == 0 else QtCore.Qt.Checked)
-
-    def editorEvent(self, event, model, option, index):
-        """
-        Change the data in the model and the state of the checkbox
-        if the user presses the left mousebutton and this cell is editable.
-        Otherwise do nothing.
-        """
-        if not int(index.flags() & QtCore.Qt.ItemIsEditable) > 0:
-            return False
-
-        if event.type() == QtCore.QEvent.MouseButtonRelease \
-                and event.button() == QtCore.Qt.LeftButton:
-            # Change the checkbox-state
-            plot_id = model.sourceModel().get_value(index.row(), ptc.PLOT_ID)
-            dataset_id = model.sourceModel().get_value(index.row(),
-                                                       ptc.DATASET_ID)
-            window = model.sourceModel().get_window()
-            # Set `vis_spec_plot` to the one that matches `plot_id`
-            for vis_spec_plot in window.vis_spec_plots:
-                if vis_spec_plot.plot_id == plot_id:
-                    break
-            vis_spec_plot.add_or_remove_line(dataset_id)
-            self.setModelData(None, model, index)
-            return True
-
-        return False
-
-    def setModelData(self, editor, model, index):
-        """
-        Change the state of the checkbox after it was clicked.
-        """
-        model.setData(index, 1 if int(index.data()) == 0 else 0,
-                      QtCore.Qt.EditRole)
+from . import table_models
 
 
 class TableWidget(QWidget):
@@ -172,12 +21,15 @@ class TableWidget(QWidget):
 
     def __init__(self, data: pd.DataFrame, add_checkbox_col: bool, window):
         QWidget.__init__(self)
+        self.window = window
 
         # Set the Model
         if add_checkbox_col:
-            self.model = VisualizaionTableModel(data, window)
-        else:  # for any other df
-            self.model = CustomTableModel(data)
+            self.model = table_models.VisualizationTableModel(data, window)
+        elif window.exp_data.equals(data):  # for any other df
+            self.model = table_models.MeasurementTableModel(data, window)
+        else:
+            self.model = table_models.PetabTableModel(data)
 
         # Creating a QTableView
         self.table_view = QTableView()
@@ -188,7 +40,7 @@ class TableWidget(QWidget):
 
         # add a checkbox column for visualization dfs
         if add_checkbox_col:
-            delegate = CheckBoxDelegate(None)
+            delegate = table_models.CheckBoxDelegate(None)
             self.table_view.setItemDelegateForColumn(0, delegate)
 
         # QTableView Headers
@@ -208,6 +60,11 @@ class TableWidget(QWidget):
 
         self.setLayout(self.main_layout)
 
+    def closeEvent(self, event):
+        if self in self.window.popup_windows:
+            self.window.popup_windows.remove(self)
+        super().closeEvent(event)
+
 
 def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
     """
@@ -218,13 +75,15 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
         df: The dataframe to display
     """
     add_checkbox_col = False
-    if window.visualization_df.equals(df):
+    if window.visualization_df is not None\
+            and window.visualization_df.equals(df):
         add_checkbox_col = True
-    window.table_window = TableWidget(data=df,
-                                      add_checkbox_col=add_checkbox_col,
-                                      window=window)
-    window.table_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
-    window.table_window.show()
+    popup_window = TableWidget(data=df,
+                               add_checkbox_col=add_checkbox_col,
+                               window=window)
+    popup_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
+    popup_window.show()
+    window.popup_windows.append(popup_window)
 
 
 def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
@@ -241,9 +100,16 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     tree_view = window.tree_view
     root_node = model.invisibleRootItem()
 
+    tidy_names = {ptc.MEASUREMENT_FILES: "Measurement Tables",
+                  ptc.VISUALIZATION_FILES: "Visualization Tables",
+                  ptc.CONDITION_FILES: "Condition Tables",
+                  ptc.OBSERVABLE_FILES: "Observable Tables",
+                  ptc.SBML_FILES: "SBML Files"}
+
     # iterate through the yaml_dict
     for key in window.yaml_dict:
-        branch = QtGui.QStandardItem(key)
+        branch = QtGui.QStandardItem(tidy_names[key])
+        branch.setEditable(False)
         is_first_df = True
 
         # iterate through the files of a yaml_dict entry
@@ -281,7 +147,8 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
 
     tree_view.setModel(model)
     reconnect(tree_view.clicked,
-              lambda i: exchange_dataframe_on_click(i, model, window))
+              lambda i: exchange_dataframe_on_click(i, model,
+                                                    window, tidy_names))
     reconnect(tree_view.doubleClicked,
               lambda i: display_table_on_doubleclick(i, model, window))
 
@@ -305,7 +172,8 @@ def reconnect(signal, new_function=None):
 
 def exchange_dataframe_on_click(index: QtCore.QModelIndex,
                                 model: QtGui.QStandardItemModel,
-                                window: QtWidgets.QMainWindow):
+                                window: QtWidgets.QMainWindow,
+                                tidy_names: dict):
     """
     Changes the currently plotted dataframe with the one that gets clicked on
     and replot the data, e.g. switch the measurement or visualization df.
@@ -323,19 +191,19 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
     df_changed = True
     if df is None:
         return
-    if parent_name == ptc.MEASUREMENT_FILES:
+    if parent_name == tidy_names[ptc.MEASUREMENT_FILES]:
         if window.exp_data.equals(df):
             df_changed = False
         window.exp_data = df
-    if parent_name == ptc.VISUALIZATION_FILES:
+    if parent_name == tidy_names[ptc.VISUALIZATION_FILES]:
         if window.visualization_df.equals(df):
             df_changed = False
         window.visualization_df = df
-    if parent_name == ptc.CONDITION_FILES:
+    if parent_name == tidy_names[ptc.CONDITION_FILES]:
         if window.condition_df.equals(df):
             df_changed = False
         window.condition_df = df
-    if parent_name == ptc.OBSERVABLE_FILES:
+    if parent_name == tidy_names[ptc.OBSERVABLE_FILES]:
         if window.observable_df.equals(df):
             df_changed = False
         window.observable_df = df
@@ -371,11 +239,11 @@ def add_file_selector(window: QtWidgets.QMainWindow):
         window: Mainwindow
     """
     open_yaml_file = QAction(QIcon('open.png'), 'Open YAML file...', window)
-    open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(x, window))
+    open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(window))
     open_simulation_file = QAction(QIcon('open.png'),
                                    'Open simulation file...', window)
     open_simulation_file.triggered.connect(
-        lambda x: show_simulation_dialog(x, window))
+        lambda x: show_simulation_dialog(window))
     quit = QAction("Quit", window)
     quit.triggered.connect(sys.exit)
 
@@ -386,7 +254,7 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     file_menu.addAction(quit)
 
 
-def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
+def show_yaml_dialog(window: QtWidgets.QMainWindow):
     """
     Display a file selector window when clicking on the select YAML file menu
     item, then display the new plots described by the YAML file.
@@ -406,6 +274,8 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         settings.setValue("last_dir", last_dir)
 
         window.warn_msg.setText("")
+        window.warnings.clear()
+        window.warning_counter.clear()
 
         # select the first df in the dict for measurements, etc.
         yaml_dict = petab.load_yaml(file_name)["problems"][0]
@@ -413,18 +283,21 @@ def show_yaml_dialog(self, window: QtWidgets.QMainWindow):
         if ptc.VISUALIZATION_FILES not in yaml_dict:
             window.visualization_df = None
             window.add_warning(
-                "The YAML file contains no visualization file (default plotted)")
+                "The YAML file contains no "
+                "visualization file (default plotted)")
         window.simulation_df = None
 
         # table_tree_view sets the df attributes of the window
-        # equal to the first file of each branch (measurement, visualization, ...)
+        # equal to the first file of each branch
+        # (measurement, visualization, ...)
         table_tree_view(window, last_dir)
         window.add_plots()
 
 
-def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
+def show_simulation_dialog(window: QtWidgets.QMainWindow):
     """
-    Display a file selector window when clicking on the select simulation file button,
+    Display a file selector window when clicking
+    on the select simulation file button,
     then add the simulation lines to the plots.
 
     Arguments:
@@ -441,6 +314,9 @@ def show_simulation_dialog(self, window: QtWidgets.QMainWindow):
             window.add_warning("Please open a YAML file first.")
         else:
             window.warn_msg.setText("")
+            window.warnings.clear()
+            window.warning_counter.clear()
+
             sim_data = core.get_simulation_df(file_name)
             # check columns, and add non-mandatory default columns
             sim_data, _, _ = check_ex_exp_columns(

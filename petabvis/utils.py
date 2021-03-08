@@ -359,15 +359,12 @@ def add_plotnames_to_cbox(exp_data: pd.DataFrame,
         plot_ids = np.unique(visualization_df[ptc.PLOT_ID])
         if ptc.PLOT_NAME in visualization_df.columns:
 
-            # to keep the order of plotnames consistent with the plots that are shown
             # for every identical plot_id, the plot_name has to be the same
-            indexes = \
-                np.unique(visualization_df[ptc.PLOT_ID], return_index=True)[1]
-            plot_names = [visualization_df[ptc.PLOT_NAME][index] for index in
-                          sorted(indexes)]
+            plot_names = list(visualization_df[ptc.PLOT_NAME].unique())
             if len(plot_ids) != len(plot_names):
                 warnings.warn(
-                    "The number of plot ids should be the same as the number of plot names")
+                    "The number of plot ids should be" +
+                    " the same as the number of plot names")
 
             for name in plot_names:
                 cbox.addItem(name)
@@ -376,10 +373,7 @@ def add_plotnames_to_cbox(exp_data: pd.DataFrame,
                 cbox.addItem(id)
     else:
         # the default plots are grouped by observable ID
-        # to keep the order of plots consistent with names from the plot selection
-        indexes = np.unique(exp_data[ptc.OBSERVABLE_ID], return_index=True)[1]
-        observable_ids = [exp_data[ptc.OBSERVABLE_ID][index] for index in
-                          sorted(indexes)]
+        observable_ids = list(exp_data[ptc.OBSERVABLE_ID].unique())
         for observable_id in observable_ids:
             cbox.addItem(observable_id)
 
@@ -396,5 +390,5 @@ def get_signals(source):
         try:
             if isinstance(getattr(cls, name), signal):
                 print(name)
-        except Exception as inst:
+        except Exception:
             print("skipped")

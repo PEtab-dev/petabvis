@@ -17,7 +17,8 @@ class RowClass:
         condition_df: PEtab condition table
 
     Attributes:
-        line_data: PEtab measurement or simulation table reduced to relevant rows
+        line_data: PEtab measurement or
+                   simulation table reduced to relevant rows
         plot_spec: A single row of a PEtab visualization table
         condition_df: PEtab condition table reduced to relevant rows
         dataset_id: Id of the dataset
@@ -40,8 +41,10 @@ class RowClass:
 
     def __init__(self, exp_data: pd.DataFrame,
                  plot_spec: pd.Series, condition_df: pd.DataFrame, ):
-        self.x_data = []  # placeholder value, will be overwritten by plot_row
-        self.y_data = []  # placeholder value, will be overwritten by plot_row/bar_row
+        # placeholder value, will be overwritten by plot_row
+        self.x_data = []
+        # placeholder value, will be overwritten by plot_row/bar_row
+        self.y_data = []
 
         # set attributes
         self.plot_spec = plot_spec
@@ -98,7 +101,7 @@ class RowClass:
             return df
         else:
             raise Exception(
-                "Error: The number of x- and y-values are different")
+                f"Error: The number of x and y values must be equal. Number of x values: {len(self.x_data)}. Number of y values: {len(self.y_data)}")
 
     def get_provided_noise(self):
         """
