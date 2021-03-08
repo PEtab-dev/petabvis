@@ -19,14 +19,14 @@ class DottedLine:
             is_simulation: Boolean
         """
 
-        self.lines = []
-        self.error_bars = []
+        self.lines: List[PlotDataItems] = []
+        self.error_bars: List[ErrorBarItems] = []
 
-        self.p_row = None
-        self.dataset_id = ""
-        self.is_simulation = False
-        self.color = "k"
-        self.style = QtCore.Qt.DashDotLine
+        self.p_row: Optional[PlotRow] = None
+        self.dataset_id: str = ""
+        self.is_simulation: bool = False
+        self.color: str = "k"
+        self.style: QtCore.Qt.PenStyle = QtCore.Qt.DashDotLine
 
     def initialize_from_plot_row(self, p_row: plot_row.PlotRow):
         """
