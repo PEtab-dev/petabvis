@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import numpy as np
 import petab.C as ptc
 import pyqtgraph as pg
@@ -19,10 +21,10 @@ class DottedLine:
             is_simulation: Boolean
         """
 
-        self.lines: List[PlotDataItems] = []
-        self.error_bars: List[ErrorBarItems] = []
+        self.lines: List[pg.PlotDataItems] = []
+        self.error_bars: List[pg.ErrorBarItems] = []
 
-        self.p_row: Optional[PlotRow] = None
+        self.p_row: Optional[plot_row.PlotRow] = None
         self.dataset_id: str = ""
         self.is_simulation: bool = False
         self.color: str = "k"
