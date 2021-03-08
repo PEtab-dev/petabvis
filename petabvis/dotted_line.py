@@ -108,7 +108,7 @@ class DottedLine:
         error_length = self.p_row.sd
         if self.p_row.plot_type_data == ptc.MEAN_AND_SEM:
             error_length = self.p_row.sem
-        if self.p_row.plot_type_data == ptc.PROVIDED:
+        elif self.p_row.plot_type_data == ptc.PROVIDED:
             error_length = self.p_row.provided_noise
         beam_width = 0
         if len(self.p_row.x_data) > 0:  # self.p_row.x_data could be empty
