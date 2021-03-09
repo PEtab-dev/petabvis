@@ -85,7 +85,9 @@ class VisualizationTableModel(PetabTableModel):
                 self.window.current_list_index]
             current_plot_id = current_plot.plot_id
             if self.df[ptc.PLOT_ID][index.row()] == current_plot_id:
-                return QtGui.QColor("yellow")
+                return QColor(Qt.yellow)
+            else:
+                return QColor(Qt.white)
         else:
             return super().data(index, role)
 
@@ -120,7 +122,7 @@ class MeasurementTableModel(PetabTableModel):
         # for default plots
         if self.window.visualization_df is None:
             if row[ptc.OBSERVABLE_ID] == plot_id:
-                return QtGui.QColor("yellow")
+                return QColor(Qt.yellow)
             else:
                 return super().data(index, role)
 

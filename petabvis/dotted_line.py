@@ -174,6 +174,10 @@ class DottedLine:
             line.setSymbolPen(None)
             line.setSymbolBrush(None)
 
+    def hide_errors(self):
+        for error in self.error_bars:
+            error.setVisible(False)
+
     def show_lines(self):
         for line in self.lines:
             line.setPen(self.color, style=self.style, width=2)
@@ -182,3 +186,7 @@ class DottedLine:
         for line in self.lines:
             line.setSymbolBrush(self.color)
             line.setSymbolPen("k")
+
+    def show_errors(self):
+        for error in self.error_bars:
+            error.setData(pen=pg.mkPen(self.color))

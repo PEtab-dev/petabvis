@@ -126,7 +126,7 @@ class PlotClass:
 
         # add interaction
         last_clicked = None
-        info_text = pg.TextItem("", anchor=(0, 0), color="k", fill="w")
+        info_text = pg.TextItem("", anchor=(0, 0), color="k", fill="w", border="k")
 
         def clicked(plot, points):
             nonlocal last_clicked

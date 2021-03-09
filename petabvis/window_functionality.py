@@ -7,9 +7,9 @@ import petab
 import petab.C as ptc
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtCore import (Qt, QSortFilterProxyModel)
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView,
-                               QSizePolicy, QTableView, QWidget, QFileDialog)
+from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView, QPushButton,
+                               QSizePolicy, QTableView, QWidget, QFileDialog,
+                               QHBoxLayout)
 from petab import core
 from petab.visualize.helper_functions import check_ex_exp_columns
 
@@ -52,13 +52,25 @@ class TableWidget(QWidget):
 
         # QWidget Layout
         self.main_layout = QVBoxLayout()
-        size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.button_layout = QHBoxLayout()
 
+        self.b1 = QPushButton("Sort by displayed lines")
+        self.b1.clicked.connect(self.sort_by_highlight)
+        self.button_layout.addWidget(self.b1)
+        self.button_layout.addStretch(1)
+        self.main_layout.addLayout(self.button_layout)
+
+        size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size.setHorizontalStretch(1)
         self.table_view.setSizePolicy(size)
         self.main_layout.addWidget(self.table_view)
 
         self.setLayout(self.main_layout)
+
+    def sort_by_highlight(self):
+        self.filter_proxy.setSortRole(Qt.BackgroundRole)
+        self.filter_proxy.sort(0, Qt.AscendingOrder)
+        self.filter_proxy.setSortRole(Qt.DisplayRole)
 
     def closeEvent(self, event):
         if self in self.window.popup_windows:
@@ -139,8 +151,8 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         root_node.appendRow(branch)
 
     if window.simulation_df is not None:
-        branch = QtGui.QStandardItem("simulation_files")
-        simulation_file = QtGui.QStandardItem("simulation_file")
+        branch = QtGui.QStandardItem("Simulation Table")
+        simulation_file = QtGui.QStandardItem("simulation file")
         simulation_file.setData(window.simulation_df, role=Qt.UserRole + 1)
         branch.appendRow(simulation_file)
         root_node.appendRow(branch)
@@ -238,10 +250,9 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     Arguments:
         window: Mainwindow
     """
-    open_yaml_file = QAction(QIcon('open.png'), 'Open YAML file...', window)
+    open_yaml_file = QAction('Open YAML file...', window)
     open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(window))
-    open_simulation_file = QAction(QIcon('open.png'),
-                                   'Open simulation file...', window)
+    open_simulation_file = QAction('Open simulation file...', window)
     open_simulation_file.triggered.connect(
         lambda x: show_simulation_dialog(window))
     quit = QAction("Quit", window)
@@ -252,6 +263,17 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     file_menu.addAction(open_yaml_file)
     file_menu.addAction(open_simulation_file)
     file_menu.addAction(quit)
+
+
+def add_option_menu(window: QtWidgets.QMainWindow):
+    open_options = QAction("Options", window)
+    open_options.triggered.connect(lambda x: show_option_menu(window))
+    menu_button = window.menuBar()
+    menu_button.addAction(open_options)
+
+
+def show_option_menu(window: QtWidgets.QMainWindow):
+    window.options_window.show()
 
 
 def show_yaml_dialog(window: QtWidgets.QMainWindow):

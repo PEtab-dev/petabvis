@@ -13,6 +13,8 @@ from . import utils
 from . import vis_spec_plot
 from . import window_functionality
 from .bar_plot import BarPlot
+from .options_window import OptionMenu
+from .plot_class import PlotClass
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -70,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # The new window that pops up to display a table
         self.table_window = None
         self.popup_windows = []
+        self.options_window = OptionMenu(vis_spec_plots=self.vis_spec_plots)
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
         self.wid.addWidget(self.tree_view)
@@ -78,6 +81,7 @@ class MainWindow(QtWidgets.QMainWindow):
         warnings.showwarning = self.redirect_warning
 
         window_functionality.add_file_selector(self)
+        window_functionality.add_option_menu(self)
         if self.exp_data is not None:
             self.add_plots()
 
@@ -110,6 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.clear_qsplitter()
         self.vis_spec_plots.clear()
+        self.options_window.reset_states()
 
         if self.visualization_df is not None:
             # to keep the order of plots consistent
