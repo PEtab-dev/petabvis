@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -22,12 +23,21 @@ class TableWidget(QWidget):
     def __init__(self, data: pd.DataFrame, add_checkbox_col: bool, window):
         QWidget.__init__(self)
         self.window = window
+        # QWidget Layout
+        self.main_layout = QVBoxLayout()
 
         # Set the Model
         if add_checkbox_col:
             self.model = table_models.VisualizationTableModel(data, window)
         elif window.exp_data.equals(data):  # for any other df
             self.model = table_models.MeasurementTableModel(data, window)
+
+            self.button_layout = QHBoxLayout()  # add sort button
+            self.sort_button = QPushButton("Sort by displayed lines")
+            self.sort_button.clicked.connect(self.sort_by_highlight)
+            self.button_layout.addWidget(self.sort_button)
+            self.button_layout.addStretch(1)
+            self.main_layout.addLayout(self.button_layout)
         else:
             self.model = table_models.PetabTableModel(data)
 
@@ -50,16 +60,6 @@ class TableWidget(QWidget):
         self.horizontal_header.setSectionResizeMode(
             QHeaderView.ResizeToContents)
 
-        # QWidget Layout
-        self.main_layout = QVBoxLayout()
-        self.button_layout = QHBoxLayout()
-
-        self.b1 = QPushButton("Sort by displayed lines")
-        self.b1.clicked.connect(self.sort_by_highlight)
-        self.button_layout.addWidget(self.b1)
-        self.button_layout.addStretch(1)
-        self.main_layout.addLayout(self.button_layout)
-
         size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         size.setHorizontalStretch(1)
         self.table_view.setSizePolicy(size)
@@ -69,13 +69,21 @@ class TableWidget(QWidget):
 
     def sort_by_highlight(self):
         self.filter_proxy.setSortRole(Qt.BackgroundRole)
-        self.filter_proxy.sort(0, Qt.AscendingOrder)
+        self.filter_proxy.sort(1, Qt.AscendingOrder)
         self.filter_proxy.setSortRole(Qt.DisplayRole)
 
     def closeEvent(self, event):
         if self in self.window.popup_windows:
             self.window.popup_windows.remove(self)
         super().closeEvent(event)
+
+class CustomQSortFilterProxyModel(QSortFilterProxyModel):
+    def __init__(self):
+        QSortFilterProxyModel.__init__(self)
+
+    def sort_by_highlight(self):
+        print("HI")
+
 
 
 def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
