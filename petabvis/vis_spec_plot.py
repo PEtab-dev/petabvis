@@ -47,7 +47,8 @@ class VisSpecPlot(plot_class.PlotClass):
         self.plot_rows = []  # list of plot_rows
         self.plot_rows_simulation = []
         self.overview_df = pd.DataFrame(
-            columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var"])
+            columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var",
+                     "observable_id", "simulation_condition_id"])
 
         self.dotted_lines = []
         self.dotted_simulation_lines = []
@@ -86,6 +87,7 @@ class VisSpecPlot(plot_class.PlotClass):
             # add the correlation plot (only if a simulation file is provided)
             # inherited method from PlotClass
             self.generate_correlation_plot(self.overview_df)
+            self.generate_overview_plot(self.overview_df)
 
     def generate_overview_df(self):
         """
@@ -386,6 +388,7 @@ class VisSpecPlot(plot_class.PlotClass):
         if self.simulation_df is not None:
             overview_df = self.generate_overview_df()
             self.generate_correlation_plot(overview_df)
+            self.generate_overview_plot(overview_df)
 
     def disable_line(self, dataset_id):
         """

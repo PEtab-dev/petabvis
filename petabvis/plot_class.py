@@ -1,5 +1,6 @@
 import pandas as pd
 import pyqtgraph as pg
+import numpy as np
 import petab
 import scipy
 
@@ -52,7 +53,12 @@ class PlotClass:
             self.plot_title = self.plot_id
         self.plot = pg.PlotItem(title=self.plot_title)
         self.correlation_plot = pg.PlotItem(title="Correlation")
-        self.legend = self.plot.addLegend()
+        self.overview_plot = pg.PlotItem(title="Overview")
+        self.plot.addLegend()
+        self.correlation_plot.addLegend()
+
+    def generate_overview_plot(self, overview_df):
+        self.overview_plot = self.correlation_plot
 
     def generate_correlation_plot(self, overview_df):
         """
@@ -71,7 +77,7 @@ class PlotClass:
             simulations = overview_df[overview_df["is_simulation"]][
                 "y"].tolist()
 
-            self.add_points(overview_df)
+            self.add_points(overview_df, "observable_id")
             self.correlation_plot.setLabel("left", "Simulation")
             self.correlation_plot.setLabel("bottom", "Measurement")
 
@@ -82,15 +88,15 @@ class PlotClass:
             self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
 
             # calculate and add the r_squared value
-            self.r_squared = self.get_r_squared(measurements, simulations)
-            r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
+            r_squared = self.get_r_squared(measurements, simulations)
+            r_squared_text = "R Squared:\n" + str(r_squared)[0:5]
             r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0),
                                          color="k")
             r_squared_text.setPos(min_value, max_value)
             self.correlation_plot.addItem(r_squared_text, anchor=(0, 0),
                                           color="k")
 
-    def add_points(self, overview_df: pd.DataFrame):
+    def add_points(self, overview_df: pd.DataFrame, grouping):
         """
         Add the points to the scatter plot and
         display an info text when clicking on a point.
@@ -98,32 +104,45 @@ class PlotClass:
         Arguments:
             overview_df: Dataframe containing info about the points
         """
-        # data
-        measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
-        simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
-        names = overview_df[~overview_df["is_simulation"]]["name"].tolist()
-        point_descriptions = [
-            (names[i] + "\nmeasurement: " + str(measurements[i]) +
-             "\nsimulation: " + str(simulations[i]))
-            for i in range(len(measurements))]
-
-        # only line plots have x-values, barplots do not
-        if "x_label" in overview_df.columns:
-            x = overview_df[~overview_df["is_simulation"]]["x"].tolist()
-            x_label = overview_df[~overview_df["is_simulation"]][
-                "x_label"].tolist()
+        group_ids = overview_df[grouping].unique()
+        for i in range(len(group_ids)):
+            # data
+            reduced_df = overview_df[overview_df[grouping] == group_ids[i]]
+            measurements = reduced_df[~reduced_df["is_simulation"]]["y"].tolist()
+            simulations = reduced_df[reduced_df["is_simulation"]]["y"].tolist()
+            names = reduced_df[~reduced_df["is_simulation"]]["name"].tolist()
+            simulation_condition_ids = reduced_df[~reduced_df["is_simulation"]]\
+                ["simulation_condition_id"].tolist()
+            observable_ids = reduced_df[reduced_df["is_simulation"]]\
+                ["observable_id"].tolist()
             point_descriptions = [
-                (point_descriptions[i] + "\n" + str(x_label[i])) + ": " +
-                str(x[i]) for i in range(len(point_descriptions))]
+                (names[i] + "\nmeasurement: " + str(measurements[i]) +
+                 "\nsimulation: " + str(simulations[i]) + "\nsimulationConditionId: "
+                 + str(simulation_condition_ids[i]) + "\nobservableId: " +
+                 str(observable_ids[i]))
+                for i in range(len(measurements))]
 
-        # create the scatterplot
-        scatter_plot = pg.ScatterPlotItem(pen=pg.mkPen(None),
-                                          brush=pg.mkBrush(0, 0, 0))
-        spots = [{'pos': [m, s], 'data': idx} for m, s, idx in
-                 zip(measurements, simulations, point_descriptions)]
-        scatter_plot.addPoints(spots)
-        self.correlation_plot.addItem(scatter_plot)
+            # only line plots have x-values, barplots do not
+            if "x_label" in reduced_df.columns:
+                x = reduced_df[~reduced_df["is_simulation"]]["x"].tolist()
+                x_label = reduced_df[~reduced_df["is_simulation"]][
+                    "x_label"].tolist()
+                point_descriptions = [
+                    (point_descriptions[i] + "\n" + str(x_label[i])) + ": " +
+                    str(x[i]) for i in range(len(point_descriptions))]
 
+            # create the scatterplot
+            color = pg.intColor(i, hues=len(group_ids))
+            scatter_plot = pg.ScatterPlotItem(pen=pg.mkPen(None),
+                                              brush=pg.mkBrush(color),
+                                              name=group_ids[i])
+            spots = [{'pos': [m, s], 'data': idx} for m, s, idx in
+                     zip(measurements, simulations, point_descriptions)]
+            scatter_plot.addPoints(spots)
+            self.correlation_plot.addItem(scatter_plot)
+            self.add_point_interaction(scatter_plot)
+
+    def add_point_interaction(self, scatter_plot):
         # add interaction
         last_clicked = None
         info_text = pg.TextItem("", anchor=(0, 0), color="k", fill="w", border="k")

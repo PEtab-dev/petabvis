@@ -57,6 +57,7 @@ class BarPlot(plot_class.PlotClass):
         if self.simulation_df is not None:
             # create correlation plot
             self.generate_correlation_plot(self.overview_df)
+            self.generate_overview_plot(self.overview_df)
 
     def add_bar_rows(self, df):
         """

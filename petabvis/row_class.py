@@ -63,6 +63,7 @@ class RowClass:
         self.legend_name = utils.get_legend_name(plot_spec)
         self.plot_type_data = utils.get_plot_type_data(plot_spec)
         self.is_simulation = ptc.SIMULATION in exp_data.columns
+        self.simulation_condition_id = ""
 
         # reduce dfs to relevant rows
         self.line_data = exp_data
@@ -78,9 +79,11 @@ class RowClass:
             self.condition_df = utils.reduce_condition_df(self.line_data,
                                                           self.condition_df)
 
+        self.observable_id = utils.get_observable_id(self.line_data)
         self.has_replicates = petab.measurements.measurements_have_replicates(
             self.line_data)
         self.replicates = utils.split_replicates(self.line_data)
+
 
     def get_data_df(self):
         """
@@ -97,7 +100,8 @@ class RowClass:
                 {"x": self.x_data, "y": self.y_data, "name": self.legend_name,
                  "is_simulation": self.is_simulation,
                  "dataset_id": self.dataset_id,
-                 "x_label": self.x_label})
+                 "x_label": self.x_label, "observable_id": self.observable_id,
+                 "simulation_condition_id": self.simulation_condition_id})
             return df
         else:
             raise Exception(

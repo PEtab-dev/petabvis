@@ -9,10 +9,10 @@ from PySide2.QtWidgets import QComboBox
 
 def get_legend_name(plot_spec: pd.Series):
     """
-    Returns the plot title of the plot specification
+    Return the plot title of the plot specification
     Arguments:
        plot_spec: A single row of a visualization df
-    Returns:
+    Return:
         The name of the legend entry
     """
     legend_name = ""
@@ -26,11 +26,11 @@ def get_legend_name(plot_spec: pd.Series):
 
 def get_x_var(plot_spec: pd.Series):
     """
-    Returns the name of the x variable of the plot specification
+    Return the name of the x variable of the plot specification
 
     Arguments:
        plot_spec: A single row of a visualization df
-    Returns:
+    Return:
         The name of the x variable
     """
     x_var = "time"  # default value
@@ -40,13 +40,21 @@ def get_x_var(plot_spec: pd.Series):
     return x_var
 
 
+def get_observable_id(line_data: pd.DataFrame):
+    observable_id = line_data[ptc.OBSERVABLE_ID].unique()
+    if len(observable_id) > 1:
+        warnings.warn("Observable id is not unique for line"
+                      " (might affect coloring)")
+    return observable_id[0]
+
+
 def get_y_var(plot_spec: pd.Series):
     """
-    Returns the observable which should be plotted on the y-axis
+    Return the observable which should be plotted on the y-axis
 
     Arguments:
        plot_spec: A single row of a visualization df
-    Returns:
+    Return:
         observable which should be plotted on the y-axis
     """
     y_var = ""  # default value
@@ -58,12 +66,12 @@ def get_y_var(plot_spec: pd.Series):
 
 def get_x_offset(plot_spec: pd.Series):
     """
-    Returns the x offset
+    Return the x offset
 
     Arguments:
        plot_spec: A single row of a visualization df
 
-    Returns:
+    Return:
         The x offset
     """
     x_offset = 0  # default value
@@ -75,12 +83,12 @@ def get_x_offset(plot_spec: pd.Series):
 
 def get_x_scale(plot_spec: pd.Series):
     """
-    Returns the scale of the x axis (lin, log or order)
+    Return the scale of the x axis (lin, log or order)
 
     Arguments:
        plot_spec: A single row of a visualization df
 
-    Returns:
+    Return:
         The x scale
     """
 
@@ -93,12 +101,12 @@ def get_x_scale(plot_spec: pd.Series):
 
 def get_y_scale(plot_spec: pd.Series):
     """
-    Returns the scale of the y axis (lin, log or order)
+    Return the scale of the y axis (lin, log or order)
 
     Arguments:
        plot_spec: A single row of a visualization df
 
-    Returns:
+    Return:
         The x offset
     """
     y_scale = "lin"  # default value
@@ -110,12 +118,12 @@ def get_y_scale(plot_spec: pd.Series):
 
 def get_y_offset(plot_spec: pd.Series):
     """
-    Returns the y offset
+    Return the y offset
 
     Arguments:
        plot_spec: A single row of a visualization df
 
-    Returns:
+    Return:
         The y offset
     """
     y_offset = 0  # default value
@@ -127,12 +135,12 @@ def get_y_offset(plot_spec: pd.Series):
 
 def get_x_label(plot_spec: pd.Series):
     """
-    Returns the label of the x axis
+    Return the label of the x axis
 
     Arguments:
        plot_spec: A single row of a visualization df
 
-    Returns:
+    Return:
         The label of the x axis
     """
     x_label = get_x_var(plot_spec)  # defaults to x_var
@@ -144,12 +152,12 @@ def get_x_label(plot_spec: pd.Series):
 
 def get_y_label(plot_spec: pd.Series):
     """
-    Returns the label of the y axis
+    Return the label of the y axis
 
     Arguments:
        plot_spec: A single row of a visualization df
 
-    Returns:
+    Return:
         The label of the y axis
     """
     y_label = ptc.MEASUREMENT  # defaults to y_var
@@ -161,12 +169,12 @@ def get_y_label(plot_spec: pd.Series):
 
 def get_dataset_id(plot_spec: pd.Series):
     """
-    Returns the dataset id
+    Return the dataset id
 
     Arguments:
        plot_spec: A single row of a visualization df
 
-    Returns:
+    Return:
         The dataset id
     """
     dataset_id = ""
@@ -178,10 +186,10 @@ def get_dataset_id(plot_spec: pd.Series):
 
 def get_plot_type_data(plot_spec: pd.Series):
     """
-    Returns the dataset id
+    Return the dataset id
     Arguments:
        plot_spec: A single row of a visualization df
-    Returns:
+    Return:
         The dataset id
     """
     plot_type_data = "MeanAndSD"
@@ -200,7 +208,7 @@ def reduce_condition_df(line_data, condition_df):
         line_data: A subset of a measurement df
         condition_df: The condition df
 
-    Returns:
+    Return:
         The reduced condition df
     """
     uni_condition_id, uind = np.unique(
@@ -218,12 +226,12 @@ def reduce_condition_df(line_data, condition_df):
 
 def get_plot_title(visualization_df_rows: pd.DataFrame):
     """
-    Returns the title of the plot
+    Return the title of the plot
 
     Arguments:
        visualization_df_rows: A single row of a visualization df
 
-    Returns:
+    Return:
         The plot title
     """
     plot_title = ""
@@ -249,7 +257,7 @@ def mean_replicates(line_data: pd.DataFrame, x_var: str = ptc.TIME,
         x_var: Name of the x-variable
         y_var: Name of the y-variable (measurement or simulation)
 
-    Returns:
+    Return:
         The mean grouped by x_var
     """
     grouping = ptc.TIME
@@ -274,7 +282,7 @@ def sd_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
         is_simulation: Boolean to check if the y variable
             is measurement or simulation
 
-    Returns:
+    Return:
         The std grouped by x_var
     """
     y_var = ptc.MEASUREMENT
@@ -305,7 +313,7 @@ def sem_replicates(line_data: pd.DataFrame, x_var: str, is_simulation: bool):
         is_simulation: Boolean to check if the y variable
             is measurement or simulation
 
-    Returns:
+    Return:
         The std grouped by x_var
     """
     grouping = ptc.TIME
@@ -332,7 +340,7 @@ def split_replicates(line_data: pd.DataFrame):
     Arguments:
         line_data: A subset of the measurement file
 
-    Returns:
+    Return:
         The std grouped by x_var
     """
     replicates = []

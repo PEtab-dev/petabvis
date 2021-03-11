@@ -276,12 +276,31 @@ def add_file_selector(window: QtWidgets.QMainWindow):
 def add_option_menu(window: QtWidgets.QMainWindow):
     open_options = QAction("Options", window)
     open_options.triggered.connect(lambda x: show_option_menu(window))
-    menu_button = window.menuBar()
-    menu_button.addAction(open_options)
+    open_correlation_options = QAction("Correlation Options", window)
+    open_correlation_options.triggered.connect(lambda x: show_correlation_options(window))
+    open_overview_plot = QAction("Overview Plot", window)
+    open_overview_plot.triggered.connect(lambda x: show_overview_plot(window))
+
+    menubar = window.menuBar()
+    options_menu = menubar.addMenu("&Options")
+    options_menu.addActions([open_options, open_correlation_options, open_overview_plot])
 
 
 def show_option_menu(window: QtWidgets.QMainWindow):
     window.options_window.show()
+
+
+def show_correlation_options(window: QtWidgets.QMainWindow):
+    window.correlation_options_window.show()
+
+
+def show_overview_plot(window: QtWidgets.QMainWindow):
+    #TODO
+    overview_window = window.overview_plot_widget
+    current_plot = window.vis_spec_plots[window.current_list_index]
+    overview_window.addItem(current_plot.overview_plot)
+
+    overview_window.show()
 
 
 def show_yaml_dialog(window: QtWidgets.QMainWindow):

@@ -1,8 +1,9 @@
 from PySide2 import QtGui
-from PySide2.QtWidgets import QVBoxLayout, QWidget, QCheckBox
+from PySide2.QtWidgets import QVBoxLayout, QWidget, QCheckBox, QComboBox
 from PySide2.QtCore import Qt
 
 from .vis_spec_plot import VisSpecPlot
+
 
 class OptionMenu(QtGui.QMainWindow):
 
@@ -64,3 +65,20 @@ class OptionMenu(QtGui.QMainWindow):
                         line.show_errors()
                     else:
                         line.hide_errors()
+
+
+class CorrelationOptionMenu(QtGui.QMainWindow):
+
+    def __init__(self, vis_spec_plots):
+        super(CorrelationOptionMenu, self).__init__()
+        self.resize(150, 200)
+        self.setWindowTitle("Correlation Options")
+        self.plots = vis_spec_plots
+        self.cbox = QComboBox()  # dropdown menu to select plots
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.cbox)
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+

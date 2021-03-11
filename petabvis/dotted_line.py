@@ -95,7 +95,10 @@ class DottedLine:
                 else:
                     # if all would replicate have a legend_name,
                     # that name would be duplicated in the legend
-                    self.lines.append(pg.PlotDataItem(x, y))
+                    self.lines.append(pg.PlotDataItem(x, y,
+                                                      symbolPen=pg.mkPen("k"),
+                                                      symbol=symbol,
+                                                      symbolSize=7))
         else:
             self.lines.append(pg.PlotDataItem(self.p_row.x_data,
                                               self.p_row.y_data,

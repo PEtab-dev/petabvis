@@ -32,6 +32,7 @@ class PlotRow(row_class.RowClass):
         self.sem = utils.sem_replicates(self.line_data, self.x_var,
                                         self.is_simulation)
         self.provided_noise = self.get_provided_noise()
+        self.simulation_condition_id = self.get_simulation_condition_id()
 
     def get_x_data(self):
         """
@@ -59,6 +60,25 @@ class PlotRow(row_class.RowClass):
             x_data = x_data + self.x_offset
 
         return x_data
+
+    def get_simulation_condition_id(self):
+
+        simulation_condition_id = self.replicates[0][ptc.SIMULATION_CONDITION_ID]
+        if self.has_replicates:  # take unique values for mean plots
+            simulation_condition_id = simulation_condition_id.unique()
+
+        # for replicate plots
+        if self.plot_type_data == ptc.REPLICATE \
+                and ptc.REPLICATE_ID in self.line_data.columns:
+            simulation_condition_ids = [simulation_condition_id for _
+                      in range(int(len(self.y_data) / len(simulation_condition_id)))]
+            simulation_condition_id = np.hstack(simulation_condition_ids)
+
+        if len(simulation_condition_id) == 1 :
+            return simulation_condition_id[0]
+
+        return simulation_condition_id
+
 
     def get_y_data(self):
         """

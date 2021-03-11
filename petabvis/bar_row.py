@@ -100,9 +100,13 @@ class BarRow(row_class.RowClass):
         else:
             y = [self.y_data]
             sd = self.sd
+        simulation_condition_id = self.line_data[ptc.SIMULATION_CONDITION_ID].iloc[0]
+        observable_id = self.line_data[ptc.OBSERVABLE_ID].iloc[0]
         df = pd.DataFrame(
             {"y": y, "name": self.legend_name,
              "is_simulation": self.is_simulation,
              "dataset_id": self.dataset_id,
-             "sd": sd, "sem": self.sem})
+             "sd": sd, "sem": self.sem,
+             "simulation_condition_id": simulation_condition_id,
+             "observable_id": observable_id})
         return df
