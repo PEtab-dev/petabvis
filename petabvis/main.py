@@ -73,6 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.popup_windows = []
         self.options_window = OptionMenu(vis_spec_plots=self.vis_spec_plots)
         self.correlation_options_window = CorrelationOptionMenu(vis_spec_plots=self.vis_spec_plots)
+        self.correlation_option_button = None
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
         self.wid.addWidget(self.tree_view)
@@ -246,7 +247,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.vis_spec_plots.append(vis_plot)
                 if vis_plot.warnings:
                     self.add_warning(vis_plot.warnings)
-
         else:
             # reduce the visualization df to the relevant rows (by plotId)
             rows = self.visualization_df[ptc.PLOT_ID] == plot_id

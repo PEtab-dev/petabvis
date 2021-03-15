@@ -46,9 +46,6 @@ class VisSpecPlot(plot_class.PlotClass):
 
         self.plot_rows = []  # list of plot_rows
         self.plot_rows_simulation = []
-        self.overview_df = pd.DataFrame(
-            columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var",
-                     "observable_id", "simulation_condition_id"])
 
         self.dotted_lines = []
         self.dotted_simulation_lines = []
@@ -100,7 +97,7 @@ class VisSpecPlot(plot_class.PlotClass):
         """
         overview_df = pd.DataFrame(
             columns=["x", "y", "name", "is_simulation", "dataset_id",
-                     "x_label"])
+                     "x_label", "observable_id", "simulation_condition_id"])
         if self.visualization_df is not None and \
                 ptc.DATASET_ID in self.visualization_df.columns:
             dfs = [p_row.get_data_df() for p_row in
@@ -180,8 +177,10 @@ class VisSpecPlot(plot_class.PlotClass):
             add_error_bars = False
 
         num_lines = len(self.dotted_lines)
+        color_lookup = self.color_map.getLookupTable(nPts=num_lines)
         for i, dot_line in enumerate(self.dotted_lines):
-            color = pg.intColor(i, hues=num_lines)
+            #color = pg.intColor(i, hues=num_lines)
+            color = color_lookup[i]
             dot_line.add_to_plot(self.plot, color,
                                  add_error_bars=add_error_bars)
             if self.dotted_simulation_lines:
@@ -192,6 +191,7 @@ class VisSpecPlot(plot_class.PlotClass):
         self.set_scales()
 
         return self.plot
+
 
     def plot_row_to_dotted_line(self, p_row: plot_row.PlotRow):
         """
@@ -362,6 +362,14 @@ class VisSpecPlot(plot_class.PlotClass):
                         self.simulation_df[ptc.SIMULATION])
                     self.simulation_df[ptc.SIMULATION] = y_simulation + offset
 
+    def set_color_map(self, color_map):
+        super().set_color_map(color_map)
+        color_lookup = self.color_map.getLookupTable(nPts=len(self.dotted_lines))
+        for i in range(len(self.dotted_lines)):
+            self.dotted_lines[i].set_color(color_lookup[i])
+            if self.dotted_simulation_lines:
+                self.dotted_simulation_lines[i].set_color((color_lookup[i]))
+
     def add_or_remove_line(self, dataset_id):
         """
         Add the datasetId to the disabled rows if
@@ -378,17 +386,13 @@ class VisSpecPlot(plot_class.PlotClass):
             self.enable_line(dataset_id)
             if self.simulation_df is not None:
                 self.enable_line(dataset_id + "_simulation")
+                self.enable_correlation_points(dataset_id)
         else:
             self.disabled_rows.add(dataset_id)
             self.disable_line(dataset_id)
             if self.simulation_df is not None:
                 self.disable_line(dataset_id + "_simulation")
-
-        # update the correlation plot
-        if self.simulation_df is not None:
-            overview_df = self.generate_overview_df()
-            self.generate_correlation_plot(overview_df)
-            self.generate_overview_plot(overview_df)
+                self.disable_correlation_points(dataset_id)
 
     def disable_line(self, dataset_id):
         """

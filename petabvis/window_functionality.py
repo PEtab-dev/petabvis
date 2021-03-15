@@ -12,7 +12,8 @@ from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView, QPushButton,
                                QSizePolicy, QTableView, QWidget, QFileDialog,
                                QHBoxLayout)
 from petab import core
-from petab.visualize.helper_functions import check_ex_exp_columns
+from petab.visualize.helper_functions import (check_ex_exp_columns,
+                                              create_or_update_vis_spec)
 
 from . import table_models
 
@@ -153,9 +154,22 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
                 df = petab.get_observable_df(folder_path + "/" + filename)
                 if is_first_df:
                     window.observable_df = df
-            file.setData(df, role=Qt.UserRole + 1)
+            file.setData(df, role=Qt.UserRole+1)
             branch.appendRow(file)
             is_first_df = False
+        root_node.appendRow(branch)
+
+    if window.visualization_df is None:
+        branch = QtGui.QStandardItem("Visualization Tables")
+        branch.setEditable(False)
+        df = create_or_update_vis_spec(exp_data=window.exp_data,
+                                       exp_conditions=window.condition_df)[1]
+        df[ptc.PLOT_NAME] = df[ptc.PLOT_ID]
+        window.visualization_df = df
+        df.insert(0, "Displayed", 1)  # needed for the checkbox column
+        file = QtGui.QStandardItem(filename)
+        file.setData(df, role=Qt.UserRole+1)
+        branch.appendRow(file)
         root_node.appendRow(branch)
 
     if window.simulation_df is not None:
@@ -166,6 +180,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         root_node.appendRow(branch)
 
     tree_view.setModel(model)
+    tree_view.expandAll()
     reconnect(tree_view.clicked,
               lambda i: exchange_dataframe_on_click(i, model,
                                                     window, tidy_names))
@@ -274,10 +289,15 @@ def add_file_selector(window: QtWidgets.QMainWindow):
 
 
 def add_option_menu(window: QtWidgets.QMainWindow):
+    """
+    Add an option menu to the main window.
+    """
     open_options = QAction("Options", window)
     open_options.triggered.connect(lambda x: show_option_menu(window))
     open_correlation_options = QAction("Correlation Options", window)
     open_correlation_options.triggered.connect(lambda x: show_correlation_options(window))
+    open_correlation_options.setVisible(False)
+    window.correlation_option_button = open_correlation_options
     open_overview_plot = QAction("Overview Plot", window)
     open_overview_plot.triggered.connect(lambda x: show_overview_plot(window))
 
@@ -334,12 +354,11 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
             window.add_warning(
                 "The YAML file contains no "
                 "visualization file (default plotted)")
-        window.simulation_df = None
-
         # table_tree_view sets the df attributes of the window
         # equal to the first file of each branch
         # (measurement, visualization, ...)
         table_tree_view(window, last_dir)
+        window.simulation_df = None
         window.add_plots()
 
 
@@ -389,6 +408,9 @@ def show_simulation_dialog(window: QtWidgets.QMainWindow):
                 # insert correlation plot at position 1
                 window.wid.insertWidget(1, window.plot2_widget)
                 table_tree_view(window, os.path.dirname(file_name))
+
+                # add correlation options to option menu
+                window.correlation_option_button.setVisible(True)
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"

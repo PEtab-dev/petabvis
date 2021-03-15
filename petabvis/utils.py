@@ -5,6 +5,8 @@ import pandas as pd
 import petab.C as ptc
 from PySide2 import QtCore
 from PySide2.QtWidgets import QComboBox
+import matplotlib.pyplot as plt
+import pyqtgraph as pg
 
 
 def get_legend_name(plot_spec: pd.Series):
@@ -400,3 +402,13 @@ def get_signals(source):
                 print(name)
         except Exception:
             print("skipped")
+
+
+def generate_color_map(cm_name):
+    plt_map = plt.get_cmap(cm_name)
+    colors = plt_map.colors.copy()
+    for i, color in enumerate(colors):
+        colors[i] = [int(c*255) for c in color]
+    positions = np.linspace(0, 1, len(colors))
+    pg_map = pg.ColorMap(positions, colors)
+    return pg_map

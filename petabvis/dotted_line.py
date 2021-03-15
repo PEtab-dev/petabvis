@@ -138,14 +138,16 @@ class DottedLine:
             color: The color the line and the
                     points should have.
         """
-        self.color = color
-
-        for line in self.lines:
-            line.setPen(color, style=self.style, width=2)
-            line.setSymbolBrush(color)
-        for error_bars in self.error_bars:
-            error_bars.setData(pen=pg.mkPen(color))
+        self.set_color(color)
         self.enable_in_plot(plot, add_error_bars)
+
+    def set_color(self, new_color):
+        self.color = new_color
+        for line in self.lines:
+            line.setPen(self.color, style=self.style, width=2)
+            line.setSymbolBrush(self.color)
+        for error_bars in self.error_bars:
+            error_bars.setData(pen=pg.mkPen(self.color))
 
     def enable_in_plot(self, plot, add_error_bars=True):
         """
