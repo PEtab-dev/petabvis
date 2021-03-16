@@ -242,7 +242,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         if window.observable_df.equals(df):
             df_changed = False
         window.observable_df = df
-    if parent_name == "simulation_files":
+    if parent_name == "Simulation Table":
         if window.simulation_df.equals(df):
             df_changed = False
         window.simulation_df = df
@@ -300,6 +300,8 @@ def add_option_menu(window: QtWidgets.QMainWindow):
     window.correlation_option_button = open_correlation_options
     open_overview_plot = QAction("Overview Plot", window)
     open_overview_plot.triggered.connect(lambda x: show_overview_plot(window))
+    open_overview_plot.setVisible(False)
+    window.overview_plot_button = open_overview_plot
 
     menubar = window.menuBar()
     options_menu = menubar.addMenu("&Options")
@@ -315,11 +317,7 @@ def show_correlation_options(window: QtWidgets.QMainWindow):
 
 
 def show_overview_plot(window: QtWidgets.QMainWindow):
-    #TODO
-    overview_window = window.overview_plot_widget
-    current_plot = window.vis_spec_plots[window.current_list_index]
-    overview_window.addItem(current_plot.overview_plot)
-
+    overview_window = window.overview_plot_window
     overview_window.show()
 
 
@@ -409,8 +407,10 @@ def show_simulation_dialog(window: QtWidgets.QMainWindow):
                 window.wid.insertWidget(1, window.plot2_widget)
                 table_tree_view(window, os.path.dirname(file_name))
 
-                # add correlation options to option menu
+                # add correlation options and overview plot to option menu
                 window.correlation_option_button.setVisible(True)
+                window.overview_plot_button.setVisible(True)
+                window.add_overview_plot_window()
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"

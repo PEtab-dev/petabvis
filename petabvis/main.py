@@ -13,7 +13,7 @@ from . import utils
 from . import vis_spec_plot
 from . import window_functionality
 from .bar_plot import BarPlot
-from .options_window import OptionMenu, CorrelationOptionMenu
+from .options_window import OptionMenu, CorrelationOptionMenu, OverviewPlotWindow
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -60,7 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.wid = QtWidgets.QSplitter()
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
         self.plot2_widget = pg.GraphicsLayoutWidget(show=False)
-        self.overview_plot_widget = pg.GraphicsLayoutWidget(show=False)
+        self.overview_plot_window = None
         self.wid.addWidget(self.plot1_widget)
         # plot2_widget will be added to the QSplitter when
         # a simulation file is opened
@@ -74,6 +74,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.options_window = OptionMenu(vis_spec_plots=self.vis_spec_plots)
         self.correlation_options_window = CorrelationOptionMenu(vis_spec_plots=self.vis_spec_plots)
         self.correlation_option_button = None
+        self.overview_plot_button = None
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
         self.wid.addWidget(self.tree_view)
@@ -279,6 +280,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.plot1_widget.clear()
         self.plot2_widget.clear()
+
+    def add_overview_plot_window(self):
+        self.overview_plot_window = OverviewPlotWindow(self.exp_data, self.simulation_df)
 
 
 def main():

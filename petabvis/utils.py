@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import petab.C as ptc
+import scipy
 from PySide2 import QtCore
 from PySide2.QtWidgets import QComboBox
 import matplotlib.pyplot as plt
@@ -402,6 +403,14 @@ def get_signals(source):
                 print(name)
         except Exception:
             print("skipped")
+
+
+def r_squared(measurements, simulations):
+    if not measurements or not simulations:
+        return 0
+    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
+        measurements, simulations)
+    return r_value ** 2
 
 
 def generate_color_map(cm_name):

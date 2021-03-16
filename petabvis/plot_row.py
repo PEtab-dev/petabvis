@@ -79,7 +79,6 @@ class PlotRow(row_class.RowClass):
 
         return simulation_condition_id
 
-
     def get_y_data(self):
         """
         Return the mean of the y-values that should be plotted if
@@ -88,7 +87,6 @@ class PlotRow(row_class.RowClass):
         min and max values of the replicates).
         Otherwise, if the replicateId is provided,
         return the y-values of all replicates.
-
 
         Returns:
             y_data: The y-values as numpy array

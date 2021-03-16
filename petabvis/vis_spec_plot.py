@@ -84,7 +84,6 @@ class VisSpecPlot(plot_class.PlotClass):
             # add the correlation plot (only if a simulation file is provided)
             # inherited method from PlotClass
             self.generate_correlation_plot(self.overview_df)
-            self.generate_overview_plot(self.overview_df)
 
     def generate_overview_df(self):
         """

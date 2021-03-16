@@ -58,12 +58,8 @@ class PlotClass:
         self.correlation_plot = pg.PlotItem(title="Correlation")
         self.datasetId_to_correlation_points = {}
         self.r_squared_text = pg.TextItem()
-        self.overview_plot = pg.PlotItem(title="Overview")
         self.plot.addLegend()
 
-    def generate_overview_plot(self, overview_df):
-        self.overview_plot.setLabel("left", "r-squared")
-        self.overview_plot.setLabel("bottom", "ObservableId")
 
     def generate_correlation_plot(self, overview_df, color_by="dataset_id"):
         """
