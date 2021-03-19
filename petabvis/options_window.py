@@ -162,6 +162,8 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
         self.resize(150, 80)
         self.setWindowTitle("Correlation Options")
         self.plots = vis_spec_plots
+        layout = QVBoxLayout()
+
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.cbox.addItems(["DatasetId", "ObservableId", "SimulationConditionId"])
@@ -169,7 +171,6 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
                              "SimulationConditionId": "simulation_condition_id"}
         self.description = QLabel("Color points by:")
 
-        layout = QVBoxLayout()
         layout.addWidget(self.description)
         layout.addWidget(self.cbox)
         widget = QWidget()
@@ -193,51 +194,88 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.simulation_df = simulation_df
         self.resize(1000, 500)
         self.setWindowTitle("Overview plot")
-        self.description = QLabel("Observable Ids:")
+        self.plot_by_label = QLabel("Plot overview by:")
+        self.plot_by = "ObservableId"
+        self.ids_label = QLabel("ObservableId:")
 
-        self.plot_widget = pg.GraphicsLayoutWidget(show=True)
+        # plot
         self.overview_plot = pg.PlotItem(title="Overview")
+        self.plot_widget = pg.GraphicsLayoutWidget(show=True)
         self.overview_plot.setLabel("left", "r-squared")
         self.overview_plot.setLabel("bottom", "SimulationConditionId")
         self.overview_plot.setYRange(0, 1)
         self.plot_widget.addItem(self.overview_plot)
         self.bar_width = 0.5
 
-        self.cbox = QComboBox()  # dropdown menu to select plots
-        self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
-        observable_ids = measurement_df[ptc.OBSERVABLE_ID].unique()
-        self.cbox.addItems(observable_ids)
+        # box to select observable or condition id
+        self.plot_by_box = QComboBox()
+        self.plot_by_box.addItems(["ObservableId", "SimulationConditionId"])
+        self.plot_by_box.currentIndexChanged.connect(lambda x: self.plot_by_changed(x))
 
+        # box to select a specific id
+        self.id_list = QComboBox()  # dropdown menu to select plots
+        self.id_list.currentIndexChanged.connect(lambda x: self.index_changed(x))
+        observable_ids = measurement_df[ptc.OBSERVABLE_ID].unique()
+        self.id_list.addItems(observable_ids)
+
+        # add everything to the layout
         layout = QVBoxLayout()
-        layout.addWidget(self.description)
-        layout.addWidget(self.cbox)
+        layout.addWidget(self.plot_by_label)
+        layout.addWidget(self.plot_by_box)
+        layout.addWidget(self.ids_label)
+        layout.addWidget(self.id_list)
         layout.addWidget(self.plot_widget)
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
+    def plot_by_changed(self, i: int):
+        """
+        Choose whether the overview plot should be
+        plotted by observable or condition id.
+        """
+        plot_by = self.plot_by_box.itemText(i)
+        self.plot_by = plot_by
+        self.ids_label.setText(plot_by + ":")
+        self.id_list.clear()
+        if plot_by == "ObservableId":
+            observable_ids = self.measurement_df[ptc.OBSERVABLE_ID].unique()
+            self.id_list.addItems(observable_ids)
+        if plot_by == "SimulationConditionId":
+            condition_ids = self.measurement_df[ptc.SIMULATION_CONDITION_ID].unique()
+            self.id_list.addItems(condition_ids)
+
     def index_changed(self, i: int):
         """
         Display the overview plot based on the
-        selected observableId.
+        selected id.
         """
         self.overview_plot.clear()
-        observable_id = self.cbox.itemText(i)
-        self.generate_overview_plot(observable_id)
+        id = self.id_list.itemText(i)
+        self.generate_overview_plot(id)
 
-    def generate_overview_plot(self, observable_id):
+    def generate_overview_plot(self, plot_by_id):
         """
-        Generate an overview plot for an observableId.
+        Generate an overview plot for an observable or condition id.
         Display a bar with the r-squared value for each
-        simulationConditionId.
+        simulationConditionId if plot_by_id is an observable id.
+        Otherwise, display a bar for each observable id.
         """
         df = self.merge_measurement_and_simulation_df()
-        df = df[df[ptc.OBSERVABLE_ID] == observable_id]
-
-        condition_ids = df[ptc.SIMULATION_CONDITION_ID].unique()
+        if self.plot_by == "ObservableId":
+            df = df[df[ptc.OBSERVABLE_ID] == plot_by_id]
+            ids = df[ptc.SIMULATION_CONDITION_ID].unique()
+            self.overview_plot.setLabel("bottom", "SimulationConditionId")
+        else:  # for SimulationConditionIds
+            df = df[df[ptc.SIMULATION_CONDITION_ID] == plot_by_id]
+            ids = df[ptc.OBSERVABLE_ID].unique()
+            self.overview_plot.setLabel("bottom", "ObservableId")
         r_squared_values = []
-        for id in condition_ids:
-            df_id = df[df[ptc.SIMULATION_CONDITION_ID] == id]
+        for id in ids:
+            if self.plot_by == "ObservableId":
+                df_id = df[df[ptc.SIMULATION_CONDITION_ID] == id]
+            else:
+                df_id = df[df[ptc.OBSERVABLE_ID] == id]
             measurements = df_id[ptc.MEASUREMENT].tolist()
             simulations = df_id[ptc.SIMULATION].tolist()
             r_squared_value = utils.r_squared(measurements, simulations)
@@ -249,7 +287,7 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.overview_plot.addItem(bar_item)
         # set tick names
         xax = self.overview_plot.getAxis("bottom")
-        ticks = [list(zip(list(range(len(df.index))), condition_ids))]
+        ticks = [list(zip(list(range(len(df.index))), ids))]
         xax.setTicks(ticks)
 
     def merge_measurement_and_simulation_df(self):
