@@ -50,6 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pg.setConfigOption("antialias", True)
         self.resize(1000, 600)
         self.setWindowTitle("petabvis")
+        self.yaml_filename = ""
         self.yaml_dict = None
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
@@ -71,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.warning_counter = {}
         # The new window that pops up to display a table
         self.popup_windows = []
-        self.options_window = OptionMenu(vis_spec_plots=self.vis_spec_plots)
+        self.options_window = OptionMenu(window=self, vis_spec_plots=self.vis_spec_plots)
         self.correlation_options_window = CorrelationOptionMenu(vis_spec_plots=self.vis_spec_plots)
         self.correlation_option_button = None
         self.overview_plot_button = None

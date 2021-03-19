@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 from pathlib import Path
 
 import pandas as pd
@@ -30,16 +29,19 @@ class TableWidget(QWidget):
         # Set the Model
         if add_checkbox_col:
             self.model = table_models.VisualizationTableModel(data, window)
-        elif window.exp_data.equals(data):  # for any other df
+        elif window.exp_data.equals(data) or window.simulation_df.equals(data):
             self.model = table_models.MeasurementTableModel(data, window)
 
             self.button_layout = QHBoxLayout()  # add sort button
             self.sort_button = QPushButton("Sort by displayed lines")
             self.sort_button.clicked.connect(self.sort_by_highlight)
+            self.restore_order_button = QPushButton("Restore initial order")
+            self.restore_order_button.clicked.connect(self.restore_order)
             self.button_layout.addWidget(self.sort_button)
+            self.button_layout.addWidget(self.restore_order_button)
             self.button_layout.addStretch(1)
             self.main_layout.addLayout(self.button_layout)
-        else:
+        else:  # for any other df
             self.model = table_models.PetabTableModel(data)
 
         # Creating a QTableView
@@ -73,27 +75,25 @@ class TableWidget(QWidget):
         self.filter_proxy.sort(1, Qt.AscendingOrder)
         self.filter_proxy.setSortRole(Qt.DisplayRole)
 
+    def restore_order(self):
+        self.filter_proxy.setSortRole(Qt.InitialSortOrderRole)
+        self.filter_proxy.sort(-1, Qt.AscendingOrder)
+        self.filter_proxy.setSortRole(Qt.DisplayRole)
+
     def closeEvent(self, event):
         if self in self.window.popup_windows:
             self.window.popup_windows.remove(self)
         super().closeEvent(event)
 
-class CustomQSortFilterProxyModel(QSortFilterProxyModel):
-    def __init__(self):
-        QSortFilterProxyModel.__init__(self)
 
-    def sort_by_highlight(self):
-        print("HI")
-
-
-
-def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
+def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame, window_title):
     """
     Create a popup window that displays the dataframe.
 
     Arguments:
         window: The main window to which the TableWidget gets added.
-        df: The dataframe to display
+        df: The dataframe to display.
+        window_title: The title of the popup window.
     """
     add_checkbox_col = False
     if window.visualization_df is not None\
@@ -103,6 +103,7 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
                                add_checkbox_col=add_checkbox_col,
                                window=window)
     popup_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
+    popup_window.setWindowTitle(window_title)
     popup_window.show()
     window.popup_windows.append(popup_window)
 
@@ -154,12 +155,13 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
                 df = petab.get_observable_df(folder_path + "/" + filename)
                 if is_first_df:
                     window.observable_df = df
-            file.setData(df, role=Qt.UserRole+1)
+            file.setData({"df": df, "name": filename}, role=Qt.UserRole+1)
             branch.appendRow(file)
             is_first_df = False
         root_node.appendRow(branch)
 
     if window.visualization_df is None:
+        # generate a default vis spec when none is provided
         branch = QtGui.QStandardItem("Visualization Tables")
         branch.setEditable(False)
         df = create_or_update_vis_spec(exp_data=window.exp_data,
@@ -168,14 +170,15 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         window.visualization_df = df
         df.insert(0, "Displayed", 1)  # needed for the checkbox column
         file = QtGui.QStandardItem(filename)
-        file.setData(df, role=Qt.UserRole+1)
+        file.setData({"df": df, "name": filename}, role=Qt.UserRole+1)
         branch.appendRow(file)
         root_node.appendRow(branch)
 
     if window.simulation_df is not None:
         branch = QtGui.QStandardItem("Simulation Table")
         simulation_file = QtGui.QStandardItem("simulation file")
-        simulation_file.setData(window.simulation_df, role=Qt.UserRole + 1)
+        df = window.simulation_df
+        simulation_file.setData({"df": df, "name": "simulation file"}, role=Qt.UserRole + 1)
         branch.appendRow(simulation_file)
         root_node.appendRow(branch)
 
@@ -218,7 +221,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    df = model.data(index, role=Qt.UserRole + 1)
+    df = model.data(index, role=Qt.UserRole + 1)["df"]
     parent = index.parent()
     parent_name = model.data(parent, QtCore.Qt.DisplayRole)
     # Only replot when a new dataframe is selected
@@ -262,9 +265,11 @@ def display_table_on_doubleclick(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    df = model.data(index, role=Qt.UserRole + 1)
+    data = model.data(index, role=Qt.UserRole + 1)
+    df = data["df"]
+    name = data["name"]
     if df is not None:
-        pop_up_table_view(window, df)
+        pop_up_table_view(window, df, name)
 
 
 def add_file_selector(window: QtWidgets.QMainWindow):
@@ -339,6 +344,7 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"
         settings.setValue("last_dir", last_dir)
+        window.yaml_filename = file_name
 
         window.warn_msg.setText("")
         window.warnings.clear()

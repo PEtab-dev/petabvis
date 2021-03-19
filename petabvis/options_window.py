@@ -1,5 +1,9 @@
-from PySide2 import QtGui
-from PySide2.QtWidgets import QVBoxLayout, QWidget, QCheckBox, QComboBox, QLineEdit, QLabel
+import os
+from pathlib import Path
+
+from PySide2 import QtGui, QtCore
+from PySide2.QtWidgets import (QVBoxLayout, QWidget, QCheckBox,
+                               QComboBox, QLabel, QPushButton)
 from PySide2.QtCore import Qt
 import petab.C as ptc
 import pandas as pd
@@ -10,13 +14,15 @@ from . import utils
 
 
 class OptionMenu(QtGui.QMainWindow):
-    def __init__(self, vis_spec_plots):
+    def __init__(self, window, vis_spec_plots):
         super(OptionMenu, self).__init__()
         self.resize(250, 150)
         self.setWindowTitle("Options")
         self.plots = vis_spec_plots
-
+        self.main_window = window
         layout = QVBoxLayout()
+
+        # add checkboxes
         self.line_box = QCheckBox("Lines", self)
         self.point_box = QCheckBox("Points", self)
         self.error_box = QCheckBox("Error bars", self)
@@ -28,6 +34,7 @@ class OptionMenu(QtGui.QMainWindow):
         layout.addWidget(self.point_box)
         layout.addWidget(self.error_box)
 
+        # add colormap options
         self.color_map_text = QLabel("Choose colormap:")
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
@@ -35,9 +42,56 @@ class OptionMenu(QtGui.QMainWindow):
         layout.addWidget(self.color_map_text)
         layout.addWidget(self.cbox)
 
+        # add vis spec save option
+        self.save_text = QLabel("Save visualization table:")
+        self.save_to_yaml_box = QCheckBox("Add vis spec to YAML file", self)
+        self.save_button = QPushButton("Save visualization table")
+        layout.addWidget(self.save_text)
+        layout.addWidget(self.save_to_yaml_box)
+        layout.addWidget(self.save_button)
+        self.save_button.clicked.connect(self.save_vis_spec)
+
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+    def save_vis_spec(self):
+        """
+        Open a file dialog to specify a directory and
+        filename to save the visualizaton df.
+        """
+        vis_spec = self.main_window.visualization_df
+        vis_spec = vis_spec.drop("Displayed", 1)
+        home_dir = str(Path.home())
+        # start file selector on the last selected directory
+        settings = QtCore.QSettings("petab", "petabvis")
+        if settings.value("last_dir") is not None:
+            home_dir = settings.value("last_dir")
+        filename = QtGui.QFileDialog.getSaveFileName(self, "Save vis spec", home_dir, "*.tsv")[0]
+        if filename != "":  # if a file was selected
+            vis_spec.to_csv(filename, sep="\t", index=False)
+            self.main_window.add_warning("Saved vis spec")
+            if self.save_to_yaml_box.isChecked():
+                self.add_vis_spec_to_yaml(filename)
+
+    def add_vis_spec_to_yaml(self, filename):
+        """
+        Add the basename of the filename to the
+        YAML file.
+        """
+        with open(self.main_window.yaml_filename, "r") as yaml_file:
+            basename = os.path.basename(filename)
+            data = yaml_file.readlines()
+            if "  visualization_files:\n" not in data:
+                data.append("  visualization_files:\n")
+                data.append("  - " + basename + "\n")
+            else:
+                for i, line in enumerate(data):
+                    if line == "  visualization_files:\n":
+                        data.insert(i + 1, "  - " + basename + "\n")
+                        break
+            with open(self.main_window.yaml_filename, "w") as new_yaml_file:
+                new_yaml_file.writelines(data)
 
     def index_changed(self, i: int):
         """
@@ -145,6 +199,7 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.overview_plot = pg.PlotItem(title="Overview")
         self.overview_plot.setLabel("left", "r-squared")
         self.overview_plot.setLabel("bottom", "SimulationConditionId")
+        self.overview_plot.setYRange(0, 1)
         self.plot_widget.addItem(self.overview_plot)
         self.bar_width = 0.5
 
@@ -195,7 +250,6 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         # set tick names
         xax = self.overview_plot.getAxis("bottom")
         ticks = [list(zip(list(range(len(df.index))), condition_ids))]
-        print(ticks)
         xax.setTicks(ticks)
 
     def merge_measurement_and_simulation_df(self):
