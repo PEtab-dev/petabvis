@@ -31,9 +31,10 @@ class VisSpecPlot(plot_class.PlotClass):
                  visualization_df: pd.DataFrame = None,
                  simulation_df: pd.DataFrame = None,
                  condition_df: pd.DataFrame = None,
-                 plot_id: str = ""):
+                 plot_id: str = "",
+                 color_map: pg.ColorMap = None):
         super().__init__(measurement_df, visualization_df, simulation_df,
-                         condition_df, plot_id)
+                         condition_df, plot_id, color_map)
 
         # reduce the visualization_df to the relevant rows (by plotId)
         if self.visualization_df is not None:
@@ -359,6 +360,10 @@ class VisSpecPlot(plot_class.PlotClass):
                     self.simulation_df[ptc.SIMULATION] = y_simulation + offset
 
     def set_color_map(self, color_map):
+        """
+        Set a new color map and change the color
+        of the lines accordingly.
+        """
         super().set_color_map(color_map)
         color_lookup = self.color_map.getLookupTable(
             nPts=len(self.dotted_lines))

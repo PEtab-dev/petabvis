@@ -54,7 +54,7 @@ class BarRow(row_class.RowClass):
         """
         Return the standard deviation of the y-values that should be plotted.
         Returns:
-            sd: The standard deviation
+            sd: The standard deviation.
         """
         variable = self.get_y_variable_name()
         y_values = self.line_data[variable]
@@ -63,6 +63,11 @@ class BarRow(row_class.RowClass):
         return sd
 
     def get_replicate_sd(self):
+        """
+        Return the standard deviation for each replicate.
+        Returns:
+             sds: A list of standard deviations.
+        """
         sds = []
         variable = self.get_y_variable_name()
         for replicate in self.replicates:

@@ -14,6 +14,11 @@ from . import utils
 
 
 class OptionMenu(QtGui.QMainWindow):
+    """
+    Option menu for selecting/deselecting lines,
+    points and error bars, choosing color maps
+    and saving the vis spec.
+    """
     def __init__(self, window, vis_spec_plots):
         super(OptionMenu, self).__init__()
         self.resize(250, 150)
@@ -104,6 +109,7 @@ class OptionMenu(QtGui.QMainWindow):
         """
         cm_name = self.cbox.itemText(i)
         color_map = utils.generate_color_map(cm_name)
+        self.main_window.color_map = color_map
         for plot in self.plots:
             if isinstance(plot, VisSpecPlot):
                 plot.set_color_map(color_map)
@@ -160,7 +166,9 @@ class OptionMenu(QtGui.QMainWindow):
 
 
 class CorrelationOptionMenu(QtGui.QMainWindow):
-
+    """
+    Option menu for the correlation plot.
+    """
     def __init__(self, vis_spec_plots):
         super(CorrelationOptionMenu, self).__init__()
         self.resize(150, 80)
@@ -195,6 +203,9 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
 
 
 class OverviewPlotWindow(QtGui.QMainWindow):
+    """
+    Window for plotting and displaying an overview plot.
+    """
     def __init__(self, measurement_df, simulation_df):
         super(OverviewPlotWindow, self).__init__()
         self.measurement_df = measurement_df

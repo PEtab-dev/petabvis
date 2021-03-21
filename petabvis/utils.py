@@ -406,6 +406,10 @@ def get_signals(source):
 
 
 def r_squared(measurements, simulations):
+    """
+    Calculate the r-squared value between
+    the measurement and simulation values.
+    """
     if not measurements or not simulations:
         return 0
     slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
@@ -413,7 +417,14 @@ def r_squared(measurements, simulations):
     return r_value ** 2
 
 
-def generate_color_map(cm_name):
+def generate_color_map(cm_name: str):
+    """
+    Create a pyqtgraph Colormap corresponding
+    to the matplotlib name of a colormap.
+
+    Arguments:
+        cm_name: Name of a matplotlib colormap.
+    """
     plt_map = plt.get_cmap(cm_name)
     colors = plt_map.colors.copy()
     for i, color in enumerate(colors):

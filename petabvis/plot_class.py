@@ -35,7 +35,8 @@ class PlotClass:
                  visualization_df: pd.DataFrame = None,
                  simulation_df: pd.DataFrame = None,
                  condition_df: pd.DataFrame = None,
-                 plot_id: str = ""):
+                 plot_id: str = "",
+                 color_map: pg.ColorMap = None):
 
         self.measurement_df = measurement_df
         self.visualization_df = visualization_df
@@ -45,7 +46,9 @@ class PlotClass:
             columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var",
                      "observable_id", "simulation_condition_id"])
         self.plot_id = plot_id
-        self.color_map = utils.generate_color_map("viridis")
+        self.color_map = color_map
+        if color_map is None:
+            self.color_map = utils.generate_color_map("viridis")
         self.error_bars = []
         self.disabled_rows = set()  # set of plot_ids that are disabled
         self.warnings = ""
@@ -250,7 +253,11 @@ class PlotClass:
         self.correlation_plot.addItem(points)
         self.update_r_squared_text()
 
-    def set_color_map(self, color_map):
+    def set_color_map(self, color_map: pg.ColorMap):
+        """
+        Set the colormap attribute and color the points
+        in the correlation plot accordingly.
+        """
         self.color_map = color_map
         items = self.correlation_plot.listDataItems()
         color_lookup = self.color_map.getLookupTable(nPts=len(items))

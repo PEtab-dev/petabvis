@@ -58,6 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.condition_df = condition_df
         self.observable_df = observable_df
         self.exp_data = exp_data
+        self.color_map = None
         self.vis_spec_plots = []
         self.wid = QtWidgets.QSplitter()
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
@@ -248,7 +249,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 vis_plot = vis_spec_plot.VisSpecPlot(
                     measurement_df=data, visualization_df=None,
                     condition_df=self.condition_df,
-                    simulation_df=simulation_df, plot_id=observable_id)
+                    simulation_df=simulation_df, plot_id=observable_id,
+                    color_map=self.color_map)
                 self.vis_spec_plots.append(vis_plot)
                 if vis_plot.warnings:
                     self.add_warning(vis_plot.warnings)
@@ -272,7 +274,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     measurement_df=self.exp_data,
                     visualization_df=vis_df,
                     condition_df=self.condition_df,
-                    simulation_df=self.simulation_df, plot_id=plot_id)
+                    simulation_df=self.simulation_df, plot_id=plot_id,
+                    color_map=self.color_map)
                 self.vis_spec_plots.append(vis_plot)
                 if vis_plot.warnings:
                     self.add_warning(vis_plot.warnings)
