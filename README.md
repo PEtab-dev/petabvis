@@ -3,9 +3,7 @@
 An interactive visualization tool for
 [PEtab](https://github.com/PEtab-dev/PEtab) measurement and simulation files.
 
-< img src="images/screenshot.JPG" width="100" >
-
-![](images/screenshot.JPG)
+<img src="images/screenshot.JPG" width="700">
 
 
 ## Installation
