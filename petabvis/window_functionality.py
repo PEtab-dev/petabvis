@@ -86,7 +86,8 @@ class TableWidget(QWidget):
         super().closeEvent(event)
 
 
-def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame, window_title):
+def pop_up_table_view(window: QtWidgets.QMainWindow,
+                      df: pd.DataFrame, window_title):
     """
     Create a popup window that displays the dataframe.
 
@@ -178,7 +179,9 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         branch = QtGui.QStandardItem("Simulation Table")
         simulation_file = QtGui.QStandardItem("simulation file")
         df = window.simulation_df
-        simulation_file.setData({"df": df, "name": "simulation file"}, role=Qt.UserRole + 1)
+        simulation_file.setData({"df": df,
+                                 "name": "simulation file"},
+                                role=Qt.UserRole + 1)
         branch.appendRow(simulation_file)
         root_node.appendRow(branch)
 
@@ -300,7 +303,8 @@ def add_option_menu(window: QtWidgets.QMainWindow):
     open_options = QAction("Options", window)
     open_options.triggered.connect(lambda x: show_option_menu(window))
     open_correlation_options = QAction("Correlation Options", window)
-    open_correlation_options.triggered.connect(lambda x: show_correlation_options(window))
+    open_correlation_options.triggered.connect(
+        lambda x: show_correlation_options(window))
     open_correlation_options.setVisible(False)
     window.correlation_option_button = open_correlation_options
     open_overview_plot = QAction("Overview Plot", window)
@@ -310,18 +314,28 @@ def add_option_menu(window: QtWidgets.QMainWindow):
 
     menubar = window.menuBar()
     options_menu = menubar.addMenu("&Options")
-    options_menu.addActions([open_options, open_correlation_options, open_overview_plot])
+    options_menu.addActions([open_options, open_correlation_options,
+                             open_overview_plot])
 
 
 def show_option_menu(window: QtWidgets.QMainWindow):
+    """
+    Open the option window.
+    """
     window.options_window.show()
 
 
 def show_correlation_options(window: QtWidgets.QMainWindow):
+    """
+    Open the correlation-option window.
+    """
     window.correlation_options_window.show()
 
 
 def show_overview_plot(window: QtWidgets.QMainWindow):
+    """
+    Open the overview plot window.
+    """
     overview_window = window.overview_plot_window
     overview_window.show()
 

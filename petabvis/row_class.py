@@ -84,7 +84,6 @@ class RowClass:
             self.line_data)
         self.replicates = utils.split_replicates(self.line_data)
 
-
     def get_data_df(self):
         """
         Represent the data of this row as a dataframe.
@@ -105,7 +104,9 @@ class RowClass:
             return df
         else:
             raise Exception(
-                f"Error: The number of x and y values must be equal. Number of x values: {len(self.x_data)}. Number of y values: {len(self.y_data)}")
+                f"Error: The number of x and y values must be equal. "
+                f"Number of x values: {len(self.x_data)}."
+                f" Number of y values: {len(self.y_data)}")
 
     def get_provided_noise(self):
         """

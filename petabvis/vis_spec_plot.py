@@ -178,7 +178,6 @@ class VisSpecPlot(plot_class.PlotClass):
         num_lines = len(self.dotted_lines)
         color_lookup = self.color_map.getLookupTable(nPts=num_lines)
         for i, dot_line in enumerate(self.dotted_lines):
-            #color = pg.intColor(i, hues=num_lines)
             color = color_lookup[i]
             dot_line.add_to_plot(self.plot, color,
                                  add_error_bars=add_error_bars)
@@ -188,9 +187,7 @@ class VisSpecPlot(plot_class.PlotClass):
                                  add_error_bars=add_error_bars)
 
         self.set_scales()
-
         return self.plot
-
 
     def plot_row_to_dotted_line(self, p_row: plot_row.PlotRow):
         """
@@ -363,7 +360,8 @@ class VisSpecPlot(plot_class.PlotClass):
 
     def set_color_map(self, color_map):
         super().set_color_map(color_map)
-        color_lookup = self.color_map.getLookupTable(nPts=len(self.dotted_lines))
+        color_lookup = self.color_map.getLookupTable(
+            nPts=len(self.dotted_lines))
         for i in range(len(self.dotted_lines)):
             self.dotted_lines[i].set_color(color_lookup[i])
             if self.dotted_simulation_lines:

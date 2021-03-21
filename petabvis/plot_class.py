@@ -60,7 +60,6 @@ class PlotClass:
         self.r_squared_text = pg.TextItem()
         self.plot.addLegend()
 
-
     def generate_correlation_plot(self, overview_df, color_by="dataset_id"):
         """
         Generate the scatter plot between the
@@ -73,7 +72,8 @@ class PlotClass:
         """
         self.correlation_plot.clear()
         if not overview_df.empty:
-            overview_df = overview_df[~overview_df["dataset_id"].isin(self.disabled_rows)]
+            overview_df = overview_df[~overview_df["dataset_id"].
+                                      isin(self.disabled_rows)]
             measurements = overview_df[~overview_df["is_simulation"]][
                 "y"].tolist()
             simulations = overview_df[overview_df["is_simulation"]][
@@ -109,7 +109,8 @@ class PlotClass:
         Recalculate the r-squared value based on self.overview_df
         and self.disabled_rows and change the r-squared text.
         """
-        overview_df = self.overview_df[~self.overview_df["dataset_id"].isin(self.disabled_rows)]
+        overview_df = self.overview_df[~self.overview_df["dataset_id"].
+                                       isin(self.disabled_rows)]
         measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
         simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
         r_squared = self.get_r_squared(measurements, simulations)
@@ -127,24 +128,27 @@ class PlotClass:
                       (dataset_id, observable_id or simulationConditionId)
         """
         group_ids = overview_df[grouping].unique()
-        overview_df = overview_df[~overview_df["dataset_id"].isin(self.disabled_rows)]
+        overview_df = overview_df[~overview_df["dataset_id"].
+                                  isin(self.disabled_rows)]
         color_lookup = self.color_map.getLookupTable(nPts=len(group_ids))
         for i, group_id in enumerate(group_ids):
             if group_id in self.disabled_rows:
                 continue
             # data
             reduced_df = overview_df[overview_df[grouping] == group_id]
-            measurements = reduced_df[~reduced_df["is_simulation"]]["y"].tolist()
+            measurements = reduced_df[~reduced_df["is_simulation"]]["y"]
+            measurements = measurements.tolist()
             simulations = reduced_df[reduced_df["is_simulation"]]["y"].tolist()
             names = reduced_df[~reduced_df["is_simulation"]]["name"].tolist()
-            simulation_condition_ids = reduced_df[~reduced_df["is_simulation"]]\
-                ["simulation_condition_id"].tolist()
-            observable_ids = reduced_df[reduced_df["is_simulation"]]\
-                ["observable_id"].tolist()
+            simulation_condition_ids = reduced_df[~reduced_df[
+                "is_simulation"]]["simulation_condition_id"].tolist()
+            observable_ids = reduced_df[reduced_df[
+                "is_simulation"]]["observable_id"].tolist()
             point_descriptions = [
                 (names[i] + "\nmeasurement: " + str(measurements[i]) +
-                 "\nsimulation: " + str(simulations[i]) + "\nsimulationConditionId: "
-                 + str(simulation_condition_ids[i]) + "\nobservableId: " +
+                 "\nsimulation: " + str(simulations[i]) +
+                 "\nsimulationConditionId: " +
+                 str(simulation_condition_ids[i]) + "\nobservableId: " +
                  str(observable_ids[i]))
                 for i in range(len(measurements))]
 
@@ -175,7 +179,8 @@ class PlotClass:
         Display a text with point information on-click.
         """
         last_clicked = None
-        info_text = pg.TextItem("", anchor=(0, 0), color="k", fill="w", border="k")
+        info_text = pg.TextItem("", anchor=(0, 0), color="k",
+                                fill="w", border="k")
 
         def clicked(plot, points):
             nonlocal last_clicked

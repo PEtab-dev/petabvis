@@ -38,7 +38,8 @@ class OptionMenu(QtGui.QMainWindow):
         self.color_map_text = QLabel("Choose colormap:")
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
-        self.cbox.addItems(["viridis", "plasma", "inferno", "magma", "cividis"])
+        self.cbox.addItems(["viridis", "plasma",
+                            "inferno", "magma", "cividis"])
         layout.addWidget(self.color_map_text)
         layout.addWidget(self.cbox)
 
@@ -67,7 +68,10 @@ class OptionMenu(QtGui.QMainWindow):
         settings = QtCore.QSettings("petab", "petabvis")
         if settings.value("last_dir") is not None:
             home_dir = settings.value("last_dir")
-        filename = QtGui.QFileDialog.getSaveFileName(self, "Save vis spec", home_dir, "*.tsv")[0]
+        filename = QtGui.QFileDialog.getSaveFileName(self,
+                                                     "Save vis spec",
+                                                     home_dir,
+                                                     "*.tsv")[0]
         if filename != "":  # if a file was selected
             vis_spec.to_csv(filename, sep="\t", index=False)
             self.main_window.add_warning("Saved vis spec")
@@ -166,9 +170,12 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
 
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
-        self.cbox.addItems(["DatasetId", "ObservableId", "SimulationConditionId"])
-        self.names_lookup = {"DatasetId": "dataset_id", "ObservableId": "observable_id",
-                             "SimulationConditionId": "simulation_condition_id"}
+        self.cbox.addItems(["DatasetId", "ObservableId",
+                            "SimulationConditionId"])
+        self.names_lookup = {"DatasetId": "dataset_id",
+                             "ObservableId": "observable_id",
+                             "SimulationConditionId":
+                                 "simulation_condition_id"}
         self.description = QLabel("Color points by:")
 
         layout.addWidget(self.description)
@@ -210,11 +217,13 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         # box to select observable or condition id
         self.plot_by_box = QComboBox()
         self.plot_by_box.addItems(["ObservableId", "SimulationConditionId"])
-        self.plot_by_box.currentIndexChanged.connect(lambda x: self.plot_by_changed(x))
+        self.plot_by_box.currentIndexChanged.connect(lambda x:
+                                                     self.plot_by_changed(x))
 
         # box to select a specific id
         self.id_list = QComboBox()  # dropdown menu to select plots
-        self.id_list.currentIndexChanged.connect(lambda x: self.index_changed(x))
+        self.id_list.currentIndexChanged.connect(lambda x:
+                                                 self.index_changed(x))
         observable_ids = measurement_df[ptc.OBSERVABLE_ID].unique()
         self.id_list.addItems(observable_ids)
 
@@ -242,7 +251,8 @@ class OverviewPlotWindow(QtGui.QMainWindow):
             observable_ids = self.measurement_df[ptc.OBSERVABLE_ID].unique()
             self.id_list.addItems(observable_ids)
         if plot_by == "SimulationConditionId":
-            condition_ids = self.measurement_df[ptc.SIMULATION_CONDITION_ID].unique()
+            condition_ids = self.measurement_df[ptc.SIMULATION_CONDITION_ID]\
+                .unique()
             self.id_list.addItems(condition_ids)
 
     def index_changed(self, i: int):

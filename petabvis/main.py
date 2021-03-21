@@ -13,7 +13,8 @@ from . import utils
 from . import vis_spec_plot
 from . import window_functionality
 from .bar_plot import BarPlot
-from .options_window import OptionMenu, CorrelationOptionMenu, OverviewPlotWindow
+from .options_window import (OptionMenu, CorrelationOptionMenu,
+                             OverviewPlotWindow)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -72,8 +73,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.warning_counter = {}
         # The new window that pops up to display a table
         self.popup_windows = []
-        self.options_window = OptionMenu(window=self, vis_spec_plots=self.vis_spec_plots)
-        self.correlation_options_window = CorrelationOptionMenu(vis_spec_plots=self.vis_spec_plots)
+        self.options_window = OptionMenu(window=self,
+                                         vis_spec_plots=self.vis_spec_plots)
+        self.correlation_options_window = \
+            CorrelationOptionMenu(vis_spec_plots=self.vis_spec_plots)
         self.correlation_option_button = None
         self.overview_plot_button = None
         self.tree_view = QtGui.QTreeView(self)
@@ -283,7 +286,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plot2_widget.clear()
 
     def add_overview_plot_window(self):
-        self.overview_plot_window = OverviewPlotWindow(self.exp_data, self.simulation_df)
+        self.overview_plot_window = OverviewPlotWindow(self.exp_data,
+                                                       self.simulation_df)
 
 
 def main():

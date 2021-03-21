@@ -106,7 +106,9 @@ class BarPlot(plot_class.PlotClass):
         tick_pos = list(range(len(df.index)))
         for i_name, (name, name_df) in enumerate(df.groupby('name')):
             for i_replicate, i_row in enumerate(name_df.index):
-                x[i_row] = i_name - np.linspace(start=0, stop=self.bar_width, num=len(name_df.index))[i_replicate]
+                steps = np.linspace(start=0, stop=self.bar_width,
+                                    num=len(name_df.index))
+                x[i_row] = i_name - steps[i_replicate]
                 tick_pos[i_row] = i_name - self.bar_width / 2
 
         # Adjust x and tick_pos of the bars when simulation bars are plotted
@@ -115,13 +117,15 @@ class BarPlot(plot_class.PlotClass):
             for i_name, (name, name_df) in enumerate(df.groupby('name')):
                 num_replicates = len(name_df.index) / 2  # /2 due to simulation
                 shift_start = self.bar_width / (2 * num_replicates)
-                for i_replicate, i_row in enumerate(name_df[name_df["is_simulation"]].index):
+                indices = name_df[name_df["is_simulation"]].index
+                for i_replicate, i_row in enumerate(indices):
                     tick_pos[i_row] = i_name
                     shift = np.linspace(start=shift_start,
                                         stop=self.bar_width + shift_start,
                                         num=int(num_replicates))[i_replicate]
                     x[i_row] = i_name + shift
-                for i_replicate, i_row in enumerate(name_df[~name_df["is_simulation"]].index):
+                indices = name_df[~name_df["is_simulation"]].index
+                for i_replicate, i_row in enumerate(indices):
                     tick_pos[i_row] = i_name
                     shift = np.linspace(start=shift_start,
                                         stop=self.bar_width + shift_start,

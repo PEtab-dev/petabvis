@@ -7,6 +7,7 @@ from PySide2 import QtCore
 
 from . import plot_row
 
+
 class DottedLine:
     """
     Class for plotting lines with points and error bars.
@@ -89,8 +90,7 @@ class DottedLine:
                                                       name=legend_name,
                                                       symbolPen=pg.mkPen("k"),
                                                       symbol=symbol,
-                                                      symbolSize=7)
-                                                      )
+                                                      symbolSize=7))
                     first_replicate = False
                 else:
                     # if all would replicate have a legend_name,
