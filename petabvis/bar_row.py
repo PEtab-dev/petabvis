@@ -54,7 +54,7 @@ class BarRow(row_class.RowClass):
         """
         Return the standard deviation of the y-values that should be plotted.
         Returns:
-            sd: The standard deviation.
+            The standard deviation.
         """
         variable = self.get_y_variable_name()
         y_values = self.line_data[variable]
