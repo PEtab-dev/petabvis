@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from . import row_class
 import petab.C as ptc
+from . import row_class, C
 
 
 class BarRow(row_class.RowClass):
@@ -110,10 +110,10 @@ class BarRow(row_class.RowClass):
             self.line_data[ptc.SIMULATION_CONDITION_ID].iloc[0]
         observable_id = self.line_data[ptc.OBSERVABLE_ID].iloc[0]
         df = pd.DataFrame(
-            {"y": y, "name": self.legend_name,
-             "is_simulation": self.is_simulation,
-             "dataset_id": self.dataset_id,
-             "sd": sd, "sem": self.sem,
-             "simulation_condition_id": simulation_condition_id,
-             "observable_id": observable_id})
+            {C.Y: y, C.NAME: self.legend_name,
+             C.IS_SIMULATION: self.is_simulation,
+             C.DATASET_ID: self.dataset_id,
+             C.SD: sd, C.SEM: self.sem,
+             C.SIMULATION_CONDITION_ID: simulation_condition_id,
+             C.OBSERVABLE_ID: observable_id})
         return df

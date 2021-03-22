@@ -15,6 +15,7 @@ from petab.visualize.helper_functions import (check_ex_exp_columns,
                                               create_or_update_vis_spec)
 
 from . import table_models
+from . import C
 
 
 class TableWidget(QWidget):
@@ -123,11 +124,11 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     tree_view = window.tree_view
     root_node = model.invisibleRootItem()
 
-    tidy_names = {ptc.MEASUREMENT_FILES: "Measurement Tables",
-                  ptc.VISUALIZATION_FILES: "Visualization Tables",
-                  ptc.CONDITION_FILES: "Condition Tables",
-                  ptc.OBSERVABLE_FILES: "Observable Tables",
-                  ptc.SBML_FILES: "SBML Files"}
+    tidy_names = {ptc.MEASUREMENT_FILES: C.MEASUREMENT_TABLES,
+                  ptc.VISUALIZATION_FILES: C.VISUALIZATION_TABLES,
+                  ptc.CONDITION_FILES: C.CONDITION_TABLES,
+                  ptc.OBSERVABLE_FILES: C.OBSERVABLE_TABLES,
+                  ptc.SBML_FILES: C.SBML_FILES}
 
     # iterate through the yaml_dict
     for key in window.yaml_dict:
@@ -176,11 +177,11 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         root_node.appendRow(branch)
 
     if window.simulation_df is not None:
-        branch = QtGui.QStandardItem("Simulation Table")
-        simulation_file = QtGui.QStandardItem("simulation file")
+        branch = QtGui.QStandardItem(C.SIMULATION_TABLES)
+        simulation_file = QtGui.QStandardItem(C.SIMULATION_FILE)
         df = window.simulation_df
         simulation_file.setData({"df": df,
-                                 "name": "simulation file"},
+                                 "name": C.SIMULATION_FILE},
                                 role=Qt.UserRole + 1)
         branch.appendRow(simulation_file)
         root_node.appendRow(branch)
@@ -248,7 +249,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         if window.observable_df.equals(df):
             df_changed = False
         window.observable_df = df
-    if parent_name == "Simulation Table":
+    if parent_name == C.SIMULATION_TABLES:
         if window.simulation_df.equals(df):
             df_changed = False
         window.simulation_df = df

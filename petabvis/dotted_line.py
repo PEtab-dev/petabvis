@@ -216,7 +216,7 @@ class DottedLine:
         for line in self.lines:
             line.setSymbolBrush(self.color)
             line.setSymbolPen("k")
-w
+
     def show_errors(self):
         """
         Show all error bars.

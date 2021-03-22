@@ -4,6 +4,7 @@ import petab
 import scipy
 
 from . import utils
+from . import C
 
 
 class PlotClass:
@@ -43,8 +44,8 @@ class PlotClass:
         self.simulation_df = simulation_df
         self.condition_df = condition_df
         self.overview_df = pd.DataFrame(
-            columns=["x", "y", "name", "is_simulation", "dataset_id", "x_var",
-                     "observable_id", "simulation_condition_id"])
+            columns=[C.X, C.Y, C.NAME, C.IS_SIMULATION, C.DATASET_ID, C.X_VAR,
+                     C.OBSERVABLE_ID, C.SIMULATION_CONDITION_ID])
         self.plot_id = plot_id
         self.color_map = color_map
         if color_map is None:
@@ -63,7 +64,7 @@ class PlotClass:
         self.r_squared_text = pg.TextItem()
         self.plot.addLegend()
 
-    def generate_correlation_plot(self, overview_df, color_by="dataset_id"):
+    def generate_correlation_plot(self, overview_df, color_by=C.DATASET_ID):
         """
         Generate the scatter plot between the
         measurement and simulation values.
@@ -75,12 +76,12 @@ class PlotClass:
         """
         self.correlation_plot.clear()
         if not overview_df.empty:
-            overview_df = overview_df[~overview_df["dataset_id"].
+            overview_df = overview_df[~overview_df[C.DATASET_ID].
                                       isin(self.disabled_rows)]
-            measurements = overview_df[~overview_df["is_simulation"]][
-                "y"].tolist()
-            simulations = overview_df[overview_df["is_simulation"]][
-                "y"].tolist()
+            measurements = overview_df[~overview_df[C.IS_SIMULATION]][
+                C.Y].tolist()
+            simulations = overview_df[overview_df[C.IS_SIMULATION]][
+                C.Y].tolist()
 
             self.add_points(overview_df, color_by)
             self.correlation_plot.setLabel("left", "Simulation")
@@ -112,10 +113,10 @@ class PlotClass:
         Recalculate the r-squared value based on self.overview_df
         and self.disabled_rows and change the r-squared text.
         """
-        overview_df = self.overview_df[~self.overview_df["dataset_id"].
+        overview_df = self.overview_df[~self.overview_df[C.DATASET_ID].
                                        isin(self.disabled_rows)]
-        measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
-        simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
+        measurements = overview_df[~overview_df[C.IS_SIMULATION]][C.Y].tolist()
+        simulations = overview_df[overview_df[C.IS_SIMULATION]][C.Y].tolist()
         r_squared = self.get_r_squared(measurements, simulations)
         text = "R Squared:\n{:.3f}".format(r_squared)
         self.r_squared_text.setText(str(text))
@@ -131,7 +132,7 @@ class PlotClass:
                       (dataset_id, observable_id or simulationConditionId)
         """
         group_ids = overview_df[grouping].unique()
-        overview_df = overview_df[~overview_df["dataset_id"].
+        overview_df = overview_df[~overview_df[C.DATASET_ID].
                                   isin(self.disabled_rows)]
         color_lookup = self.color_map.getLookupTable(nPts=len(group_ids))
         for i, group_id in enumerate(group_ids):
@@ -139,27 +140,27 @@ class PlotClass:
                 continue
             # data
             reduced_df = overview_df[overview_df[grouping] == group_id]
-            measurements = reduced_df[~reduced_df["is_simulation"]]["y"]
+            measurements = reduced_df[~reduced_df[C.IS_SIMULATION]][C.Y]
             measurements = measurements.tolist()
-            simulations = reduced_df[reduced_df["is_simulation"]]["y"].tolist()
-            names = reduced_df[~reduced_df["is_simulation"]]["name"].tolist()
+            simulations = reduced_df[reduced_df[C.IS_SIMULATION]][C.Y].tolist()
+            names = reduced_df[~reduced_df[C.IS_SIMULATION]][C.NAME].tolist()
             simulation_condition_ids = reduced_df[~reduced_df[
-                "is_simulation"]]["simulation_condition_id"].tolist()
+                C.IS_SIMULATION]][C.SIMULATION_CONDITION_ID].tolist()
             observable_ids = reduced_df[reduced_df[
-                "is_simulation"]]["observable_id"].tolist()
+                C.IS_SIMULATION]][C.OBSERVABLE_ID].tolist()
             point_descriptions = [
                 (names[i] + "\nmeasurement: " + str(measurements[i]) +
                  "\nsimulation: " + str(simulations[i]) +
-                 "\nsimulationConditionId: " +
-                 str(simulation_condition_ids[i]) + "\nobservableId: " +
-                 str(observable_ids[i]))
+                 "\n" + C.SIMULATION_CONDITION_ID + ": " +
+                 str(simulation_condition_ids[i]) + "\n" + C.OBSERVABLE_ID +
+                 ": " + str(observable_ids[i]))
                 for i in range(len(measurements))]
 
             # only line plots have x-values, barplots do not
-            if "x_label" in reduced_df.columns:
-                x = reduced_df[~reduced_df["is_simulation"]]["x"].tolist()
-                x_label = reduced_df[~reduced_df["is_simulation"]][
-                    "x_label"].tolist()
+            if C.X_LABEL in reduced_df.columns:
+                x = reduced_df[~reduced_df[C.IS_SIMULATION]][C.X].tolist()
+                x_label = reduced_df[~reduced_df[C.IS_SIMULATION]][
+                    C.X_LABEL].tolist()
                 point_descriptions = [
                     (point_descriptions[i] + "\n" + str(x_label[i])) + ": " +
                     str(x[i]) for i in range(len(point_descriptions))]
@@ -174,7 +175,7 @@ class PlotClass:
             scatter_plot.addPoints(spots)
             self.correlation_plot.addItem(scatter_plot)
             self.add_point_interaction(scatter_plot)
-            if grouping == "dataset_id":
+            if grouping == C.DATASET_ID:
                 self.datasetId_to_correlation_points[group_id] = scatter_plot
 
     def add_point_interaction(self, scatter_plot):

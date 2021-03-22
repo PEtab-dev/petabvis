@@ -12,6 +12,7 @@ import pyqtgraph as pg
 from .vis_spec_plot import VisSpecPlot
 from . import utils
 from .dotted_line import DottedLine
+from . import C
 
 
 class OptionMenu(QtGui.QMainWindow):
@@ -182,12 +183,8 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
 
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
-        self.cbox.addItems(["DatasetId", "ObservableId",
-                            "SimulationConditionId"])
-        self.names_lookup = {"DatasetId": "dataset_id",
-                             "ObservableId": "observable_id",
-                             "SimulationConditionId":
-                                 "simulation_condition_id"}
+        self.cbox.addItems([C.DATASET_ID, C.OBSERVABLE_ID,
+                            C.SIMULATION_CONDITION_ID])
         self.description = QLabel("Color points by:")
 
         layout.addWidget(self.description)
@@ -202,7 +199,7 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
         selected id.
         """
         for plot in self.plots:
-            color_by = self.names_lookup[self.cbox.itemText(i)]
+            color_by = self.cbox.itemText(i)
             plot.add_points(plot.overview_df, color_by)
 
 
@@ -210,8 +207,6 @@ class OverviewPlotWindow(QtGui.QMainWindow):
     """
     Window for plotting and displaying an overview plot.
     """
-    READABLE_CONSTANTS = {ptc.SIMULATION_CONDITION_ID: "Simulation condition ID",
-                          ptc.OBSERVABLE_ID: "Observable ID"}
 
     def __init__(self, measurement_df, simulation_df):
         super(OverviewPlotWindow, self).__init__()
@@ -220,22 +215,21 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.resize(1000, 500)
         self.setWindowTitle("Overview plot")
         self.plot_by_label = QLabel("Plot overview by:")
-        self.plot_by = self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]
-        self.ids_label = QLabel(self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID] + ":")
+        self.plot_by = C.OBSERVABLE_ID
+        self.ids_label = QLabel(C.OBSERVABLE_ID + ":")
 
         # plot
         self.overview_plot = pg.PlotItem()
         self.plot_widget = pg.GraphicsLayoutWidget(show=True)
         self.overview_plot.setLabel("left", "R squared")
-        self.overview_plot.setLabel("bottom", self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID])
+        self.overview_plot.setLabel("bottom", C.SIMULATION_CONDITION_ID)
         self.overview_plot.setYRange(0, 1)
         self.plot_widget.addItem(self.overview_plot)
         self.bar_width = 0.5
 
         # box to select observable or condition id
         self.plot_by_box = QComboBox()
-        self.plot_by_box.addItems([self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID],
-                                   self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID]])
+        self.plot_by_box.addItems([C.OBSERVABLE_ID, C.SIMULATION_CONDITION_ID])
         self.plot_by_box.currentIndexChanged.connect(lambda x:
                                                      self.plot_by_changed(x))
 
@@ -266,10 +260,10 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.plot_by = plot_by
         self.ids_label.setText(plot_by + ":")
         self.id_list.clear()
-        if plot_by == self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]:
+        if plot_by == C.OBSERVABLE_ID:
             observable_ids = self.measurement_df[ptc.OBSERVABLE_ID].unique()
             self.id_list.addItems(observable_ids)
-        if plot_by == self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID]:
+        if plot_by == C.SIMULATION_CONDITION_ID:
             condition_ids = \
                 self.measurement_df[ptc.SIMULATION_CONDITION_ID].unique()
             self.id_list.addItems(condition_ids)
@@ -292,17 +286,17 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         Otherwise, display a bar for each observable.
         """
         df = self.merge_measurement_and_simulation_df()
-        if self.plot_by == self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]:
+        if self.plot_by == C.OBSERVABLE_ID:
             df = df[df[ptc.OBSERVABLE_ID] == plot_by_id]
             ids = df[ptc.SIMULATION_CONDITION_ID].unique()
-            self.overview_plot.setLabel("bottom", self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID])
+            self.overview_plot.setLabel("bottom", C.SIMULATION_CONDITION_ID)
         else:  # for SimulationConditionIds
             df = df[df[ptc.SIMULATION_CONDITION_ID] == plot_by_id]
             ids = df[ptc.OBSERVABLE_ID].unique()
-            self.overview_plot.setLabel("bottom", self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID])
+            self.overview_plot.setLabel("bottom", C.OBSERVABLE_ID)
         r_squared_values = []
         for id in ids:
-            if self.plot_by == self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]:
+            if self.plot_by == C.OBSERVABLE_ID:
                 df_id = df[df[ptc.SIMULATION_CONDITION_ID] == id]
             else:
                 df_id = df[df[ptc.OBSERVABLE_ID] == id]
@@ -317,7 +311,7 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.overview_plot.addItem(bar_item)
         # set tick names
         xax = self.overview_plot.getAxis("bottom")
-        ticks = [list(zip(range(len(df.index))), ids)]
+        ticks = [list(zip(list(range(len(df.index))), ids))]
         xax.setTicks(ticks)
 
     def merge_measurement_and_simulation_df(self):

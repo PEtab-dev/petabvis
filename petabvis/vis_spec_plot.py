@@ -7,6 +7,7 @@ from . import plot_class
 from . import plot_row
 from . import utils
 from . import dotted_line
+from . import C
 
 
 class VisSpecPlot(plot_class.PlotClass):
@@ -77,8 +78,8 @@ class VisSpecPlot(plot_class.PlotClass):
         # make sure the is_simulation column
         # is really boolean because otherwise
         # the logical not operator ~ causes problems
-        self.overview_df["is_simulation"] = self.overview_df[
-            "is_simulation"].astype("bool")
+        self.overview_df[C.IS_SIMULATION] = self.overview_df[
+            C.IS_SIMULATION].astype("bool")
         self.generate_plot()
 
         if self.simulation_df is not None:
@@ -96,8 +97,8 @@ class VisSpecPlot(plot_class.PlotClass):
             overview_df: A dataframe containing an overview of the plotRows
         """
         overview_df = pd.DataFrame(
-            columns=["x", "y", "name", "is_simulation", "dataset_id",
-                     "x_label", "observable_id", "simulation_condition_id"])
+            columns=[C.X, C.Y, C.NAME, C.IS_SIMULATION, C.DATASET_ID,
+                     C.X_LABEL, C.OBSERVABLE_ID, C.SIMULATION_CONDITION_ID])
         if self.visualization_df is not None and \
                 ptc.DATASET_ID in self.visualization_df.columns:
             dfs = [p_row.get_data_df() for p_row in
@@ -259,8 +260,8 @@ class VisSpecPlot(plot_class.PlotClass):
             if is_simulation:
                 line_name = line_name + " simulation"
             line_df = pd.DataFrame(
-                {"x": x_data.tolist(), "y": y_data.tolist(),
-                 "name": group_id, "is_simulation": is_simulation,
+                {C.X: x_data.tolist(), C.Y: y_data.tolist(),
+                 C.NAME: group_id, C.IS_SIMULATION: is_simulation,
                  "grouping_ids": group_id})
             self.overview_df = self.overview_df.append(line_df,
                                                        ignore_index=True)

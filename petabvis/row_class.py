@@ -3,7 +3,7 @@ import pandas as pd
 import petab
 import petab.C as ptc
 
-from . import utils
+from . import utils, C
 
 
 class RowClass:
@@ -96,11 +96,11 @@ class RowClass:
         """
         if len(self.x_data) == len(self.y_data):
             df = pd.DataFrame(
-                {"x": self.x_data, "y": self.y_data, "name": self.legend_name,
-                 "is_simulation": self.is_simulation,
-                 "dataset_id": self.dataset_id,
-                 "x_label": self.x_label, "observable_id": self.observable_id,
-                 "simulation_condition_id": self.simulation_condition_id})
+                {C.X: self.x_data, C.Y: self.y_data, C.NAME: self.legend_name,
+                 C.IS_SIMULATION: self.is_simulation,
+                 C.DATASET_ID: self.dataset_id,
+                 C.X_LABEL: self.x_label, C.OBSERVABLE_ID: self.observable_id,
+                 C.SIMULATION_CONDITION_ID: self.simulation_condition_id})
             return df
         else:
             raise Exception(
