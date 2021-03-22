@@ -210,6 +210,9 @@ class OverviewPlotWindow(QtGui.QMainWindow):
     """
     Window for plotting and displaying an overview plot.
     """
+    READABLE_CONSTANTS = {ptc.SIMULATION_CONDITION_ID: "Simulation condition ID",
+                          ptc.OBSERVABLE_ID: "Observable ID"}
+
     def __init__(self, measurement_df, simulation_df):
         super(OverviewPlotWindow, self).__init__()
         self.measurement_df = measurement_df
@@ -217,21 +220,22 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.resize(1000, 500)
         self.setWindowTitle("Overview plot")
         self.plot_by_label = QLabel("Plot overview by:")
-        self.plot_by = "ObservableId"
-        self.ids_label = QLabel("ObservableId:")
+        self.plot_by = self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]
+        self.ids_label = QLabel(self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID] + ":")
 
         # plot
-        self.overview_plot = pg.PlotItem(title="Overview")
+        self.overview_plot = pg.PlotItem()
         self.plot_widget = pg.GraphicsLayoutWidget(show=True)
-        self.overview_plot.setLabel("left", "r-squared")
-        self.overview_plot.setLabel("bottom", "SimulationConditionId")
+        self.overview_plot.setLabel("left", "R squared")
+        self.overview_plot.setLabel("bottom", self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID])
         self.overview_plot.setYRange(0, 1)
         self.plot_widget.addItem(self.overview_plot)
         self.bar_width = 0.5
 
         # box to select observable or condition id
         self.plot_by_box = QComboBox()
-        self.plot_by_box.addItems(["ObservableId", "SimulationConditionId"])
+        self.plot_by_box.addItems([self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID],
+                                   self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID]])
         self.plot_by_box.currentIndexChanged.connect(lambda x:
                                                      self.plot_by_changed(x))
 
@@ -262,10 +266,10 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.plot_by = plot_by
         self.ids_label.setText(plot_by + ":")
         self.id_list.clear()
-        if plot_by == "ObservableId":
+        if plot_by == self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]:
             observable_ids = self.measurement_df[ptc.OBSERVABLE_ID].unique()
             self.id_list.addItems(observable_ids)
-        if plot_by == "SimulationConditionId":
+        if plot_by == self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID]:
             condition_ids = self.measurement_df[ptc.SIMULATION_CONDITION_ID]\
                 .unique()
             self.id_list.addItems(condition_ids)
@@ -277,6 +281,7 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         """
         self.overview_plot.clear()
         id = self.id_list.itemText(i)
+        self.overview_plot.setTitle(id)
         self.generate_overview_plot(id)
 
     def generate_overview_plot(self, plot_by_id):
@@ -287,17 +292,17 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         Otherwise, display a bar for each observable id.
         """
         df = self.merge_measurement_and_simulation_df()
-        if self.plot_by == "ObservableId":
+        if self.plot_by == self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]:
             df = df[df[ptc.OBSERVABLE_ID] == plot_by_id]
             ids = df[ptc.SIMULATION_CONDITION_ID].unique()
-            self.overview_plot.setLabel("bottom", "SimulationConditionId")
+            self.overview_plot.setLabel("bottom", self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID])
         else:  # for SimulationConditionIds
             df = df[df[ptc.SIMULATION_CONDITION_ID] == plot_by_id]
             ids = df[ptc.OBSERVABLE_ID].unique()
-            self.overview_plot.setLabel("bottom", "ObservableId")
+            self.overview_plot.setLabel("bottom", self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID])
         r_squared_values = []
         for id in ids:
-            if self.plot_by == "ObservableId":
+            if self.plot_by == self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]:
                 df_id = df[df[ptc.SIMULATION_CONDITION_ID] == id]
             else:
                 df_id = df[df[ptc.OBSERVABLE_ID] == id]
