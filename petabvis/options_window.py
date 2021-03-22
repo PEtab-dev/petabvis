@@ -286,10 +286,10 @@ class OverviewPlotWindow(QtGui.QMainWindow):
 
     def generate_overview_plot(self, plot_by_id):
         """
-        Generate an overview plot for an observable or condition id.
-        Display a bar with the r-squared value for each
-        simulationConditionId if plot_by_id is an observable id.
-        Otherwise, display a bar for each observable id.
+        Generate an overview plot for an observable or condition.
+        Display a bar with the R squared value for each
+        simulation condition if `plot_by_id` is an observable ID.
+        Otherwise, display a bar for each observable.
         """
         df = self.merge_measurement_and_simulation_df()
         if self.plot_by == self.READABLE_CONSTANTS[ptc.OBSERVABLE_ID]:
