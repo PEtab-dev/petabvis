@@ -270,8 +270,8 @@ class OverviewPlotWindow(QtGui.QMainWindow):
             observable_ids = self.measurement_df[ptc.OBSERVABLE_ID].unique()
             self.id_list.addItems(observable_ids)
         if plot_by == self.READABLE_CONSTANTS[ptc.SIMULATION_CONDITION_ID]:
-            condition_ids = self.measurement_df[ptc.SIMULATION_CONDITION_ID]\
-                .unique()
+            condition_ids = \
+                self.measurement_df[ptc.SIMULATION_CONDITION_ID].unique()
             self.id_list.addItems(condition_ids)
 
     def index_changed(self, i: int):
