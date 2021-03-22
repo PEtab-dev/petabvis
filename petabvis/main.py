@@ -30,7 +30,7 @@ class MainWindow(QtWidgets.QMainWindow):
         plot1_widget: pg.GraphicsLayoutWidget containing the main plot
         plot2_widget: pg.GraphicsLayoutWidget containing the correlation plot
         warn_msg: QLabel displaying current warning messages
-        popup_windows: List of Popup TableWidget displaying the clicked table
+        popup_tables: List of Popup TableWidget displaying the clicked table
         tree_view: QTreeView of the yaml file
         visu_spec_plots: A list of VisuSpecPlots
         cbox: A dropdown menu for the plots
@@ -73,7 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.warnings = []
         self.warning_counter = {}
         # The new window that pops up to display a table
-        self.popup_windows = []
+        self.popup_tables = []
         self.options_window = OptionMenu(window=self,
                                          vis_spec_plots=self.vis_spec_plots)
         self.correlation_options_window = \

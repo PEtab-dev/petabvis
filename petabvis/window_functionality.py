@@ -81,8 +81,8 @@ class TableWidget(QWidget):
         self.filter_proxy.setSortRole(Qt.DisplayRole)
 
     def closeEvent(self, event):
-        if self in self.window.popup_windows:
-            self.window.popup_windows.remove(self)
+        if self in self.window.popup_tables:
+            self.window.popup_tables.remove(self)
         super().closeEvent(event)
 
 
@@ -106,7 +106,7 @@ def pop_up_table_view(window: QtWidgets.QMainWindow,
     popup_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
     popup_window.setWindowTitle(window_title)
     popup_window.show()
-    window.popup_windows.append(popup_window)
+    window.popup_tables.append(popup_window)
 
 
 def table_tree_view(window: QtWidgets.QMainWindow, folder_path):

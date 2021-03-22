@@ -142,6 +142,13 @@ class DottedLine:
         self.enable_in_plot(plot, add_error_bars)
 
     def set_color(self, new_color):
+        """
+        Set the color of the lines, points and
+        error bars.
+
+        Arguments:
+            new_color: pg.Color
+        """
         self.color = new_color
         for line in self.lines:
             line.setPen(self.color, style=self.style, width=2)
@@ -171,27 +178,45 @@ class DottedLine:
             plot.removeItem(error_bars)
 
     def hide_lines(self):
+        """
+        Make all lines invisible.
+        """
         for line in self.lines:
             line.setPen(None)
 
     def hide_points(self):
+        """
+        Make all points invisible.
+        """
         for line in self.lines:
             line.setSymbolPen(None)
             line.setSymbolBrush(None)
 
     def hide_errors(self):
+        """
+        Make all error bars invisible.
+        """
         for error in self.error_bars:
             error.setVisible(False)
 
     def show_lines(self):
+        """
+        Show all lines.
+        """
         for line in self.lines:
             line.setPen(self.color, style=self.style, width=2)
 
     def show_points(self):
+        """
+        Show all points.
+        """
         for line in self.lines:
             line.setSymbolBrush(self.color)
             line.setSymbolPen("k")
 
     def show_errors(self):
+        """
+        Show all error bars.
+        """
         for error in self.error_bars:
             error.setData(pen=pg.mkPen(self.color))

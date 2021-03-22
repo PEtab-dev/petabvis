@@ -11,6 +11,7 @@ import pyqtgraph as pg
 
 from .vis_spec_plot import VisSpecPlot
 from . import utils
+from .dotted_line import DottedLine
 
 
 class OptionMenu(QtGui.QMainWindow):
@@ -122,47 +123,50 @@ class OptionMenu(QtGui.QMainWindow):
         self.point_box.setCheckState(Qt.Checked)
         self.error_box.setCheckState(Qt.Checked)
 
-    def lines_box_changed(self, state):
+    def visu_spec_plot_box_changed(self, state, callable_checked,
+                                   callable_unchecked):
         """
-        Add lines when ticked, otherwise
-        remove them.
+        Call the callable_checked method for each DottedLine in
+        if the state is checked. Otherwise, call the callable_unchecked
+        method.
+
+        Arguments:
+             state: State of the checkbox.
+             callable_checked: Method to call when checked.
+             callable_unchecked: Method to call when unchecked.
         """
         for plot in self.plots:
             # bar plots can also be in the list
             if isinstance(plot, VisSpecPlot):
                 for line in plot.dotted_lines + plot.dotted_simulation_lines:
                     if state == Qt.Checked:
-                        line.show_lines()
+                        callable_checked(line)
                     else:
-                        line.hide_lines()
+                        callable_unchecked(line)
+
+    def lines_box_changed(self, state):
+        """
+        Add lines when ticked, otherwise
+        remove them.
+        """
+        self.visu_spec_plot_box_changed(state, DottedLine.show_lines,
+                                        DottedLine.hide_lines)
 
     def point_box_changed(self, state):
         """
         Add points when ticked, otherwise
         remove them.
         """
-        for plot in self.plots:
-            # bar plots can also be in the list
-            if isinstance(plot, VisSpecPlot):
-                for line in plot.dotted_lines + plot.dotted_simulation_lines:
-                    if state == Qt.Checked:
-                        line.show_points()
-                    else:
-                        line.hide_points()
+        self.visu_spec_plot_box_changed(state, DottedLine.show_points,
+                                        DottedLine.hide_points)
 
     def error_box_changed(self, state):
         """
         Add error bars when ticked, otherwise
         remove them.
         """
-        for plot in self.plots:
-            # bar plots can also be in the list
-            if isinstance(plot, VisSpecPlot):
-                for line in plot.dotted_lines + plot.dotted_simulation_lines:
-                    if state == Qt.Checked:
-                        line.show_errors()
-                    else:
-                        line.hide_errors()
+        self.visu_spec_plot_box_changed(state, DottedLine.show_errors,
+                                        DottedLine.hide_errors)
 
 
 class CorrelationOptionMenu(QtGui.QMainWindow):

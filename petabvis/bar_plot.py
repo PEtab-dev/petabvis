@@ -105,9 +105,9 @@ class BarPlot(plot_class.PlotClass):
         x = list(range(len(df.index)))
         tick_pos = list(range(len(df.index)))
         for i_name, (name, name_df) in enumerate(df.groupby('name')):
+            steps = np.linspace(start=0, stop=self.bar_width,
+                                num=len(name_df.index))
             for i_replicate, i_row in enumerate(name_df.index):
-                steps = np.linspace(start=0, stop=self.bar_width,
-                                    num=len(name_df.index))
                 x[i_row] = i_name - steps[i_replicate]
                 tick_pos[i_row] = i_name - self.bar_width / 2
 
