@@ -77,7 +77,7 @@ class OptionMenu(QtGui.QMainWindow):
                                                      "Save vis spec",
                                                      home_dir,
                                                      "*.tsv")[0]
-        if filename != "":  # if a file was selected
+        if filename:  # if a file was selected
             vis_spec.to_csv(filename, sep="\t", index=False)
             self.main_window.add_warning("Saved vis spec")
             if self.save_to_yaml_box.isChecked():
