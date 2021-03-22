@@ -8,6 +8,7 @@ from PySide2.QtCore import Qt
 import petab.C as ptc
 import pandas as pd
 import pyqtgraph as pg
+import petab
 
 from .vis_spec_plot import VisSpecPlot
 from . import utils
@@ -90,19 +91,16 @@ class OptionMenu(QtGui.QMainWindow):
         Add the basename of the filename to the
         YAML file.
         """
-        with open(self.main_window.yaml_filename, "r") as yaml_file:
-            basename = os.path.basename(filename)
-            data = yaml_file.readlines()
-            if "  visualization_files:\n" not in data:
-                data.append("  visualization_files:\n")
-                data.append("  - " + basename + "\n")
-            else:
-                for i, line in enumerate(data):
-                    if line == "  visualization_files:\n":
-                        data.insert(i + 1, "  - " + basename + "\n")
-                        break
-            with open(self.main_window.yaml_filename, "w") as new_yaml_file:
-                new_yaml_file.writelines(data)
+        yaml_dict = petab.load_yaml(self.main_window.yaml_filename)
+        basename = os.path.basename(filename)
+        # append the filename when a visualization file exists
+        if ptc.VISUALIZATION_FILES in yaml_dict[ptc.PROBLEMS][0]:
+            yaml_dict[ptc.PROBLEMS][0][ptc.VISUALIZATION_FILES].append(basename)
+        # otherwise create an entry for visualization files
+        else:
+            yaml_dict[ptc.PROBLEMS][0][ptc.VISUALIZATION_FILES] = [basename]
+        petab.write_yaml(yaml_dict, self.main_window.yaml_filename)
+
 
     def index_changed(self, i: int):
         """
