@@ -408,7 +408,7 @@ def get_signals(source):
 
 def r_squared(measurements, simulations):
     """
-    Calculate the r-squared value between
+    Calculate the R squared value between
     the measurement and simulation values.
     """
     if not measurements or not simulations:
@@ -426,10 +426,7 @@ def generate_color_map(cm_name: str):
     Arguments:
         cm_name: Name of a matplotlib colormap.
     """
-    plt_map = plt.get_cmap(cm_name)
-    colors = plt_map.colors.copy()
-    for i, color in enumerate(colors):
-        colors[i] = [int(c*255) for c in color]
+    colors = (np.array(plt.get_cmap(cm_name).colors)*255).tolist()
     positions = np.linspace(0, 1, len(colors))
     pg_map = pg.ColorMap(positions, colors)
     return pg_map
