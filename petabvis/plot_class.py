@@ -117,7 +117,7 @@ class PlotClass:
         measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
         simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
         r_squared = self.get_r_squared(measurements, simulations)
-        text = "R Squared:\n" + str(r_squared)[0:5]
+        text = "R Squared:\n{:.3f}".format(r_squared)
         self.r_squared_text.setText(str(text))
 
     def add_points(self, overview_df: pd.DataFrame, grouping):
