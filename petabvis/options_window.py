@@ -317,7 +317,7 @@ class OverviewPlotWindow(QtGui.QMainWindow):
         self.overview_plot.addItem(bar_item)
         # set tick names
         xax = self.overview_plot.getAxis("bottom")
-        ticks = [list(zip(list(range(len(df.index))), ids))]
+        ticks = [list(zip(range(len(df.index))), ids)]
         xax.setTicks(ticks)
 
     def merge_measurement_and_simulation_df(self):
