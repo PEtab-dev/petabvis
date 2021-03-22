@@ -29,7 +29,9 @@ class DottedLine:
         self.dataset_id: str = ""
         self.is_simulation: bool = False
         self.color: str = "k"
+        self.pen = pg.mkPen(self.color)
         self.style: QtCore.Qt.PenStyle = QtCore.Qt.DashDotLine
+        self.symbol_size = 7
 
     def initialize_from_plot_row(self, p_row: plot_row.PlotRow):
         """
@@ -88,7 +90,7 @@ class DottedLine:
                 if first_replicate:
                     self.lines.append(pg.PlotDataItem(x, y,
                                                       name=legend_name,
-                                                      symbolPen=pg.mkPen("k"),
+                                                      symbolPen=self.pen,
                                                       symbol=symbol,
                                                       symbolSize=7))
                     first_replicate = False
@@ -96,14 +98,14 @@ class DottedLine:
                     # if all would replicate have a legend_name,
                     # that name would be duplicated in the legend
                     self.lines.append(pg.PlotDataItem(x, y,
-                                                      symbolPen=pg.mkPen("k"),
+                                                      symbolPen=self.pen,
                                                       symbol=symbol,
                                                       symbolSize=7))
         else:
             self.lines.append(pg.PlotDataItem(self.p_row.x_data,
                                               self.p_row.y_data,
                                               name=legend_name,
-                                              symbolPen=pg.mkPen("k"),
+                                              symbolPen=self.pen,
                                               symbol=symbol, symbolSize=7))
 
     def add_error_bars(self):
@@ -150,11 +152,12 @@ class DottedLine:
             new_color: pg.Color
         """
         self.color = new_color
+        self.pen = pg.mkPen(self.color)
         for line in self.lines:
             line.setPen(self.color, style=self.style, width=2)
             line.setSymbolBrush(self.color)
         for error_bars in self.error_bars:
-            error_bars.setData(pen=pg.mkPen(self.color))
+            error_bars.setData(pen=self.pen)
 
     def enable_in_plot(self, plot, add_error_bars=True):
         """
@@ -213,10 +216,10 @@ class DottedLine:
         for line in self.lines:
             line.setSymbolBrush(self.color)
             line.setSymbolPen("k")
-
+w
     def show_errors(self):
         """
         Show all error bars.
         """
         for error in self.error_bars:
-            error.setData(pen=pg.mkPen(self.color))
+            error.setData(pen=self.pen)
