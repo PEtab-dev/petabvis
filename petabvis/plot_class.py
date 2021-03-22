@@ -247,7 +247,7 @@ class PlotClass:
 
     def enable_correlation_points(self, dataset_id):
         """
-        Disable the points in the plot with the given dataset_id.
+        Enable the points in the plot with the given `dataset_id`.
         """
         points = self.datasetId_to_correlation_points[dataset_id]
         self.correlation_plot.addItem(points)
