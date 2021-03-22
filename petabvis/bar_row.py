@@ -65,6 +65,7 @@ class BarRow(row_class.RowClass):
     def get_replicate_sd(self):
         """
         Return the standard deviation for each replicate.
+        
         Returns:
              sds: A list of standard deviations.
         """
