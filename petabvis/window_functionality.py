@@ -373,11 +373,11 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
             window.add_warning(
                 "The YAML file contains no "
                 "visualization file (default plotted)")
+        window.simulation_df = None
         # table_tree_view sets the df attributes of the window
         # equal to the first file of each branch
         # (measurement, visualization, ...)
         table_tree_view(window, last_dir)
-        window.simulation_df = None
         window.add_plots()
 
 
