@@ -46,8 +46,9 @@ def get_x_var(plot_spec: pd.Series):
 def get_observable_id(line_data: pd.DataFrame):
     observable_id = line_data[ptc.OBSERVABLE_ID].unique()
     if len(observable_id) > 1:
-        warnings.warn("Observable id is not unique for line"
-                      " (might affect coloring)")
+        warnings.warn("Observable ID is not unique for line"
+                      "(IDs: " + ', '.join(observable_id) +
+                      "   might affect coloring)")
     return observable_id[0]
 
 
@@ -86,7 +87,7 @@ def get_x_offset(plot_spec: pd.Series):
 
 def get_x_scale(plot_spec: pd.Series):
     """
-    Return the scale of the x axis (lin, log or order)
+    Return the scale of the x axis (lin, log or ordinal)
 
     Arguments:
        plot_spec: A single row of a visualization df
@@ -104,7 +105,7 @@ def get_x_scale(plot_spec: pd.Series):
 
 def get_y_scale(plot_spec: pd.Series):
     """
-    Return the scale of the y axis (lin, log or order)
+    Return the scale of the y axis (lin, log or ordinal)
 
     Arguments:
        plot_spec: A single row of a visualization df

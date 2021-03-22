@@ -74,6 +74,7 @@ class PlotRow(row_class.RowClass):
             simulation_condition_ids = [simulation_condition_id for _
                     in range(int(len(self.y_data) / len(simulation_condition_id)))]
             simulation_condition_id = np.hstack(simulation_condition_ids)
+            print(simulation_condition_id)
 
         if len(simulation_condition_id) == 1:
             return simulation_condition_id[0]
