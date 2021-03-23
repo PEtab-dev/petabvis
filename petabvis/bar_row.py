@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from . import row_class
 import petab.C as ptc
+from . import row_class, C
 
 
 class BarRow(row_class.RowClass):
@@ -54,7 +54,7 @@ class BarRow(row_class.RowClass):
         """
         Return the standard deviation of the y-values that should be plotted.
         Returns:
-            sd: The standard deviation
+            The standard deviation.
         """
         variable = self.get_y_variable_name()
         y_values = self.line_data[variable]
@@ -63,6 +63,12 @@ class BarRow(row_class.RowClass):
         return sd
 
     def get_replicate_sd(self):
+        """
+        Return the standard deviation for each replicate.
+        
+        Returns:
+             sds: A list of standard deviations.
+        """
         sds = []
         variable = self.get_y_variable_name()
         for replicate in self.replicates:
@@ -100,9 +106,14 @@ class BarRow(row_class.RowClass):
         else:
             y = [self.y_data]
             sd = self.sd
+        simulation_condition_id = \
+            self.line_data[ptc.SIMULATION_CONDITION_ID].iloc[0]
+        observable_id = self.line_data[ptc.OBSERVABLE_ID].iloc[0]
         df = pd.DataFrame(
-            {"y": y, "name": self.legend_name,
-             "is_simulation": self.is_simulation,
-             "dataset_id": self.dataset_id,
-             "sd": sd, "sem": self.sem})
+            {C.Y: y, C.NAME: self.legend_name,
+             C.IS_SIMULATION: self.is_simulation,
+             C.DATASET_ID: self.dataset_id,
+             C.SD: sd, C.SEM: self.sem,
+             C.SIMULATION_CONDITION_ID: simulation_condition_id,
+             C.OBSERVABLE_ID: observable_id})
         return df

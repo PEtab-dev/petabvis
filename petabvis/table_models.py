@@ -70,6 +70,7 @@ class VisualizationTableModel(PetabTableModel):
         self.window = window
 
     def flags(self, index):
+        # make the first column editable
         if not index.isValid():
             return 0
 
@@ -80,12 +81,15 @@ class VisualizationTableModel(PetabTableModel):
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
     def data(self, index, role=Qt.DisplayRole):
+        # highlight the currently shown rows
         if role == Qt.BackgroundRole:
             current_plot = self.window.vis_spec_plots[
                 self.window.current_list_index]
             current_plot_id = current_plot.plot_id
             if self.df[ptc.PLOT_ID][index.row()] == current_plot_id:
-                return QtGui.QColor("yellow")
+                return QColor(Qt.yellow)
+            else:
+                return QColor(Qt.white)
         else:
             return super().data(index, role)
 
@@ -107,6 +111,7 @@ class MeasurementTableModel(PetabTableModel):
         self.current_observable_ids = []
 
     def data(self, index, role=Qt.DisplayRole):
+        # highlight rows that are currently plotted
         if role != Qt.BackgroundRole:
             return super().data(index, role)
 
@@ -120,7 +125,7 @@ class MeasurementTableModel(PetabTableModel):
         # for default plots
         if self.window.visualization_df is None:
             if row[ptc.OBSERVABLE_ID] == plot_id:
-                return QtGui.QColor("yellow")
+                return QColor(Qt.yellow)
             else:
                 return super().data(index, role)
 

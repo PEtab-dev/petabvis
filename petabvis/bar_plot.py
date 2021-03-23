@@ -3,7 +3,7 @@ import pandas as pd
 import petab.C as ptc
 import pyqtgraph as pg
 
-from . import bar_row
+from . import bar_row, C
 from . import plot_class
 
 
@@ -39,8 +39,8 @@ class BarPlot(plot_class.PlotClass):
 
         # A df containing the information needed to plot the bars
         self.overview_df = pd.DataFrame(
-            columns=["x", "y", "name", "sd", "sem", "provided_noise",
-                     "is_simulation", "tick_pos"])
+            columns=[C.X, C.Y, C.NAME, C.SD, C.SEM, C.PROVIDED_NOISE,
+                     C.IS_SIMULATION, C.TICK_POS])
 
         self.plot_everything()
 
@@ -81,8 +81,8 @@ class BarPlot(plot_class.PlotClass):
             overview_df: A dataframe containing an overview of the plotRows
         """
         overview_df = pd.DataFrame(
-            columns=["y", "name", "is_simulation", "dataset_id",
-                     "sd", "sem"])
+            columns=[C.Y, C.NAME, C.IS_SIMULATION, C.DATASET_ID,
+                     C.SD, C.SEM])
         if self.visualization_df is not None:
             dfs = [bar.get_data_df() for bar in
                    self.bar_rows
@@ -104,24 +104,28 @@ class BarPlot(plot_class.PlotClass):
 
         x = list(range(len(df.index)))
         tick_pos = list(range(len(df.index)))
-        for i_name, (name, name_df) in enumerate(df.groupby('name')):
+        for i_name, (name, name_df) in enumerate(df.groupby(C.NAME)):
+            steps = np.linspace(start=0, stop=self.bar_width,
+                                num=len(name_df.index))
             for i_replicate, i_row in enumerate(name_df.index):
-                x[i_row] = i_name - np.linspace(start=0, stop=self.bar_width, num=len(name_df.index))[i_replicate]
+                x[i_row] = i_name - steps[i_replicate]
                 tick_pos[i_row] = i_name - self.bar_width / 2
 
         # Adjust x and tick_pos of the bars when simulation bars are plotted
         # such that they are next to each other
         if self.simulation_df is not None:
-            for i_name, (name, name_df) in enumerate(df.groupby('name')):
+            for i_name, (name, name_df) in enumerate(df.groupby(C.NAME)):
                 num_replicates = len(name_df.index) / 2  # /2 due to simulation
                 shift_start = self.bar_width / (2 * num_replicates)
-                for i_replicate, i_row in enumerate(name_df[name_df["is_simulation"]].index):
+                indices = name_df[name_df[C.IS_SIMULATION]].index
+                for i_replicate, i_row in enumerate(indices):
                     tick_pos[i_row] = i_name
                     shift = np.linspace(start=shift_start,
                                         stop=self.bar_width + shift_start,
                                         num=int(num_replicates))[i_replicate]
                     x[i_row] = i_name + shift
-                for i_replicate, i_row in enumerate(name_df[~name_df["is_simulation"]].index):
+                indices = name_df[~name_df[C.IS_SIMULATION]].index
+                for i_replicate, i_row in enumerate(indices):
                     tick_pos[i_row] = i_name
                     shift = np.linspace(start=shift_start,
                                         stop=self.bar_width + shift_start,
@@ -150,10 +154,10 @@ class BarPlot(plot_class.PlotClass):
                 bar_width = self.bar_width / max_num_replicates
 
             # Add bars
-            simu_rows = self.overview_df["is_simulation"]
-            bar_item = pg.BarGraphItem(x=self.overview_df[~simu_rows]["x"],
+            simu_rows = self.overview_df[C.IS_SIMULATION]
+            bar_item = pg.BarGraphItem(x=self.overview_df[~simu_rows][C.X],
                                        height=self.overview_df[~simu_rows][
-                                        "y"], width=bar_width,
+                                        C.Y], width=bar_width,
                                        pen=pg.mkPen("b", width=2),
                                        name="measurement")
             self.plot.addItem(bar_item)  # measurement bars
@@ -166,13 +170,13 @@ class BarPlot(plot_class.PlotClass):
                 self.plot.addItem(bar_item)  # simulation bars
 
             # Add error bars
-            error_length = self.overview_df["sd"]
+            error_length = self.overview_df[C.SD]
             if self.bar_rows[0].plot_type_data == ptc.MEAN_AND_SEM:
-                error_length = self.overview_df["sem"]
+                error_length = self.overview_df[C.SEM]
             if self.bar_rows[0].plot_type_data == ptc.PROVIDED:
-                error_length = self.overview_df["provided_noise"]
-            error = pg.ErrorBarItem(x=self.overview_df["x"],
-                                    y=self.overview_df["y"],
+                error_length = self.overview_df[C.PROVIDED_NOISE]
+            error = pg.ErrorBarItem(x=self.overview_df[C.X],
+                                    y=self.overview_df[C.Y],
                                     top=error_length, bottom=error_length,
                                     beam=bar_width/3)
             self.plot.addItem(error)
@@ -180,7 +184,7 @@ class BarPlot(plot_class.PlotClass):
             # set tick names to the legend entry of the bars
             xax = self.plot.getAxis("bottom")
             ticks = [list(
-                zip(self.overview_df["tick_pos"], self.overview_df["name"]))]
+                zip(self.overview_df[C.TICK_POS], self.overview_df[C.NAME]))]
             xax.setTicks(ticks)
 
             # set y-scale to log if necessary

@@ -7,13 +7,15 @@ import petab
 import petab.C as ptc
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtCore import (Qt, QSortFilterProxyModel)
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView,
-                               QSizePolicy, QTableView, QWidget, QFileDialog)
+from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView, QPushButton,
+                               QSizePolicy, QTableView, QWidget, QFileDialog,
+                               QHBoxLayout)
 from petab import core
-from petab.visualize.helper_functions import check_ex_exp_columns
+from petab.visualize.helper_functions import (check_ex_exp_columns,
+                                              create_or_update_vis_spec)
 
 from . import table_models
+from . import C
 
 
 class TableWidget(QWidget):
@@ -22,13 +24,25 @@ class TableWidget(QWidget):
     def __init__(self, data: pd.DataFrame, add_checkbox_col: bool, window):
         QWidget.__init__(self)
         self.window = window
+        # QWidget Layout
+        self.main_layout = QVBoxLayout()
 
         # Set the Model
         if add_checkbox_col:
             self.model = table_models.VisualizationTableModel(data, window)
-        elif window.exp_data.equals(data):  # for any other df
+        elif window.exp_data.equals(data) or window.simulation_df.equals(data):
             self.model = table_models.MeasurementTableModel(data, window)
-        else:
+
+            self.button_layout = QHBoxLayout()  # add sort button
+            self.sort_button = QPushButton("Sort by displayed lines")
+            self.sort_button.clicked.connect(self.sort_by_highlight)
+            self.restore_order_button = QPushButton("Restore initial order")
+            self.restore_order_button.clicked.connect(self.restore_order)
+            self.button_layout.addWidget(self.sort_button)
+            self.button_layout.addWidget(self.restore_order_button)
+            self.button_layout.addStretch(1)
+            self.main_layout.addLayout(self.button_layout)
+        else:  # for any other df
             self.model = table_models.PetabTableModel(data)
 
         # Creating a QTableView
@@ -50,29 +64,38 @@ class TableWidget(QWidget):
         self.horizontal_header.setSectionResizeMode(
             QHeaderView.ResizeToContents)
 
-        # QWidget Layout
-        self.main_layout = QVBoxLayout()
         size = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-
         size.setHorizontalStretch(1)
         self.table_view.setSizePolicy(size)
         self.main_layout.addWidget(self.table_view)
 
         self.setLayout(self.main_layout)
 
+    def sort_by_highlight(self):
+        self.filter_proxy.setSortRole(Qt.BackgroundRole)
+        self.filter_proxy.sort(1, Qt.AscendingOrder)
+        self.filter_proxy.setSortRole(Qt.DisplayRole)
+
+    def restore_order(self):
+        self.filter_proxy.setSortRole(Qt.InitialSortOrderRole)
+        self.filter_proxy.sort(-1, Qt.AscendingOrder)
+        self.filter_proxy.setSortRole(Qt.DisplayRole)
+
     def closeEvent(self, event):
-        if self in self.window.popup_windows:
-            self.window.popup_windows.remove(self)
+        if self in self.window.popup_tables:
+            self.window.popup_tables.remove(self)
         super().closeEvent(event)
 
 
-def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
+def pop_up_table_view(window: QtWidgets.QMainWindow,
+                      df: pd.DataFrame, window_title):
     """
     Create a popup window that displays the dataframe.
 
     Arguments:
         window: The main window to which the TableWidget gets added.
-        df: The dataframe to display
+        df: The dataframe to display.
+        window_title: The title of the popup window.
     """
     add_checkbox_col = False
     if window.visualization_df is not None\
@@ -82,8 +105,9 @@ def pop_up_table_view(window: QtWidgets.QMainWindow, df: pd.DataFrame):
                                add_checkbox_col=add_checkbox_col,
                                window=window)
     popup_window.setGeometry(QtCore.QRect(100, 100, 800, 400))
+    popup_window.setWindowTitle(window_title)
     popup_window.show()
-    window.popup_windows.append(popup_window)
+    window.popup_tables.append(popup_window)
 
 
 def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
@@ -100,11 +124,11 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
     tree_view = window.tree_view
     root_node = model.invisibleRootItem()
 
-    tidy_names = {ptc.MEASUREMENT_FILES: "Measurement Tables",
-                  ptc.VISUALIZATION_FILES: "Visualization Tables",
-                  ptc.CONDITION_FILES: "Condition Tables",
-                  ptc.OBSERVABLE_FILES: "Observable Tables",
-                  ptc.SBML_FILES: "SBML Files"}
+    tidy_names = {ptc.MEASUREMENT_FILES: C.MEASUREMENT_TABLES,
+                  ptc.VISUALIZATION_FILES: C.VISUALIZATION_TABLES,
+                  ptc.CONDITION_FILES: C.CONDITION_TABLES,
+                  ptc.OBSERVABLE_FILES: C.OBSERVABLE_TABLES,
+                  ptc.SBML_FILES: C.SBML_FILES}
 
     # iterate through the yaml_dict
     for key in window.yaml_dict:
@@ -133,19 +157,37 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
                 df = petab.get_observable_df(folder_path + "/" + filename)
                 if is_first_df:
                     window.observable_df = df
-            file.setData(df, role=Qt.UserRole + 1)
+            file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
             branch.appendRow(file)
             is_first_df = False
         root_node.appendRow(branch)
 
+    if window.visualization_df is None:
+        # generate a default vis spec when none is provided
+        branch = QtGui.QStandardItem("Visualization Tables")
+        branch.setEditable(False)
+        df = create_or_update_vis_spec(exp_data=window.exp_data,
+                                       exp_conditions=window.condition_df)[1]
+        df[ptc.PLOT_NAME] = df[ptc.PLOT_ID]
+        window.visualization_df = df
+        df.insert(0, "Displayed", 1)  # needed for the checkbox column
+        file = QtGui.QStandardItem(filename)
+        file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
+        branch.appendRow(file)
+        root_node.appendRow(branch)
+
     if window.simulation_df is not None:
-        branch = QtGui.QStandardItem("simulation_files")
-        simulation_file = QtGui.QStandardItem("simulation_file")
-        simulation_file.setData(window.simulation_df, role=Qt.UserRole + 1)
+        branch = QtGui.QStandardItem(C.SIMULATION_TABLES)
+        simulation_file = QtGui.QStandardItem(C.SIMULATION_FILE)
+        df = window.simulation_df
+        simulation_file.setData({"df": df,
+                                 "name": C.SIMULATION_FILE},
+                                role=C.USER_ROLE)
         branch.appendRow(simulation_file)
         root_node.appendRow(branch)
 
     tree_view.setModel(model)
+    tree_view.expandAll()
     reconnect(tree_view.clicked,
               lambda i: exchange_dataframe_on_click(i, model,
                                                     window, tidy_names))
@@ -183,7 +225,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    df = model.data(index, role=Qt.UserRole + 1)
+    df = model.data(index, role=C.USER_ROLE)["df"]
     parent = index.parent()
     parent_name = model.data(parent, QtCore.Qt.DisplayRole)
     # Only replot when a new dataframe is selected
@@ -207,7 +249,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         if window.observable_df.equals(df):
             df_changed = False
         window.observable_df = df
-    if parent_name == "simulation_files":
+    if parent_name == C.SIMULATION_TABLES:
         if window.simulation_df.equals(df):
             df_changed = False
         window.simulation_df = df
@@ -227,9 +269,11 @@ def display_table_on_doubleclick(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    df = model.data(index, role=Qt.UserRole + 1)
+    data = model.data(index, role=C.USER_ROLE)
+    df = data["df"]
+    name = data["name"]
     if df is not None:
-        pop_up_table_view(window, df)
+        pop_up_table_view(window, df, name)
 
 
 def add_file_selector(window: QtWidgets.QMainWindow):
@@ -238,10 +282,9 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     Arguments:
         window: Mainwindow
     """
-    open_yaml_file = QAction(QIcon('open.png'), 'Open YAML file...', window)
+    open_yaml_file = QAction('Open YAML file...', window)
     open_yaml_file.triggered.connect(lambda x: show_yaml_dialog(window))
-    open_simulation_file = QAction(QIcon('open.png'),
-                                   'Open simulation file...', window)
+    open_simulation_file = QAction('Open simulation file...', window)
     open_simulation_file.triggered.connect(
         lambda x: show_simulation_dialog(window))
     quit = QAction("Quit", window)
@@ -252,6 +295,50 @@ def add_file_selector(window: QtWidgets.QMainWindow):
     file_menu.addAction(open_yaml_file)
     file_menu.addAction(open_simulation_file)
     file_menu.addAction(quit)
+
+
+def add_option_menu(window: QtWidgets.QMainWindow):
+    """
+    Add an option menu to the main window.
+    """
+    open_options = QAction("Options", window)
+    open_options.triggered.connect(lambda x: show_option_menu(window))
+    open_correlation_options = QAction("Correlation Options", window)
+    open_correlation_options.triggered.connect(
+        lambda x: show_correlation_options(window))
+    open_correlation_options.setVisible(False)
+    window.correlation_option_button = open_correlation_options
+    open_overview_plot = QAction("Overview Plot", window)
+    open_overview_plot.triggered.connect(lambda x: show_overview_plot(window))
+    open_overview_plot.setVisible(False)
+    window.overview_plot_button = open_overview_plot
+
+    menubar = window.menuBar()
+    options_menu = menubar.addMenu("&Options")
+    options_menu.addActions([open_options, open_correlation_options,
+                             open_overview_plot])
+
+
+def show_option_menu(window: QtWidgets.QMainWindow):
+    """
+    Open the option window.
+    """
+    window.options_window.show()
+
+
+def show_correlation_options(window: QtWidgets.QMainWindow):
+    """
+    Open the correlation-option window.
+    """
+    window.correlation_options_window.show()
+
+
+def show_overview_plot(window: QtWidgets.QMainWindow):
+    """
+    Open the overview plot window.
+    """
+    overview_window = window.overview_plot_window
+    overview_window.show()
 
 
 def show_yaml_dialog(window: QtWidgets.QMainWindow):
@@ -272,6 +359,7 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"
         settings.setValue("last_dir", last_dir)
+        window.yaml_filename = file_name
 
         window.warn_msg.setText("")
         window.warnings.clear()
@@ -286,7 +374,6 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
                 "The YAML file contains no "
                 "visualization file (default plotted)")
         window.simulation_df = None
-
         # table_tree_view sets the df attributes of the window
         # equal to the first file of each branch
         # (measurement, visualization, ...)
@@ -340,6 +427,11 @@ def show_simulation_dialog(window: QtWidgets.QMainWindow):
                 # insert correlation plot at position 1
                 window.wid.insertWidget(1, window.plot2_widget)
                 table_tree_view(window, os.path.dirname(file_name))
+
+                # add correlation options and overview plot to option menu
+                window.correlation_option_button.setVisible(True)
+                window.overview_plot_button.setVisible(True)
+                window.add_overview_plot_window()
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"

@@ -32,6 +32,7 @@ class PlotRow(row_class.RowClass):
         self.sem = utils.sem_replicates(self.line_data, self.x_var,
                                         self.is_simulation)
         self.provided_noise = self.get_provided_noise()
+        self.simulation_condition_id = self.get_simulation_condition_id()
 
     def get_x_data(self):
         """
@@ -60,6 +61,18 @@ class PlotRow(row_class.RowClass):
 
         return x_data
 
+    def get_simulation_condition_id(self):
+        simulation_condition_id = self.replicates[0][
+            ptc.SIMULATION_CONDITION_ID].unique()
+
+        if len(simulation_condition_id) == 1:
+            return simulation_condition_id[0]
+        else:
+            raise NotImplementedError("The Simulation Condition ID should"
+                                      "be unique for a line and between"
+                                      "replicates")
+
+
     def get_y_data(self):
         """
         Return the mean of the y-values that should be plotted if
@@ -68,7 +81,6 @@ class PlotRow(row_class.RowClass):
         min and max values of the replicates).
         Otherwise, if the replicateId is provided,
         return the y-values of all replicates.
-
 
         Returns:
             y_data: The y-values as numpy array

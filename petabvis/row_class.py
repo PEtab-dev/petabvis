@@ -3,7 +3,7 @@ import pandas as pd
 import petab
 import petab.C as ptc
 
-from . import utils
+from . import utils, C
 
 
 class RowClass:
@@ -63,6 +63,7 @@ class RowClass:
         self.legend_name = utils.get_legend_name(plot_spec)
         self.plot_type_data = utils.get_plot_type_data(plot_spec)
         self.is_simulation = ptc.SIMULATION in exp_data.columns
+        self.simulation_condition_id = ""
 
         # reduce dfs to relevant rows
         self.line_data = exp_data
@@ -78,6 +79,7 @@ class RowClass:
             self.condition_df = utils.reduce_condition_df(self.line_data,
                                                           self.condition_df)
 
+        self.observable_id = utils.get_observable_id(self.line_data)
         self.has_replicates = petab.measurements.measurements_have_replicates(
             self.line_data)
         self.replicates = utils.split_replicates(self.line_data)
@@ -94,14 +96,17 @@ class RowClass:
         """
         if len(self.x_data) == len(self.y_data):
             df = pd.DataFrame(
-                {"x": self.x_data, "y": self.y_data, "name": self.legend_name,
-                 "is_simulation": self.is_simulation,
-                 "dataset_id": self.dataset_id,
-                 "x_label": self.x_label})
+                {C.X: self.x_data, C.Y: self.y_data, C.NAME: self.legend_name,
+                 C.IS_SIMULATION: self.is_simulation,
+                 C.DATASET_ID: self.dataset_id,
+                 C.X_LABEL: self.x_label, C.OBSERVABLE_ID: self.observable_id,
+                 C.SIMULATION_CONDITION_ID: self.simulation_condition_id})
             return df
         else:
             raise Exception(
-                f"Error: The number of x and y values must be equal. Number of x values: {len(self.x_data)}. Number of y values: {len(self.y_data)}")
+                f"Error: The number of x and y values must be equal. "
+                f"Number of x values: {len(self.x_data)}."
+                f" Number of y values: {len(self.y_data)}")
 
     def get_provided_noise(self):
         """

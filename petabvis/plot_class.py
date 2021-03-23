@@ -4,6 +4,7 @@ import petab
 import scipy
 
 from . import utils
+from . import C
 
 
 class PlotClass:
@@ -35,13 +36,20 @@ class PlotClass:
                  visualization_df: pd.DataFrame = None,
                  simulation_df: pd.DataFrame = None,
                  condition_df: pd.DataFrame = None,
-                 plot_id: str = ""):
+                 plot_id: str = "",
+                 color_map: pg.ColorMap = None):
 
         self.measurement_df = measurement_df
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
         self.condition_df = condition_df
+        self.overview_df = pd.DataFrame(
+            columns=[C.X, C.Y, C.NAME, C.IS_SIMULATION, C.DATASET_ID, C.X_VAR,
+                     C.OBSERVABLE_ID, C.SIMULATION_CONDITION_ID])
         self.plot_id = plot_id
+        self.color_map = color_map
+        if color_map is None:
+            self.color_map = utils.generate_color_map("viridis")
         self.error_bars = []
         self.disabled_rows = set()  # set of plot_ids that are disabled
         self.warnings = ""
@@ -52,26 +60,30 @@ class PlotClass:
             self.plot_title = self.plot_id
         self.plot = pg.PlotItem(title=self.plot_title)
         self.correlation_plot = pg.PlotItem(title="Correlation")
-        self.legend = self.plot.addLegend()
+        self.datasetId_to_correlation_points = {}
+        self.r_squared_text = pg.TextItem()
+        self.plot.addLegend()
 
-    def generate_correlation_plot(self, overview_df):
+    def generate_correlation_plot(self, overview_df, color_by=C.DATASET_ID):
         """
         Generate the scatter plot between the
         measurement and simulation values.
 
         Arguments:
             overview_df: Dataframe containing info about the points
-
+            color_by: Id by which the points should be colored
+                      (dataset_id, observable_id or simulationConditionId)
         """
         self.correlation_plot.clear()
-
         if not overview_df.empty:
-            measurements = overview_df[~overview_df["is_simulation"]][
-                "y"].tolist()
-            simulations = overview_df[overview_df["is_simulation"]][
-                "y"].tolist()
+            overview_df = overview_df[~overview_df[C.DATASET_ID].
+                                      isin(self.disabled_rows)]
+            measurements = overview_df[~overview_df[C.IS_SIMULATION]][
+                C.Y].tolist()
+            simulations = overview_df[overview_df[C.IS_SIMULATION]][
+                C.Y].tolist()
 
-            self.add_points(overview_df)
+            self.add_points(overview_df, color_by)
             self.correlation_plot.setLabel("left", "Simulation")
             self.correlation_plot.setLabel("bottom", "Measurement")
 
@@ -81,52 +93,98 @@ class PlotClass:
                                            yRange=(min_value, max_value))
             self.correlation_plot.addItem(pg.InfiniteLine([0, 0], angle=45))
 
-            # calculate and add the r_squared value
-            self.r_squared = self.get_r_squared(measurements, simulations)
-            r_squared_text = "R Squared:\n" + str(self.r_squared)[0:5]
-            r_squared_text = pg.TextItem(str(r_squared_text), anchor=(0, 0),
-                                         color="k")
-            r_squared_text.setPos(min_value, max_value)
-            self.correlation_plot.addItem(r_squared_text, anchor=(0, 0),
-                                          color="k")
+            self.add_r_squared(measurements, simulations, min_value, max_value)
 
-    def add_points(self, overview_df: pd.DataFrame):
+    def add_r_squared(self, measurements, simulations, x_pos, y_pos):
+        """
+        Calculate and add the r-squared value between measurements and
+        simulations to the position defined by x_pos and y_pos.
+        """
+        r_squared = self.get_r_squared(measurements, simulations)
+        text = "R Squared:\n" + str(r_squared)[0:5]
+        self.r_squared_text = pg.TextItem(str(text), anchor=(0, 0),
+                                          color="k")
+        self.r_squared_text.setPos(x_pos, y_pos)
+        self.correlation_plot.addItem(self.r_squared_text, anchor=(0, 0),
+                                      color="k")
+
+    def update_r_squared_text(self):
+        """
+        Recalculate the r-squared value based on self.overview_df
+        and self.disabled_rows and change the r-squared text.
+        """
+        overview_df = self.overview_df[~self.overview_df[C.DATASET_ID].
+                                       isin(self.disabled_rows)]
+        measurements = overview_df[~overview_df[C.IS_SIMULATION]][C.Y].tolist()
+        simulations = overview_df[overview_df[C.IS_SIMULATION]][C.Y].tolist()
+        r_squared = self.get_r_squared(measurements, simulations)
+        text = "R Squared:\n{:.3f}".format(r_squared)
+        self.r_squared_text.setText(str(text))
+
+    def add_points(self, overview_df: pd.DataFrame, grouping):
         """
         Add the points to the scatter plot and
         display an info text when clicking on a point.
 
         Arguments:
             overview_df: Dataframe containing info about the points
+            grouping: Id by which the points should be colored
+                      (dataset_id, observable_id or simulationConditionId)
         """
-        # data
-        measurements = overview_df[~overview_df["is_simulation"]]["y"].tolist()
-        simulations = overview_df[overview_df["is_simulation"]]["y"].tolist()
-        names = overview_df[~overview_df["is_simulation"]]["name"].tolist()
-        point_descriptions = [
-            (names[i] + "\nmeasurement: " + str(measurements[i]) +
-             "\nsimulation: " + str(simulations[i]))
-            for i in range(len(measurements))]
-
-        # only line plots have x-values, barplots do not
-        if "x_label" in overview_df.columns:
-            x = overview_df[~overview_df["is_simulation"]]["x"].tolist()
-            x_label = overview_df[~overview_df["is_simulation"]][
-                "x_label"].tolist()
+        group_ids = overview_df[grouping].unique()
+        overview_df = overview_df[~overview_df[C.DATASET_ID].
+                                  isin(self.disabled_rows)]
+        color_lookup = self.color_map.getLookupTable(nPts=len(group_ids))
+        for i, group_id in enumerate(group_ids):
+            if group_id in self.disabled_rows:
+                continue
+            # data
+            reduced_df = overview_df[overview_df[grouping] == group_id]
+            measurements = reduced_df[~reduced_df[C.IS_SIMULATION]][C.Y]
+            measurements = measurements.tolist()
+            simulations = reduced_df[reduced_df[C.IS_SIMULATION]][C.Y].tolist()
+            names = reduced_df[~reduced_df[C.IS_SIMULATION]][C.NAME].tolist()
+            simulation_condition_ids = reduced_df[~reduced_df[
+                C.IS_SIMULATION]][C.SIMULATION_CONDITION_ID].tolist()
+            observable_ids = reduced_df[reduced_df[
+                C.IS_SIMULATION]][C.OBSERVABLE_ID].tolist()
             point_descriptions = [
-                (point_descriptions[i] + "\n" + str(x_label[i])) + ": " +
-                str(x[i]) for i in range(len(point_descriptions))]
+                (names[i] + "\nmeasurement: " + str(measurements[i]) +
+                 "\nsimulation: " + str(simulations[i]) +
+                 "\n" + C.SIMULATION_CONDITION_ID + ": " +
+                 str(simulation_condition_ids[i]) + "\n" + C.OBSERVABLE_ID +
+                 ": " + str(observable_ids[i]))
+                for i in range(len(measurements))]
 
-        # create the scatterplot
-        scatter_plot = pg.ScatterPlotItem(pen=pg.mkPen(None),
-                                          brush=pg.mkBrush(0, 0, 0))
-        spots = [{'pos': [m, s], 'data': idx} for m, s, idx in
-                 zip(measurements, simulations, point_descriptions)]
-        scatter_plot.addPoints(spots)
-        self.correlation_plot.addItem(scatter_plot)
+            # only line plots have x-values, barplots do not
+            if C.X_LABEL in reduced_df.columns:
+                x = reduced_df[~reduced_df[C.IS_SIMULATION]][C.X].tolist()
+                x_label = reduced_df[~reduced_df[C.IS_SIMULATION]][
+                    C.X_LABEL].tolist()
+                point_descriptions = [
+                    (point_descriptions[i] + "\n" + str(x_label[i])) + ": " +
+                    str(x[i]) for i in range(len(point_descriptions))]
 
-        # add interaction
+            # create the scatterplot
+            color = color_lookup[i]
+            scatter_plot = pg.ScatterPlotItem(pen=pg.mkPen(None),
+                                              brush=pg.mkBrush(color),
+                                              name=group_id)
+            spots = [{'pos': [m, s], 'data': idx} for m, s, idx in
+                     zip(measurements, simulations, point_descriptions)]
+            scatter_plot.addPoints(spots)
+            self.correlation_plot.addItem(scatter_plot)
+            self.add_point_interaction(scatter_plot)
+            if grouping == C.DATASET_ID:
+                self.datasetId_to_correlation_points[group_id] = scatter_plot
+
+    def add_point_interaction(self, scatter_plot):
+        """
+        Display a text with point information on-click.
+        """
         last_clicked = None
-        info_text = pg.TextItem("", anchor=(0, 0), color="k", fill="w")
+        info_text = pg.TextItem("", anchor=(0, 0), color="k",
+                                fill="w", border="k")
 
         def clicked(plot, points):
             nonlocal last_clicked
@@ -158,6 +216,8 @@ class PlotClass:
         Returns:
             The R^2 value
         """
+        if not measurements or not simulations:
+            return 0
         slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(
             measurements, simulations)
         print("Linear Regression Statistics for " + self.plot_title + ":")
@@ -177,6 +237,33 @@ class PlotClass:
         # filter out double warnings
         if message not in self.warnings:
             self.warnings = self.warnings + message + "\n"
+
+    def disable_correlation_points(self, dataset_id):
+        """
+        Disable the points in the plot with the given dataset_id.
+        """
+        points = self.datasetId_to_correlation_points[dataset_id]
+        self.correlation_plot.removeItem(points)
+        self.update_r_squared_text()
+
+    def enable_correlation_points(self, dataset_id):
+        """
+        Enable the points in the plot with the given `dataset_id`.
+        """
+        points = self.datasetId_to_correlation_points[dataset_id]
+        self.correlation_plot.addItem(points)
+        self.update_r_squared_text()
+
+    def set_color_map(self, color_map: pg.ColorMap):
+        """
+        Set the colormap attribute and color the points
+        in the correlation plot accordingly.
+        """
+        self.color_map = color_map
+        items = self.correlation_plot.listDataItems()
+        color_lookup = self.color_map.getLookupTable(nPts=len(items))
+        for i, item in enumerate(items):
+            item.setBrush(pg.mkBrush(color_lookup[i]))
 
     def get_plot(self):
         return self.plot

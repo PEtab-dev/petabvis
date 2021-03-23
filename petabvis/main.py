@@ -13,6 +13,8 @@ from . import utils
 from . import vis_spec_plot
 from . import window_functionality
 from .bar_plot import BarPlot
+from .options_window import (OptionMenu, CorrelationOptionMenu,
+                             OverviewPlotWindow)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -28,7 +30,7 @@ class MainWindow(QtWidgets.QMainWindow):
         plot1_widget: pg.GraphicsLayoutWidget containing the main plot
         plot2_widget: pg.GraphicsLayoutWidget containing the correlation plot
         warn_msg: QLabel displaying current warning messages
-        table_window: Popup TableWidget displaying the clicked table
+        popup_tables: List of Popup TableWidget displaying the clicked table
         tree_view: QTreeView of the yaml file
         visu_spec_plots: A list of VisuSpecPlots
         cbox: A dropdown menu for the plots
@@ -49,16 +51,19 @@ class MainWindow(QtWidgets.QMainWindow):
         pg.setConfigOption("antialias", True)
         self.resize(1000, 600)
         self.setWindowTitle("petabvis")
+        self.yaml_filename = ""
         self.yaml_dict = None
         self.visualization_df = visualization_df
         self.simulation_df = simulation_df
         self.condition_df = condition_df
         self.observable_df = observable_df
         self.exp_data = exp_data
+        self.color_map = None
         self.vis_spec_plots = []
         self.wid = QtWidgets.QSplitter()
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
         self.plot2_widget = pg.GraphicsLayoutWidget(show=False)
+        self.overview_plot_window = None
         self.wid.addWidget(self.plot1_widget)
         # plot2_widget will be added to the QSplitter when
         # a simulation file is opened
@@ -68,8 +73,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.warnings = []
         self.warning_counter = {}
         # The new window that pops up to display a table
-        self.table_window = None
-        self.popup_windows = []
+        self.popup_tables = []
+        self.options_window = OptionMenu(window=self,
+                                         vis_spec_plots=self.vis_spec_plots)
+        self.correlation_options_window = \
+            CorrelationOptionMenu(vis_spec_plots=self.vis_spec_plots)
+        self.correlation_option_button = None
+        self.overview_plot_button = None
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
         self.wid.addWidget(self.tree_view)
@@ -78,6 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
         warnings.showwarning = self.redirect_warning
 
         window_functionality.add_file_selector(self)
+        window_functionality.add_option_menu(self)
         if self.exp_data is not None:
             self.add_plots()
 
@@ -110,6 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.clear_qsplitter()
         self.vis_spec_plots.clear()
+        self.options_window.reset_states()
 
         if self.visualization_df is not None:
             # to keep the order of plots consistent
@@ -237,11 +249,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 vis_plot = vis_spec_plot.VisSpecPlot(
                     measurement_df=data, visualization_df=None,
                     condition_df=self.condition_df,
-                    simulation_df=simulation_df, plot_id=observable_id)
+                    simulation_df=simulation_df, plot_id=observable_id,
+                    color_map=self.color_map)
                 self.vis_spec_plots.append(vis_plot)
                 if vis_plot.warnings:
                     self.add_warning(vis_plot.warnings)
-
         else:
             # reduce the visualization df to the relevant rows (by plotId)
             rows = self.visualization_df[ptc.PLOT_ID] == plot_id
@@ -262,7 +274,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     measurement_df=self.exp_data,
                     visualization_df=vis_df,
                     condition_df=self.condition_df,
-                    simulation_df=self.simulation_df, plot_id=plot_id)
+                    simulation_df=self.simulation_df, plot_id=plot_id,
+                    color_map=self.color_map)
                 self.vis_spec_plots.append(vis_plot)
                 if vis_plot.warnings:
                     self.add_warning(vis_plot.warnings)
@@ -274,6 +287,10 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.plot1_widget.clear()
         self.plot2_widget.clear()
+
+    def add_overview_plot_window(self):
+        self.overview_plot_window = OverviewPlotWindow(self.exp_data,
+                                                       self.simulation_df)
 
 
 def main():
