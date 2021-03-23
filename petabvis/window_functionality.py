@@ -157,7 +157,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
                 df = petab.get_observable_df(folder_path + "/" + filename)
                 if is_first_df:
                     window.observable_df = df
-            file.setData({"df": df, "name": filename}, role=Qt.UserRole+1)
+            file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
             branch.appendRow(file)
             is_first_df = False
         root_node.appendRow(branch)
@@ -172,7 +172,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         window.visualization_df = df
         df.insert(0, "Displayed", 1)  # needed for the checkbox column
         file = QtGui.QStandardItem(filename)
-        file.setData({"df": df, "name": filename}, role=Qt.UserRole+1)
+        file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
         branch.appendRow(file)
         root_node.appendRow(branch)
 
@@ -182,7 +182,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         df = window.simulation_df
         simulation_file.setData({"df": df,
                                  "name": C.SIMULATION_FILE},
-                                role=Qt.UserRole + 1)
+                                role=C.USER_ROLE)
         branch.appendRow(simulation_file)
         root_node.appendRow(branch)
 
@@ -225,7 +225,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    df = model.data(index, role=Qt.UserRole + 1)["df"]
+    df = model.data(index, role=C.USER_ROLE)["df"]
     parent = index.parent()
     parent_name = model.data(parent, QtCore.Qt.DisplayRole)
     # Only replot when a new dataframe is selected
@@ -269,7 +269,7 @@ def display_table_on_doubleclick(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    data = model.data(index, role=Qt.UserRole + 1)
+    data = model.data(index, role=C.USER_ROLE)
     df = data["df"]
     name = data["name"]
     if df is not None:

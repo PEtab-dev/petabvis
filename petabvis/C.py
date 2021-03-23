@@ -1,3 +1,4 @@
+from PySide2.QtCore import Qt
 
 """
 This file contains constant definitions.
@@ -25,3 +26,5 @@ SD = "sd"
 SEM = "sem"
 PROVIDED_NOISE = "provided_noise"
 TICK_POS = "tick_pos"
+
+USER_ROLE = Qt.UserRole+1
