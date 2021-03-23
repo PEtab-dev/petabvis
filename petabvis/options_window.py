@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 
 from PySide2 import QtGui, QtCore
@@ -6,6 +7,7 @@ from PySide2.QtWidgets import (QVBoxLayout, QWidget, QCheckBox,
                                QComboBox, QLabel, QPushButton)
 from PySide2.QtCore import Qt
 import petab.C as ptc
+import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 import petab
@@ -300,8 +302,15 @@ class OverviewPlotWindow(QtGui.QMainWindow):
                 df_id = df[df[ptc.OBSERVABLE_ID] == id]
             measurements = df_id[ptc.MEASUREMENT].tolist()
             simulations = df_id[ptc.SIMULATION].tolist()
-            r_squared_value = utils.r_squared(measurements, simulations)
-            r_squared_values.append(r_squared_value)
+            # catch case that would lead to sqrt and double scalar warnings
+            if np.all(np.array(measurements) == measurements[0]) and \
+                    np.all(np.array(simulations) == simulations[0]):
+                r_squared_values.append(0)
+                warnings.warn("All measurement and simulation values "
+                              "are the same (use R squared value 0)")
+            else:
+                r_squared_value = utils.r_squared(measurements, simulations)
+                r_squared_values.append(r_squared_value)
         bar_item = pg.BarGraphItem(x=list(range(len(r_squared_values))),
                                    height=r_squared_values,
                                    width=self.bar_width,
