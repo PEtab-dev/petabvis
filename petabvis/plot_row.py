@@ -68,9 +68,10 @@ class PlotRow(row_class.RowClass):
         if len(simulation_condition_id) == 1:
             return simulation_condition_id[0]
         else:
-            raise NotImplementedError("The Simulation Condition ID should"
-                                      "be unique for a line and between"
-                                      "replicates")
+            return "HI"
+            #raise NotImplementedError("The Simulation Condition ID should"
+             #                         "be unique for a line and between"
+             #                         "replicates")
 
 
     def get_y_data(self):
@@ -86,7 +87,9 @@ class PlotRow(row_class.RowClass):
             y_data: The y-values as numpy array
         """
         # for replicate plots
-        if self.plot_type_data == ptc.REPLICATE:
+        if self.plot_type_data == ptc.REPLICATE and\
+                ptc.REPLICATE_ID in self.line_data.columns:
+            self.get_min_and_max_of_replicates()
             return np.hstack(self.get_replicate_y_data())
 
         # variable is either measurement or simulation
@@ -96,6 +99,27 @@ class PlotRow(row_class.RowClass):
         y_data = y_data + self.y_offset
 
         return y_data
+
+    def get_min_and_max_of_replicates(self):
+        """
+        Return the min and max values of the replicates
+        grouped by x-values (only needed for replicate
+        plots without replicateID).
+        """
+
+        grouping = ptc.TIME
+        if self.x_var != ptc.TIME:
+            # for concentration plots we group by
+            # simulationConditionId
+            grouping = ptc.SIMULATION_CONDITION_ID
+        y_var = self.get_y_variable_name()
+        data = self.line_data[[y_var, grouping]]
+        grouped = data.groupby(grouping)
+        mins = grouped.min()
+        mins = mins[y_var].to_numpy()
+        maxs = grouped.max()
+        maxs = maxs[y_var].to_numpy()
+        return mins, maxs
 
     def get_replicate_x_data(self):
         """
@@ -121,7 +145,7 @@ class PlotRow(row_class.RowClass):
                 raise Exception("Error occurred when deriving the x-values "
                                 "for replicates of a concentration plot")
 
-        default_x_values = [x for _, x in
+        default_x_values = [x for x, _ in
                             self.replicates[0].groupby(self.x_var, sort=True)]
         for replicate in self.replicates:
             if ptc.REPLICATE_ID in self.line_data.columns:
@@ -130,7 +154,7 @@ class PlotRow(row_class.RowClass):
                 # when no explicit replicate id is given, we assume that
                 # each replicate uses the same x-values which are determined
                 # by the unique x-values in the data
-                x_values = default_x_values
+                x_values = np.asarray(default_x_values)
             x_values = x_values + self.x_offset
             x_data.append(x_values)
 

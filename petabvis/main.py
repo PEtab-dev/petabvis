@@ -58,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.condition_df = condition_df
         self.observable_df = observable_df
         self.exp_data = exp_data
-        self.color_map = None
+        self.color_map = utils.generate_color_map("viridis")
         self.vis_spec_plots = []
         self.wid = QtWidgets.QSplitter()
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
