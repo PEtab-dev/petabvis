@@ -34,6 +34,7 @@ class DottedLine:
         self.pen = pg.mkPen(self.color)
         self.style: QtCore.Qt.PenStyle = QtCore.Qt.DashDotLine
         self.symbol_size = 7
+        self.line_width = 2
 
     def initialize_from_plot_row(self, p_row: plot_row.PlotRow):
         """
@@ -91,26 +92,38 @@ class DottedLine:
             y_data = self.p_row.get_replicate_y_data()
             first_replicate = True
             for x, y in zip(x_data, y_data):
+                point_descriptions = ["DatasetID: " + self.p_row.dataset_id + "\n" +
+                                      self.p_row.x_label + ": " + str(x[i]) +
+                                      "\n" +
+                                      self.p_row.y_label + ": " + str(y[i])
+                                      for i in range(len(x))]
+
+                line = pg.PlotDataItem(x, y,
+                                       symbolPen=self.pen,
+                                       symbol=symbol,
+                                       symbolSize=7,
+                                       data=point_descriptions)
+                self.lines.append(line)
+
                 if first_replicate:
-                    self.lines.append(pg.PlotDataItem(x, y,
-                                                      name=legend_name,
-                                                      symbolPen=self.pen,
-                                                      symbol=symbol,
-                                                      symbolSize=7))
-                    first_replicate = False
-                else:
                     # if all would replicate have a legend_name,
                     # that name would be duplicated in the legend
-                    self.lines.append(pg.PlotDataItem(x, y,
-                                                      symbolPen=self.pen,
-                                                      symbol=symbol,
-                                                      symbolSize=7))
+                    # therefore, we only add an entry for the first replicate
+                    line.opts["name"] = legend_name
+                    first_replicate = False
         else:
-            self.lines.append(pg.PlotDataItem(self.p_row.x_data,
-                                              self.p_row.y_data,
-                                              name=legend_name,
-                                              symbolPen=self.pen,
-                                              symbol=symbol, symbolSize=7))
+            point_descriptions = ["DatasetID: " + self.p_row.dataset_id + "\n" +
+                                  self.p_row.x_label + ": " + str(self.p_row.x_data[i]) +
+                                  "\n" +
+                                  self.p_row.y_label + ": " + str(self.p_row.y_data[i])
+                                  for i in range(len(self.p_row.x_data))]
+            line = pg.PlotDataItem(self.p_row.x_data,
+                                   self.p_row.y_data,
+                                   name=legend_name,
+                                   symbolPen=self.pen,
+                                   symbol=symbol, symbolSize=7,
+                                   data=point_descriptions)
+            self.lines.append(line)
             # for replicate plots without replicateID add a fill_between item
             if self.p_row.plot_type_data == ptc.REPLICATE and \
                     self.p_row.has_replicates and \
@@ -149,6 +162,32 @@ class DottedLine:
                                 beam=beam_width)
         self.error_bars.append(error)
 
+    def add_point_interaction(self, add_to_plot):
+        last_clicked = None
+        info_text = pg.TextItem("", anchor=(0, 0), color="k",
+                                fill="w", border="k")
+        def clicked(plot, points):
+            nonlocal last_clicked
+            nonlocal info_text
+            nonlocal add_to_plot
+            print(points[0].data())
+            if last_clicked is not None:
+                last_clicked.resetPen()
+            # remove the text when the same point is clicked twice
+            if (last_clicked == points[0]
+                    and info_text.textItem.toPlainText() != ""):
+                info_text.setText("")
+                add_to_plot.removeItem(info_text)
+            else:
+                points[0].setPen('b', width=2)
+                info_text.setText(str((points[0].data())))
+                info_text.setPos(points[0].pos())
+                add_to_plot.addItem(info_text)
+                last_clicked = points[0]
+
+        for plot_data_item in self.lines:
+            plot_data_item.sigPointsClicked.connect(clicked)
+
     def add_to_plot(self, plot, color="k", add_error_bars=True):
         """
         Add all lines and error bars of
@@ -180,7 +219,7 @@ class DottedLine:
             # of the line should stay black to be visible
             if self.fill_between_items:
                 new_color = "k"
-            line.setPen(new_color, style=self.style, width=2)
+            line.setPen(new_color, style=self.style, width=self.line_width)
             line.setSymbolBrush(self.color)
         for error_bars in self.error_bars:
             error_bars.setData(pen=self.pen)
@@ -245,7 +284,7 @@ class DottedLine:
             fill.setBrush(self.color)
             color = "k"  # make lines black when using fill items
         for line in self.lines:
-            line.setPen(color, style=self.style, width=2)
+            line.setPen(color, style=self.style, width=self.line_width)
 
     def show_points(self):
         """

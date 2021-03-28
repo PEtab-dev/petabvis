@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import petab.C as ptc
+import warnings
 
 from . import row_class
 from . import utils
@@ -68,10 +69,12 @@ class PlotRow(row_class.RowClass):
         if len(simulation_condition_id) == 1:
             return simulation_condition_id[0]
         else:
-            return "HI"
-            #raise NotImplementedError("The Simulation Condition ID should"
-             #                         "be unique for a line and between"
-             #                         "replicates")
+            warnings.warn("The Simulation Condition ID should "
+                          "be unique for a line and between replicates")
+            return "Simulation Condition ID not unique for line"
+            #raise NotImplementedError("The Simulation Condition ID should "
+            #                         "be unique for a line and between "
+            #                         "replicates")
 
 
     def get_y_data(self):

@@ -359,25 +359,14 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"
         settings.setValue("last_dir", last_dir)
-        window.yaml_filename = file_name
 
         window.warn_msg.setText("")
         window.warnings.clear()
         window.warning_counter.clear()
 
-        # select the first df in the dict for measurements, etc.
-        yaml_dict = petab.load_yaml(file_name)["problems"][0]
-        window.yaml_dict = yaml_dict
-        if ptc.VISUALIZATION_FILES not in yaml_dict:
-            window.visualization_df = None
-            window.add_warning(
-                "The YAML file contains no "
-                "visualization file (default plotted)")
         window.simulation_df = None
-        # table_tree_view sets the df attributes of the window
-        # equal to the first file of each branch
-        # (measurement, visualization, ...)
-        table_tree_view(window, last_dir)
+        window.yaml_filename = file_name
+        window.read_data_from_yaml_file()
         window.add_plots()
 
 
@@ -404,34 +393,7 @@ def show_simulation_dialog(window: QtWidgets.QMainWindow):
             window.warnings.clear()
             window.warning_counter.clear()
 
-            sim_data = core.get_simulation_df(file_name)
-            # check columns, and add non-mandatory default columns
-            sim_data, _, _ = check_ex_exp_columns(
-                sim_data, None, None, None, None, None,
-                window.condition_df, sim=True)
-            # delete the replicateId column if it gets added to the simulation
-            # table but is not in exp_data because it causes problems when
-            # splitting the replicates
-            if ptc.REPLICATE_ID not in window.exp_data.columns \
-                    and ptc.REPLICATE_ID in sim_data.columns:
-                sim_data.drop(ptc.REPLICATE_ID, axis=1, inplace=True)
-
-            if len(window.yaml_dict[ptc.MEASUREMENT_FILES]) > 1:
-                window.add_warning(
-                    "Not Implemented Error: Loading a simulation file with "
-                    "multiple measurement files is currently not supported.")
-            else:
-                window.simulation_df = sim_data
-                window.add_plots()
-
-                # insert correlation plot at position 1
-                window.wid.insertWidget(1, window.plot2_widget)
-                table_tree_view(window, os.path.dirname(file_name))
-
-                # add correlation options and overview plot to option menu
-                window.correlation_option_button.setVisible(True)
-                window.overview_plot_button.setVisible(True)
-                window.add_overview_plot_window()
+            window.add_and_plot_simulation_file(file_name)
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"

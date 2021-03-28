@@ -201,6 +201,7 @@ class VisSpecPlot(plot_class.PlotClass):
         """
         dot_line = dotted_line.DottedLine()
         dot_line.initialize_from_plot_row(p_row)
+        dot_line.add_point_interaction(self.plot)
         self.datasetId_to_dotted_line[dot_line.dataset_id] = dot_line
 
         return dot_line
