@@ -331,7 +331,7 @@ class DottedLine:
 
     def get_line_color(self):
         """
-        Return black if using fill_between_times to make the line visible.
+        Return black if using `fill_between_items` to make the line visible.
         Otherwise, return "self.color".
 
         Returns:
