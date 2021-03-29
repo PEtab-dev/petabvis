@@ -10,9 +10,7 @@ from PySide2.QtCore import (Qt, QSortFilterProxyModel)
 from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView, QPushButton,
                                QSizePolicy, QTableView, QWidget, QFileDialog,
                                QHBoxLayout)
-from petab import core
-from petab.visualize.helper_functions import (check_ex_exp_columns,
-                                              create_or_update_vis_spec)
+from petab.visualize.helper_functions import create_or_update_vis_spec
 
 from . import table_models
 from . import C
@@ -72,11 +70,17 @@ class TableWidget(QWidget):
         self.setLayout(self.main_layout)
 
     def sort_by_highlight(self):
+        """
+        Sort the data table such that highlighted rows are on top.
+        """
         self.filter_proxy.setSortRole(Qt.BackgroundRole)
         self.filter_proxy.sort(1, Qt.AscendingOrder)
         self.filter_proxy.setSortRole(Qt.DisplayRole)
 
     def restore_order(self):
+        """
+        Restore the initial order of the data table.
+        """
         self.filter_proxy.setSortRole(Qt.InitialSortOrderRole)
         self.filter_proxy.sort(-1, Qt.AscendingOrder)
         self.filter_proxy.setSortRole(Qt.DisplayRole)
@@ -162,8 +166,8 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
             is_first_df = False
         root_node.appendRow(branch)
 
+    # generate a default vis spec when none is provided
     if window.visualization_df is None:
-        # generate a default vis spec when none is provided
         branch = QtGui.QStandardItem("Visualization Tables")
         branch.setEditable(False)
         df = create_or_update_vis_spec(exp_data=window.exp_data,
@@ -176,23 +180,41 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         branch.appendRow(file)
         root_node.appendRow(branch)
 
-    if window.simulation_df is not None:
-        branch = QtGui.QStandardItem(C.SIMULATION_TABLES)
-        simulation_file = QtGui.QStandardItem(C.SIMULATION_FILE)
-        df = window.simulation_df
-        simulation_file.setData({"df": df,
-                                 "name": C.SIMULATION_FILE},
-                                role=C.USER_ROLE)
-        branch.appendRow(simulation_file)
-        root_node.appendRow(branch)
-
     tree_view.setModel(model)
     tree_view.expandAll()
+    window.tree_root_node = root_node
     reconnect(tree_view.clicked,
               lambda i: exchange_dataframe_on_click(i, model,
                                                     window, tidy_names))
     reconnect(tree_view.doubleClicked,
               lambda i: display_table_on_doubleclick(i, model, window))
+
+
+def add_simulation_df_to_tree_view(window, filename):
+    """
+    Add the simulation df to the tree_view of the main window.
+    If no simulation df has been added to the tree_view yet,
+    also create a "Simulation Tables" branch.
+
+    Arguments:
+        window: Main window to add the simulation df to.
+        filename: The name of the simulation file.
+    """
+    simulation_df = window.simulation_df
+    root_node = window.tree_root_node
+    simulation_branch = window.simulation_tree_branch
+    if simulation_branch is None:
+        simulation_branch = QtGui.QStandardItem(C.SIMULATION_TABLES)
+        simulation_branch.setEditable(False)
+        root_node.appendRow(simulation_branch)
+        window.simulation_tree_branch = simulation_branch
+
+    simulation_file = QtGui.QStandardItem(filename)
+    simulation_file.setData({"df": simulation_df,
+                             "name": filename},
+                            role=C.USER_ROLE)
+    simulation_branch.appendRow(simulation_file)
+    window.tree_view.expandAll()
 
 
 def reconnect(signal, new_function=None):

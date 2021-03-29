@@ -6,6 +6,7 @@ import pyqtgraph as pg
 from PySide2 import QtCore
 
 from . import plot_row
+from . import C
 
 
 class DottedLine:
@@ -33,8 +34,8 @@ class DottedLine:
         self.color: str = "k"
         self.pen = pg.mkPen(self.color)
         self.style: QtCore.Qt.PenStyle = QtCore.Qt.DashDotLine
-        self.symbol_size = 7
-        self.line_width = 2
+        self.line_width = C.LINE_WIDTH
+        self.symbol_size = C.POINT_SIZE
 
     def initialize_from_plot_row(self, p_row: plot_row.PlotRow):
         """
@@ -101,7 +102,7 @@ class DottedLine:
                 line = pg.PlotDataItem(x, y,
                                        symbolPen=self.pen,
                                        symbol=symbol,
-                                       symbolSize=7,
+                                       symbolSize=self.symbol_size,
                                        data=point_descriptions)
                 self.lines.append(line)
 
@@ -121,7 +122,7 @@ class DottedLine:
                                    self.p_row.y_data,
                                    name=legend_name,
                                    symbolPen=self.pen,
-                                   symbol=symbol, symbolSize=7,
+                                   symbol=symbol, symbolSize=self.symbol_size,
                                    data=point_descriptions)
             self.lines.append(line)
             # for replicate plots without replicateID add a fill_between item
@@ -163,6 +164,12 @@ class DottedLine:
         self.error_bars.append(error)
 
     def add_point_interaction(self, add_to_plot):
+        """
+        Display a textbox with information of the clicked point.
+
+        Arguments:
+            add_to_plot: The plot to which the info box is added.
+        """
         last_clicked = None
         info_text = pg.TextItem("", anchor=(0, 0), color="k",
                                 fill="w", border="k")
@@ -170,7 +177,6 @@ class DottedLine:
             nonlocal last_clicked
             nonlocal info_text
             nonlocal add_to_plot
-            print(points[0].data())
             if last_clicked is not None:
                 last_clicked.resetPen()
             # remove the text when the same point is clicked twice
@@ -217,8 +223,7 @@ class DottedLine:
         for line in self.lines:
             # when fill_between items are present, the color
             # of the line should stay black to be visible
-            if self.fill_between_items:
-                new_color = "k"
+            new_color = self.get_line_color()
             line.setPen(new_color, style=self.style, width=self.line_width)
             line.setSymbolBrush(self.color)
         for error_bars in self.error_bars:
@@ -279,10 +284,9 @@ class DottedLine:
         """
         Show all lines.
         """
-        color = self.color
         for fill in self.fill_between_items:
             fill.setBrush(self.color)
-            color = "k"  # make lines black when using fill items
+        color = self.get_line_color()
         for line in self.lines:
             line.setPen(color, style=self.style, width=self.line_width)
 
@@ -300,3 +304,32 @@ class DottedLine:
         """
         for error in self.error_bars:
             error.setData(pen=self.pen)
+
+    def set_line_width(self, width):
+        """
+        Set the width of the lines.
+        """
+        self.line_width = width
+        for line in self.lines:
+            line.setPen(self.color, style=self.style, width=self.line_width)
+
+    def set_point_size(self, size):
+        """
+        Set the size of the points
+        """
+        self.symbol_size = size
+        for line in self.lines:
+            line.opts["symbolSize"] = size
+            line.setPen(self.color, style=self.style, width=self.line_width)
+
+    def get_line_color(self):
+        """
+        Return black if using fill_between_times to make the line visible.
+        Otherwise, return "self.color".
+
+        Returns:
+            The color of the line.
+        """
+        if self.fill_between_items:
+            return "k"
+        return self.color

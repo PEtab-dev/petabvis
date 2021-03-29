@@ -4,7 +4,8 @@ from pathlib import Path
 
 from PySide2 import QtGui, QtCore
 from PySide2.QtWidgets import (QVBoxLayout, QWidget, QCheckBox,
-                               QComboBox, QLabel, QPushButton)
+                               QComboBox, QLabel, QPushButton,
+                               QDoubleSpinBox)
 from PySide2.QtCore import Qt
 import petab.C as ptc
 import numpy as np
@@ -30,41 +31,104 @@ class OptionMenu(QtGui.QMainWindow):
         self.setWindowTitle("Options")
         self.plots = vis_spec_plots
         self.main_window = window
-        layout = QVBoxLayout()
+        self.layout = QVBoxLayout()
 
         # add checkboxes
         self.line_box = QCheckBox("Lines", self)
         self.point_box = QCheckBox("Points", self)
         self.error_box = QCheckBox("Error bars", self)
+        self.add_checkbox_functionality()
+
+        # add colormap options
+        self.color_map_selector = QComboBox()  # dropdown menu to select plots
+        self.add_colormap_selector()
+
+        # add option to select line width
+        self.add_line_width_box()
+
+        # add option to select point_size
+        self.add_point_size_box()
+
+        # add vis spec save option
+        self.save_to_yaml_box = QCheckBox("Add vis spec to YAML file", self)
+        self.add_save_option()
+
+        widget = QWidget()
+        widget.setLayout(self.layout)
+        self.setCentralWidget(widget)
+
+    def add_checkbox_functionality(self):
+        """
+        Add a line, point and error bar checkbox to the layout and
+        provide them with their functionality.
+        """
         self.reset_states()
         self.line_box.stateChanged.connect(self.lines_box_changed)
         self.point_box.stateChanged.connect(self.point_box_changed)
         self.error_box.stateChanged.connect(self.error_box_changed)
-        layout.addWidget(self.line_box)
-        layout.addWidget(self.point_box)
-        layout.addWidget(self.error_box)
+        self.layout.addWidget(self.line_box)
+        self.layout.addWidget(self.point_box)
+        self.layout.addWidget(self.error_box)
 
-        # add colormap options
-        self.color_map_text = QLabel("Choose colormap:")
-        self.cbox = QComboBox()  # dropdown menu to select plots
-        self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
-        self.cbox.addItems(["viridis", "plasma",
+    def add_colormap_selector(self):
+        """
+        Add a dropdown menu to select a colormap to the layout.
+        """
+        color_map_text = QLabel("Choose colormap:")
+        self.color_map_selector.currentIndexChanged.connect(lambda x: self.index_changed(x))
+        self.color_map_selector.addItems(["viridis", "plasma",
                             "inferno", "magma", "cividis"])
-        layout.addWidget(self.color_map_text)
-        layout.addWidget(self.cbox)
+        self.layout.addWidget(color_map_text)
+        self.layout.addWidget(self.color_map_selector)
 
-        # add vis spec save option
-        self.save_text = QLabel("Save visualization table:")
-        self.save_to_yaml_box = QCheckBox("Add vis spec to YAML file", self)
-        self.save_button = QPushButton("Save visualization table")
-        layout.addWidget(self.save_text)
-        layout.addWidget(self.save_to_yaml_box)
-        layout.addWidget(self.save_button)
-        self.save_button.clicked.connect(self.save_vis_spec)
+    def add_line_width_box(self):
+        """
+        Add a box for specifying the width of the lines and
+        add a description for the box to the layout.
+        """
+        line_width_box = QDoubleSpinBox()
+        line_width_box.setObjectName("line_width_box")
+        line_width_box.setValue(C.LINE_WIDTH)
+        line_width_box.valueChanged.connect(
+            lambda x: self.value_changed(line_width_box))
+        line_width_text = QLabel("Line width: ")
+        self.layout.addWidget(line_width_text)
+        self.layout.addWidget(line_width_box)
 
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+    def add_point_size_box(self):
+        """
+        Add a box for specifying the size of the points and
+        add a description for the box to the layout.
+        """
+        point_size_box = QDoubleSpinBox()
+        point_size_box.setObjectName("point_size_box")
+        point_size_box.setValue(C.POINT_SIZE)
+        point_size_box.valueChanged.connect(
+            lambda x: self.value_changed(point_size_box))
+        point_size_text = QLabel("Point size: ")
+        self.layout.addWidget(point_size_text)
+        self.layout.addWidget(point_size_box)
+
+    def add_save_option(self):
+        """
+        Add a button for saving the visualization df to the layout.
+        """
+        save_text = QLabel("Save visualization table:")
+        save_button = QPushButton("Save visualization table")
+        self.layout.addWidget(save_text)
+        self.layout.addWidget(self.save_to_yaml_box)
+        self.layout.addWidget(save_button)
+        save_button.clicked.connect(self.save_vis_spec)
+
+    def value_changed(self, box):
+        value = box.value()
+        for plot in self.plots:
+            if isinstance(plot, VisSpecPlot):
+                for line in plot.dotted_lines + plot.dotted_simulation_lines:
+                    if box.objectName() == "line_width_box":
+                        line.set_line_width(value)
+                    elif box.objectName() == "point_size_box":
+                        line.set_point_size(value)
 
     def save_vis_spec(self):
         """
@@ -103,13 +167,12 @@ class OptionMenu(QtGui.QMainWindow):
             yaml_dict[ptc.PROBLEMS][0][ptc.VISUALIZATION_FILES] = [basename]
         petab.write_yaml(yaml_dict, self.main_window.yaml_filename)
 
-
     def index_changed(self, i: int):
         """
         Color the plot using the selected
         colormap.
         """
-        cm_name = self.cbox.itemText(i)
+        cm_name = self.color_map_selector.itemText(i)
         color_map = utils.generate_color_map(cm_name)
         self.main_window.color_map = color_map
         for plot in self.plots:
@@ -207,7 +270,6 @@ class OverviewPlotWindow(QtGui.QMainWindow):
     """
     Window for plotting and displaying an overview plot.
     """
-
     def __init__(self, measurement_df, simulation_df):
         super(OverviewPlotWindow, self).__init__()
         self.measurement_df = measurement_df

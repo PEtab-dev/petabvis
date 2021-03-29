@@ -83,6 +83,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.overview_plot_button = None
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
+        self.tree_root_node = None
+        self.simulation_tree_branch = None
         self.wid.addWidget(self.tree_view)
         self.current_list_index = 0
 
@@ -161,7 +163,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # insert correlation plot at position 1
             self.wid.insertWidget(1, self.plot2_widget)
-            window_functionality.table_tree_view(self, os.path.dirname(filename))
+            filename = os.path.basename(filename)
+            window_functionality.add_simulation_df_to_tree_view(self, filename)
 
             # add correlation options and overview plot to option menu
             self.correlation_option_button.setVisible(True)

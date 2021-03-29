@@ -14,7 +14,6 @@ CONDITION_TABLES = "Condition Tables"
 OBSERVABLE_TABLES = "Observable Tables"
 SBML_FILES = "SBML Files"
 SIMULATION_TABLES = "Simulation Tables"
-SIMULATION_FILE = "simulation file"
 
 X = "x"
 Y = "y"
@@ -28,3 +27,6 @@ PROVIDED_NOISE = "provided_noise"
 TICK_POS = "tick_pos"
 
 USER_ROLE = Qt.UserRole+1
+
+LINE_WIDTH = 2.0
+POINT_SIZE = 7.0
