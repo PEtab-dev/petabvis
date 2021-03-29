@@ -116,13 +116,14 @@ class DottedLine:
                     line.opts["name"] = legend_name
                     first_replicate = False
         else:
-            point_descriptions = ["DatasetID: " + self.p_row.dataset_id +
-                                  "\n" +
-                                  self.p_row.x_label + ": " +
-                                  str(self.p_row.x_data[i]) + "\n" +
-                                  self.p_row.y_label + ": " +
-                                  str(self.p_row.y_data[i])
-                                  for i in range(len(self.p_row.x_data))]
+            point_descriptions = [
+                (
+                    f"Dataset ID: {self.p_row.dataset_id}\n"
+                    f"{self.p_row.x_label}: {self.p_row.x_data[i]}\n"
+                    f"{self.p_row.y_label}: {self.p_row.y_data[i]}"
+                )
+                for i in range(len(self.p_row.x_data))
+            ]
             line = pg.PlotDataItem(self.p_row.x_data,
                                    self.p_row.y_data,
                                    name=legend_name,
