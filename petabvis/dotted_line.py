@@ -93,12 +93,14 @@ class DottedLine:
             y_data = self.p_row.get_replicate_y_data()
             first_replicate = True
             for x, y in zip(x_data, y_data):
-                point_descriptions = ["DatasetID: " + self.p_row.dataset_id +
-                                      "\n" +
-                                      self.p_row.x_label + ": " + str(x[i]) +
-                                      "\n" +
-                                      self.p_row.y_label + ": " + str(y[i])
-                                      for i in range(len(x))]
+                point_descriptions = [
+                    (
+                        f"Dataset ID: {self.p_row.dataset_id}\n"
+                        f"{self.p_row.x_label}: {x[i]}\n"
+                        f"{self.p_row.y_label}: {y[i]}"
+                    )
+                    for i in range(len(x))
+                ]
 
                 line = pg.PlotDataItem(x, y,
                                        symbolPen=self.pen,
