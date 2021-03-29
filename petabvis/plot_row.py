@@ -106,7 +106,7 @@ class PlotRow(row_class.RowClass):
         """
         Return the min and max values of the replicates
         grouped by x-values (only needed for replicate
-        plots without replicateID).
+        plots without `replicateId`).
         """
 
         grouping = ptc.TIME
