@@ -192,8 +192,8 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
 
 def add_simulation_df_to_tree_view(window, filename):
     """
-    Add the simulation df to the tree_view of the main window.
-    If no simulation df has been added to the tree_view yet,
+    Add the simulation table to the tree view of the main window.
+    If no simulation table has been added to the tree view yet,
     also create a "Simulation Tables" branch.
 
     Arguments:
