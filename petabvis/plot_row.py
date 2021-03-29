@@ -72,10 +72,9 @@ class PlotRow(row_class.RowClass):
             warnings.warn("The Simulation Condition ID should "
                           "be unique for a line and between replicates")
             return "Simulation Condition ID not unique for line"
-            #raise NotImplementedError("The Simulation Condition ID should "
+            # raise NotImplementedError("The Simulation Condition ID should "
             #                         "be unique for a line and between "
             #                         "replicates")
-
 
     def get_y_data(self):
         """

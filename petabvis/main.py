@@ -8,13 +8,11 @@ import petab.C as ptc
 import pyqtgraph as pg
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtWidgets import QVBoxLayout, QComboBox, QWidget, QLabel
-from petab import measurements, core
+from petab import core
 import petab
 from petab.visualize.helper_functions import check_ex_exp_columns
 
-from . import utils
-from . import vis_spec_plot
-from . import window_functionality
+from . import (utils, vis_spec_plot, window_functionality)
 from .bar_plot import BarPlot
 from .options_window import (OptionMenu, CorrelationOptionMenu,
                              OverviewPlotWindow)

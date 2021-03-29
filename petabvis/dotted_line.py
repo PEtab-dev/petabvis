@@ -93,7 +93,8 @@ class DottedLine:
             y_data = self.p_row.get_replicate_y_data()
             first_replicate = True
             for x, y in zip(x_data, y_data):
-                point_descriptions = ["DatasetID: " + self.p_row.dataset_id + "\n" +
+                point_descriptions = ["DatasetID: " + self.p_row.dataset_id +
+                                      "\n" +
                                       self.p_row.x_label + ": " + str(x[i]) +
                                       "\n" +
                                       self.p_row.y_label + ": " + str(y[i])
@@ -113,10 +114,12 @@ class DottedLine:
                     line.opts["name"] = legend_name
                     first_replicate = False
         else:
-            point_descriptions = ["DatasetID: " + self.p_row.dataset_id + "\n" +
-                                  self.p_row.x_label + ": " + str(self.p_row.x_data[i]) +
+            point_descriptions = ["DatasetID: " + self.p_row.dataset_id +
                                   "\n" +
-                                  self.p_row.y_label + ": " + str(self.p_row.y_data[i])
+                                  self.p_row.x_label + ": " +
+                                  str(self.p_row.x_data[i]) + "\n" +
+                                  self.p_row.y_label + ": " +
+                                  str(self.p_row.y_data[i])
                                   for i in range(len(self.p_row.x_data))]
             line = pg.PlotDataItem(self.p_row.x_data,
                                    self.p_row.y_data,
@@ -173,6 +176,7 @@ class DottedLine:
         last_clicked = None
         info_text = pg.TextItem("", anchor=(0, 0), color="k",
                                 fill="w", border="k")
+
         def clicked(plot, points):
             nonlocal last_clicked
             nonlocal info_text

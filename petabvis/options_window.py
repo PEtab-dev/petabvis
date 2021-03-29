@@ -75,9 +75,10 @@ class OptionMenu(QtGui.QMainWindow):
         Add a dropdown menu to select a colormap to the layout.
         """
         color_map_text = QLabel("Choose colormap:")
-        self.color_map_selector.currentIndexChanged.connect(lambda x: self.index_changed(x))
+        self.color_map_selector.currentIndexChanged.connect(
+            lambda x: self.index_changed(x))
         self.color_map_selector.addItems(["viridis", "plasma",
-                            "inferno", "magma", "cividis"])
+                                          "inferno", "magma", "cividis"])
         self.layout.addWidget(color_map_text)
         self.layout.addWidget(self.color_map_selector)
 
@@ -121,6 +122,9 @@ class OptionMenu(QtGui.QMainWindow):
         save_button.clicked.connect(self.save_vis_spec)
 
     def value_changed(self, box):
+        """
+        Adjust the line width or point size when their values change.
+        """
         value = box.value()
         for plot in self.plots:
             if isinstance(plot, VisSpecPlot):
@@ -244,6 +248,15 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
         self.plots = vis_spec_plots
         layout = QVBoxLayout()
 
+        # add option to select point size
+        self.point_size_box = QDoubleSpinBox()
+        self.point_size_box.setObjectName("point_size_box")
+        self.point_size_box.setValue(C.POINT_SIZE)
+        self.point_size_box.valueChanged.connect(self.size_changed)
+        point_size_text = QLabel("Point size: ")
+        layout.addWidget(point_size_text)
+        layout.addWidget(self.point_size_box)
+
         self.cbox = QComboBox()  # dropdown menu to select plots
         self.cbox.currentIndexChanged.connect(lambda x: self.index_changed(x))
         self.cbox.addItems([C.DATASET_ID, C.OBSERVABLE_ID,
@@ -255,6 +268,14 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+    def size_changed(self):
+        """
+        Adjust the size of the points when a new size is selected.
+        """
+        size = self.point_size_box.value()
+        for plot in self.plots:
+            plot.set_correlation_point_size(size)
 
     def index_changed(self, i: int):
         """

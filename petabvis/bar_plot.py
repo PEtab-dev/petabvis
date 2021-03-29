@@ -162,9 +162,9 @@ class BarPlot(plot_class.PlotClass):
                                        name="measurement")
             self.plot.addItem(bar_item)  # measurement bars
             if self.simulation_df is not None:
-                bar_item = pg.BarGraphItem(x=self.overview_df[simu_rows]["x"],
+                bar_item = pg.BarGraphItem(x=self.overview_df[simu_rows][C.X],
                                            name="simulation",
-                                           height=self.overview_df[simu_rows]["y"],
+                                           height=self.overview_df[simu_rows][C.Y],
                                            width=bar_width,
                                            pen=pg.mkPen("y", width=2))
                 self.plot.addItem(bar_item)  # simulation bars
