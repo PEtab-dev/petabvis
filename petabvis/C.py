@@ -14,6 +14,7 @@ CONDITION_TABLES = "Condition Tables"
 OBSERVABLE_TABLES = "Observable Tables"
 SBML_FILES = "SBML Files"
 SIMULATION_TABLES = "Simulation Tables"
+DF = "df"
 
 X = "x"
 Y = "y"

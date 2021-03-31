@@ -161,7 +161,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
                 df = petab.get_observable_df(folder_path + "/" + filename)
                 if is_first_df:
                     window.observable_df = df
-            file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
+            file.setData({C.DF: df, C.NAME: filename}, role=C.USER_ROLE)
             branch.appendRow(file)
             is_first_df = False
         root_node.appendRow(branch)
@@ -176,7 +176,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         window.visualization_df = df
         df.insert(0, "Displayed", 1)  # needed for the checkbox column
         file = QtGui.QStandardItem(filename)
-        file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
+        file.setData({C.DF: df, C.NAME: filename}, role=C.USER_ROLE)
         branch.appendRow(file)
         root_node.appendRow(branch)
 
@@ -190,7 +190,7 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
               lambda i: display_table_on_doubleclick(i, model, window))
 
 
-def add_simulation_df_to_tree_view(window, filename):
+def add_simulation_df_to_tree_view(window: QtWidgets.QMainWindow, filename: str):
     """
     Add the simulation table to the tree view of the main window.
     If no simulation table has been added to the tree view yet,
@@ -210,8 +210,8 @@ def add_simulation_df_to_tree_view(window, filename):
         window.simulation_tree_branch = simulation_branch
 
     simulation_file = QtGui.QStandardItem(filename)
-    simulation_file.setData({"df": simulation_df,
-                             "name": filename},
+    simulation_file.setData({C.DF: simulation_df,
+                             C.NAME: filename},
                             role=C.USER_ROLE)
     simulation_branch.appendRow(simulation_file)
     window.tree_view.expandAll()
@@ -247,7 +247,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    df = model.data(index, role=C.USER_ROLE)["df"]
+    df = model.data(index, role=C.USER_ROLE)[C.DF]
     parent = index.parent()
     parent_name = model.data(parent, QtCore.Qt.DisplayRole)
     # Only replot when a new dataframe is selected
@@ -292,8 +292,8 @@ def display_table_on_doubleclick(index: QtCore.QModelIndex,
         window: Mainwindow whose attributes get updated
     """
     data = model.data(index, role=C.USER_ROLE)
-    df = data["df"]
-    name = data["name"]
+    df = data[C.DF]
+    name = data[C.NAME]
     if df is not None:
         pop_up_table_view(window, df, name)
 

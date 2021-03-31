@@ -317,8 +317,9 @@ class DottedLine:
         Set the width of the lines.
         """
         self.line_width = width
+        color = self.get_line_color()
         for line in self.lines:
-            line.setPen(self.color, style=self.style, width=self.line_width)
+            line.setPen(color, style=self.style, width=self.line_width)
 
     def set_point_size(self, size):
         """
