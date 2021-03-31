@@ -1,5 +1,6 @@
 import argparse
 import sys  # We need sys so that we can pass argv to QApplication
+import os
 import warnings
 
 import pandas as pd
@@ -7,11 +8,11 @@ import petab.C as ptc
 import pyqtgraph as pg
 from PySide2 import QtWidgets, QtCore, QtGui
 from PySide2.QtWidgets import QVBoxLayout, QComboBox, QWidget, QLabel
-from petab import measurements, core
+from petab import core
+import petab
+from petab.visualize.helper_functions import check_ex_exp_columns
 
-from . import utils
-from . import vis_spec_plot
-from . import window_functionality
+from . import (utils, vis_spec_plot, window_functionality)
 from .bar_plot import BarPlot
 from .options_window import (OptionMenu, CorrelationOptionMenu,
                              OverviewPlotWindow)
@@ -38,11 +39,8 @@ class MainWindow(QtWidgets.QMainWindow):
         wid: QSplitter between main plot and correlation plot
     """
 
-    def __init__(self, exp_data: pd.DataFrame,
-                 visualization_df: pd.DataFrame = None,
-                 simulation_df: pd.DataFrame = None,
-                 condition_df: pd.DataFrame = None,
-                 observable_df: pd.DataFrame = None, *args, **kwargs):
+    def __init__(self, yaml_filename: str = None,
+                 simulation_file: pd.DataFrame = None, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
         # set the background color to white
@@ -51,14 +49,15 @@ class MainWindow(QtWidgets.QMainWindow):
         pg.setConfigOption("antialias", True)
         self.resize(1000, 600)
         self.setWindowTitle("petabvis")
-        self.yaml_filename = ""
+        self.visualization_df = None
+        self.simulation_df = None
+        self.condition_df = None
+        self.observable_df = None
+        self.exp_data = None
+        self.yaml_filename = yaml_filename
         self.yaml_dict = None
-        self.visualization_df = visualization_df
-        self.simulation_df = simulation_df
-        self.condition_df = condition_df
-        self.observable_df = observable_df
-        self.exp_data = exp_data
-        self.color_map = None
+
+        self.color_map = utils.generate_color_map("viridis")
         self.vis_spec_plots = []
         self.wid = QtWidgets.QSplitter()
         self.plot1_widget = pg.GraphicsLayoutWidget(show=True)
@@ -82,6 +81,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.overview_plot_button = None
         self.tree_view = QtGui.QTreeView(self)
         self.tree_view.setHeaderHidden(True)
+        self.tree_root_node = None
+        self.simulation_tree_branch = None
         self.wid.addWidget(self.tree_view)
         self.current_list_index = 0
 
@@ -89,8 +90,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         window_functionality.add_file_selector(self)
         window_functionality.add_option_menu(self)
-        if self.exp_data is not None:
-            self.add_plots()
 
         # the layout of the plot-list and message textbox
         lower_layout = QVBoxLayout()
@@ -109,6 +108,66 @@ class MainWindow(QtWidgets.QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+        if self.yaml_filename:
+            self.read_data_from_yaml_file()
+            if simulation_file:
+                self.add_and_plot_simulation_file(simulation_file)
+            else:
+                self.add_plots()
+
+    def read_data_from_yaml_file(self):
+        self.yaml_dict = petab.load_yaml(self.yaml_filename)["problems"][0]
+        folder_path = os.path.dirname(self.yaml_filename) + "/"
+        if ptc.VISUALIZATION_FILES not in self.yaml_dict:
+            self.visualization_df = None
+            self.add_warning(
+                "The YAML file contains no "
+                "visualization file (default plotted)")
+        # table_tree_view sets the df attributes of the window
+        # equal to the first file of each branch
+        # (measurement, visualization, ...)
+        window_functionality.table_tree_view(self, folder_path)
+
+    def add_and_plot_simulation_file(self, filename):
+        """
+        Add the simulation file and plot them.
+        Also, add the correlation plot to the window
+        and enable correlation plot and overview plot options.
+
+        Arguments:
+            filename: Path of the simulation file.
+        """
+
+        sim_data = core.get_simulation_df(filename)
+        # check columns, and add non-mandatory default columns
+        sim_data, _, _ = check_ex_exp_columns(
+            sim_data, None, None, None, None, None,
+            self.condition_df, sim=True)
+        # delete the replicateId column if it gets added to the simulation
+        # table but is not in exp_data because it causes problems when
+        # splitting the replicates
+        if ptc.REPLICATE_ID not in self.exp_data.columns \
+                and ptc.REPLICATE_ID in sim_data.columns:
+            sim_data.drop(ptc.REPLICATE_ID, axis=1, inplace=True)
+
+        if len(self.yaml_dict[ptc.MEASUREMENT_FILES]) > 1:
+            self.add_warning(
+                "Not Implemented Error: Loading a simulation file with "
+                "multiple measurement files is currently not supported.")
+        else:
+            self.simulation_df = sim_data
+            self.add_plots()
+
+            # insert correlation plot at position 1
+            self.wid.insertWidget(1, self.plot2_widget)
+            filename = os.path.basename(filename)
+            window_functionality.add_simulation_df_to_tree_view(self, filename)
+
+            # add correlation options and overview plot to option menu
+            self.correlation_option_button.setVisible(True)
+            self.overview_plot_button.setVisible(True)
+            self.add_overview_plot_window()
 
     def add_plots(self):
         """
@@ -129,7 +188,6 @@ class MainWindow(QtWidgets.QMainWindow):
             plot_ids = list(self.visualization_df[ptc.PLOT_ID].unique())
             for plot_id in plot_ids:
                 self.create_and_add_vis_plot(plot_id)
-
         else:  # default plot when no visu_df is provided
             self.create_and_add_vis_plot()
 
@@ -185,6 +243,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.index_changed(self.current_list_index - 1)
         if ev.key() == QtCore.Qt.Key_Right:
             self.index_changed(self.current_list_index + 1)
+
+    def closeEvent(self, event):
+        sys.exit()
 
     def add_warning(self, message: str):
         """
@@ -295,23 +356,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
 def main():
     options = argparse.ArgumentParser()
-    options.add_argument("-m", "--measurement", type=str, required=False,
-                         help="PEtab measurement file", default=None)
-    options.add_argument("-v", "--visualization", type=str, required=False,
-                         help="PEtab visualization file", default=None)
+    options.add_argument("-y", "--YAML", type=str, required=False,
+                         help="PEtab YAML file", default=None)
+    options.add_argument("-s", "--simulation", type=str, required=False,
+                         help="PEtab simulation file", default=None)
     args = options.parse_args()
 
-    exp_data = None
-    if args.measurement is not None:
-        exp_data = measurements.get_measurement_df(args.measurement)
-
-    visualization_df = None
-    if args.visualization is not None:
-        visualization_df = core.concat_tables(args.visualization,
-                                              core.get_visualization_df)
+    simulation_file = None
+    if args.simulation is not None:
+        simulation_file = args.simulation
 
     app = QtWidgets.QApplication(sys.argv)
-    main_window = MainWindow(exp_data, visualization_df)
+    main_window = MainWindow(args.YAML, simulation_file)
     main_window.show()
     sys.exit(app.exec_())
 

@@ -10,9 +10,7 @@ from PySide2.QtCore import (Qt, QSortFilterProxyModel)
 from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView, QPushButton,
                                QSizePolicy, QTableView, QWidget, QFileDialog,
                                QHBoxLayout)
-from petab import core
-from petab.visualize.helper_functions import (check_ex_exp_columns,
-                                              create_or_update_vis_spec)
+from petab.visualize.helper_functions import create_or_update_vis_spec
 
 from . import table_models
 from . import C
@@ -72,11 +70,17 @@ class TableWidget(QWidget):
         self.setLayout(self.main_layout)
 
     def sort_by_highlight(self):
+        """
+        Sort the data table such that highlighted rows are on top.
+        """
         self.filter_proxy.setSortRole(Qt.BackgroundRole)
         self.filter_proxy.sort(1, Qt.AscendingOrder)
         self.filter_proxy.setSortRole(Qt.DisplayRole)
 
     def restore_order(self):
+        """
+        Restore the initial order of the data table.
+        """
         self.filter_proxy.setSortRole(Qt.InitialSortOrderRole)
         self.filter_proxy.sort(-1, Qt.AscendingOrder)
         self.filter_proxy.setSortRole(Qt.DisplayRole)
@@ -157,13 +161,13 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
                 df = petab.get_observable_df(folder_path + "/" + filename)
                 if is_first_df:
                     window.observable_df = df
-            file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
+            file.setData({C.DF: df, C.NAME: filename}, role=C.USER_ROLE)
             branch.appendRow(file)
             is_first_df = False
         root_node.appendRow(branch)
 
+    # generate a default vis spec when none is provided
     if window.visualization_df is None:
-        # generate a default vis spec when none is provided
         branch = QtGui.QStandardItem("Visualization Tables")
         branch.setEditable(False)
         df = create_or_update_vis_spec(exp_data=window.exp_data,
@@ -172,27 +176,45 @@ def table_tree_view(window: QtWidgets.QMainWindow, folder_path):
         window.visualization_df = df
         df.insert(0, "Displayed", 1)  # needed for the checkbox column
         file = QtGui.QStandardItem(filename)
-        file.setData({"df": df, "name": filename}, role=C.USER_ROLE)
+        file.setData({C.DF: df, C.NAME: filename}, role=C.USER_ROLE)
         branch.appendRow(file)
-        root_node.appendRow(branch)
-
-    if window.simulation_df is not None:
-        branch = QtGui.QStandardItem(C.SIMULATION_TABLES)
-        simulation_file = QtGui.QStandardItem(C.SIMULATION_FILE)
-        df = window.simulation_df
-        simulation_file.setData({"df": df,
-                                 "name": C.SIMULATION_FILE},
-                                role=C.USER_ROLE)
-        branch.appendRow(simulation_file)
         root_node.appendRow(branch)
 
     tree_view.setModel(model)
     tree_view.expandAll()
+    window.tree_root_node = root_node
     reconnect(tree_view.clicked,
               lambda i: exchange_dataframe_on_click(i, model,
                                                     window, tidy_names))
     reconnect(tree_view.doubleClicked,
               lambda i: display_table_on_doubleclick(i, model, window))
+
+
+def add_simulation_df_to_tree_view(window: QtWidgets.QMainWindow, filename: str):
+    """
+    Add the simulation table to the tree view of the main window.
+    If no simulation table has been added to the tree view yet,
+    also create a "Simulation Tables" branch.
+
+    Arguments:
+        window: Main window to add the simulation df to.
+        filename: The name of the simulation file.
+    """
+    simulation_df = window.simulation_df
+    root_node = window.tree_root_node
+    simulation_branch = window.simulation_tree_branch
+    if simulation_branch is None:
+        simulation_branch = QtGui.QStandardItem(C.SIMULATION_TABLES)
+        simulation_branch.setEditable(False)
+        root_node.appendRow(simulation_branch)
+        window.simulation_tree_branch = simulation_branch
+
+    simulation_file = QtGui.QStandardItem(filename)
+    simulation_file.setData({C.DF: simulation_df,
+                             C.NAME: filename},
+                            role=C.USER_ROLE)
+    simulation_branch.appendRow(simulation_file)
+    window.tree_view.expandAll()
 
 
 def reconnect(signal, new_function=None):
@@ -225,7 +247,7 @@ def exchange_dataframe_on_click(index: QtCore.QModelIndex,
         model: model containing the data
         window: Mainwindow whose attributes get updated
     """
-    df = model.data(index, role=C.USER_ROLE)["df"]
+    df = model.data(index, role=C.USER_ROLE)[C.DF]
     parent = index.parent()
     parent_name = model.data(parent, QtCore.Qt.DisplayRole)
     # Only replot when a new dataframe is selected
@@ -270,8 +292,8 @@ def display_table_on_doubleclick(index: QtCore.QModelIndex,
         window: Mainwindow whose attributes get updated
     """
     data = model.data(index, role=C.USER_ROLE)
-    df = data["df"]
-    name = data["name"]
+    df = data[C.DF]
+    name = data[C.NAME]
     if df is not None:
         pop_up_table_view(window, df, name)
 
@@ -359,25 +381,14 @@ def show_yaml_dialog(window: QtWidgets.QMainWindow):
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"
         settings.setValue("last_dir", last_dir)
-        window.yaml_filename = file_name
 
         window.warn_msg.setText("")
         window.warnings.clear()
         window.warning_counter.clear()
 
-        # select the first df in the dict for measurements, etc.
-        yaml_dict = petab.load_yaml(file_name)["problems"][0]
-        window.yaml_dict = yaml_dict
-        if ptc.VISUALIZATION_FILES not in yaml_dict:
-            window.visualization_df = None
-            window.add_warning(
-                "The YAML file contains no "
-                "visualization file (default plotted)")
         window.simulation_df = None
-        # table_tree_view sets the df attributes of the window
-        # equal to the first file of each branch
-        # (measurement, visualization, ...)
-        table_tree_view(window, last_dir)
+        window.yaml_filename = file_name
+        window.read_data_from_yaml_file()
         window.add_plots()
 
 
@@ -404,34 +415,7 @@ def show_simulation_dialog(window: QtWidgets.QMainWindow):
             window.warnings.clear()
             window.warning_counter.clear()
 
-            sim_data = core.get_simulation_df(file_name)
-            # check columns, and add non-mandatory default columns
-            sim_data, _, _ = check_ex_exp_columns(
-                sim_data, None, None, None, None, None,
-                window.condition_df, sim=True)
-            # delete the replicateId column if it gets added to the simulation
-            # table but is not in exp_data because it causes problems when
-            # splitting the replicates
-            if ptc.REPLICATE_ID not in window.exp_data.columns \
-                    and ptc.REPLICATE_ID in sim_data.columns:
-                sim_data.drop(ptc.REPLICATE_ID, axis=1, inplace=True)
-
-            if len(window.yaml_dict[ptc.MEASUREMENT_FILES]) > 1:
-                window.add_warning(
-                    "Not Implemented Error: Loading a simulation file with "
-                    "multiple measurement files is currently not supported.")
-            else:
-                window.simulation_df = sim_data
-                window.add_plots()
-
-                # insert correlation plot at position 1
-                window.wid.insertWidget(1, window.plot2_widget)
-                table_tree_view(window, os.path.dirname(file_name))
-
-                # add correlation options and overview plot to option menu
-                window.correlation_option_button.setVisible(True)
-                window.overview_plot_button.setVisible(True)
-                window.add_overview_plot_window()
+            window.add_and_plot_simulation_file(file_name)
 
         # save the directory for the next use
         last_dir = os.path.dirname(file_name) + "/"

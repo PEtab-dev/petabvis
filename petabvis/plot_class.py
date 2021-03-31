@@ -238,6 +238,13 @@ class PlotClass:
         if message not in self.warnings:
             self.warnings = self.warnings + message + "\n"
 
+    def set_correlation_point_size(self, size: float):
+        """
+        Set the size of the points in pixels in the correlation_plot.
+        """
+        for scatter_plot in self.correlation_plot.listDataItems():
+            scatter_plot.setSize(size)
+
     def disable_correlation_points(self, dataset_id):
         """
         Disable the points in the plot with the given dataset_id.

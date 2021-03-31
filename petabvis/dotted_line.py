@@ -6,6 +6,7 @@ import pyqtgraph as pg
 from PySide2 import QtCore
 
 from . import plot_row
+from . import C
 
 
 class DottedLine:
@@ -24,6 +25,8 @@ class DottedLine:
 
         self.lines: List[pg.PlotDataItems] = []
         self.error_bars: List[pg.ErrorBarItems] = []
+        # used for replicate plots without replicateId
+        self.fill_between_items: List[pg.FillBetweenItem] = []
 
         self.p_row: Optional[plot_row.PlotRow] = None
         self.dataset_id: str = ""
@@ -31,7 +34,8 @@ class DottedLine:
         self.color: str = "k"
         self.pen = pg.mkPen(self.color)
         self.style: QtCore.Qt.PenStyle = QtCore.Qt.DashDotLine
-        self.symbol_size = 7
+        self.line_width = C.LINE_WIDTH
+        self.symbol_size = C.POINT_SIZE
 
     def initialize_from_plot_row(self, p_row: plot_row.PlotRow):
         """
@@ -82,31 +86,69 @@ class DottedLine:
             legend_name = legend_name + " simulation"
             symbol = "t"
 
-        if self.p_row.plot_type_data == ptc.REPLICATE:
+        # for replicate plots with replicateID plot all replicate lines
+        if self.p_row.plot_type_data == ptc.REPLICATE and \
+                ptc.REPLICATE_ID in self.p_row.line_data.columns:
             x_data = self.p_row.get_replicate_x_data()
             y_data = self.p_row.get_replicate_y_data()
             first_replicate = True
             for x, y in zip(x_data, y_data):
+                point_descriptions = [
+                    (
+                        f"Dataset ID: {self.p_row.dataset_id}\n"
+                        f"{self.p_row.x_label}: {x[i]}\n"
+                        f"{self.p_row.y_label}: {y[i]}"
+                    )
+                    for i in range(len(x))
+                ]
+
+                line = pg.PlotDataItem(x, y,
+                                       symbolPen=self.pen,
+                                       symbol=symbol,
+                                       symbolSize=self.symbol_size,
+                                       data=point_descriptions)
+                self.lines.append(line)
+
                 if first_replicate:
-                    self.lines.append(pg.PlotDataItem(x, y,
-                                                      name=legend_name,
-                                                      symbolPen=self.pen,
-                                                      symbol=symbol,
-                                                      symbolSize=7))
-                    first_replicate = False
-                else:
                     # if all would replicate have a legend_name,
                     # that name would be duplicated in the legend
-                    self.lines.append(pg.PlotDataItem(x, y,
-                                                      symbolPen=self.pen,
-                                                      symbol=symbol,
-                                                      symbolSize=7))
+                    # therefore, we only add an entry for the first replicate
+                    line.opts["name"] = legend_name
+                    first_replicate = False
         else:
-            self.lines.append(pg.PlotDataItem(self.p_row.x_data,
-                                              self.p_row.y_data,
-                                              name=legend_name,
-                                              symbolPen=self.pen,
-                                              symbol=symbol, symbolSize=7))
+            point_descriptions = [
+                (
+                    f"Dataset ID: {self.p_row.dataset_id}\n"
+                    f"{self.p_row.x_label}: {self.p_row.x_data[i]}\n"
+                    f"{self.p_row.y_label}: {self.p_row.y_data[i]}"
+                )
+                for i in range(len(self.p_row.x_data))
+            ]
+            line = pg.PlotDataItem(self.p_row.x_data,
+                                   self.p_row.y_data,
+                                   name=legend_name,
+                                   symbolPen=self.pen,
+                                   symbol=symbol, symbolSize=self.symbol_size,
+                                   data=point_descriptions)
+            self.lines.append(line)
+            # for replicate plots without replicateID add a fill_between item
+            if self.p_row.plot_type_data == ptc.REPLICATE and \
+                    self.p_row.has_replicates and \
+                    ptc.REPLICATE_ID not in self.p_row.line_data.columns:
+                self.add_fill_between()
+
+    def add_fill_between(self):
+        """
+        Add a fill between item to the plot when plotting
+        replicates without replicateId. The area between
+        the max and min values of the replicates will be
+        filled.
+        """
+        mins, maxs = self.p_row.get_min_and_max_of_replicates()
+        min_curve = pg.PlotDataItem(self.p_row.x_data, mins)
+        max_curve = pg.PlotDataItem(self.p_row.x_data, maxs)
+        fill_between = pg.FillBetweenItem(min_curve, max_curve, brush="k")
+        self.fill_between_items.append(fill_between)
 
     def add_error_bars(self):
         """
@@ -126,6 +168,38 @@ class DottedLine:
                                 top=error_length, bottom=error_length,
                                 beam=beam_width)
         self.error_bars.append(error)
+
+    def add_point_interaction(self, add_to_plot):
+        """
+        Display a textbox with information of the clicked point.
+
+        Arguments:
+            add_to_plot: The plot to which the info box is added.
+        """
+        last_clicked = None
+        info_text = pg.TextItem("", anchor=(0, 0), color="k",
+                                fill="w", border="k")
+
+        def clicked(plot, points):
+            nonlocal last_clicked
+            nonlocal info_text
+            nonlocal add_to_plot
+            if last_clicked is not None:
+                last_clicked.resetPen()
+            # remove the text when the same point is clicked twice
+            if (last_clicked == points[0]
+                    and info_text.textItem.toPlainText() != ""):
+                info_text.setText("")
+                add_to_plot.removeItem(info_text)
+            else:
+                points[0].setPen('b', width=2)
+                info_text.setText(str((points[0].data())))
+                info_text.setPos(points[0].pos())
+                add_to_plot.addItem(info_text)
+                last_clicked = points[0]
+
+        for plot_data_item in self.lines:
+            plot_data_item.sigPointsClicked.connect(clicked)
 
     def add_to_plot(self, plot, color="k", add_error_bars=True):
         """
@@ -154,10 +228,15 @@ class DottedLine:
         self.color = new_color
         self.pen = pg.mkPen(self.color)
         for line in self.lines:
-            line.setPen(self.color, style=self.style, width=2)
+            # when fill_between items are present, the color
+            # of the line should stay black to be visible
+            new_color = self.get_line_color()
+            line.setPen(new_color, style=self.style, width=self.line_width)
             line.setSymbolBrush(self.color)
         for error_bars in self.error_bars:
             error_bars.setData(pen=self.pen)
+        for fill in self.fill_between_items:
+            fill.setBrush(self.color)
 
     def enable_in_plot(self, plot, add_error_bars=True):
         """
@@ -169,6 +248,8 @@ class DottedLine:
         if add_error_bars:
             for error_bars in self.error_bars:
                 plot.addItem(error_bars)
+        for fill in self.fill_between_items:
+            plot.addItem(fill)
 
     def disable_in_plot(self, plot):
         """
@@ -179,6 +260,8 @@ class DottedLine:
             plot.removeItem(line)
         for error_bars in self.error_bars:
             plot.removeItem(error_bars)
+        for fill in self.fill_between_items:
+            plot.removeItem(fill)
 
     def hide_lines(self):
         """
@@ -186,6 +269,8 @@ class DottedLine:
         """
         for line in self.lines:
             line.setPen(None)
+        for fill in self.fill_between_items:
+            fill.setBrush(None)
 
     def hide_points(self):
         """
@@ -206,8 +291,11 @@ class DottedLine:
         """
         Show all lines.
         """
+        for fill in self.fill_between_items:
+            fill.setBrush(self.color)
+        color = self.get_line_color()
         for line in self.lines:
-            line.setPen(self.color, style=self.style, width=2)
+            line.setPen(color, style=self.style, width=self.line_width)
 
     def show_points(self):
         """
@@ -223,3 +311,33 @@ class DottedLine:
         """
         for error in self.error_bars:
             error.setData(pen=self.pen)
+
+    def set_line_width(self, width):
+        """
+        Set the width of the lines.
+        """
+        self.line_width = width
+        color = self.get_line_color()
+        for line in self.lines:
+            line.setPen(color, style=self.style, width=self.line_width)
+
+    def set_point_size(self, size):
+        """
+        Set the size of the points
+        """
+        self.symbol_size = size
+        for line in self.lines:
+            line.opts["symbolSize"] = size
+            line.setPen(self.color, style=self.style, width=self.line_width)
+
+    def get_line_color(self):
+        """
+        Return black if using `fill_between_items` to make the line visible.
+        Otherwise, return "self.color".
+
+        Returns:
+            The color of the line.
+        """
+        if self.fill_between_items:
+            return "k"
+        return self.color
