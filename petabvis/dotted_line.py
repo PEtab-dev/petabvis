@@ -3,7 +3,7 @@ from typing import List, Optional
 import numpy as np
 import petab.C as ptc
 import pyqtgraph as pg
-from PySide2 import QtCore
+from PySide6 import QtCore
 
 from . import plot_row
 from . import C

@@ -1,7 +1,7 @@
 import petab.C as ptc
-from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtCore import (QAbstractTableModel, QModelIndex, Qt)
-from PySide2.QtGui import QColor
+from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt)
+from PySide6.QtGui import QColor
 
 
 class PetabTableModel(QAbstractTableModel):

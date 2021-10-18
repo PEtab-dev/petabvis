@@ -6,8 +6,10 @@ import warnings
 import pandas as pd
 import petab.C as ptc
 import pyqtgraph as pg
-from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtWidgets import QVBoxLayout, QComboBox, QWidget, QLabel
+from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6.QtWidgets import (
+    QVBoxLayout, QComboBox, QWidget, QLabel, QTreeView
+)
 from petab import core
 import petab
 from petab.visualize.helper_functions import check_ex_exp_columns
@@ -79,7 +81,7 @@ class MainWindow(QtWidgets.QMainWindow):
             CorrelationOptionMenu(vis_spec_plots=self.vis_spec_plots)
         self.correlation_option_button = None
         self.overview_plot_button = None
-        self.tree_view = QtGui.QTreeView(self)
+        self.tree_view = QTreeView(self)
         self.tree_view.setHeaderHidden(True)
         self.tree_root_node = None
         self.simulation_tree_branch = None

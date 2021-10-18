@@ -5,11 +5,12 @@ from pathlib import Path
 import pandas as pd
 import petab
 import petab.C as ptc
-from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtCore import (Qt, QSortFilterProxyModel)
-from PySide2.QtWidgets import (QAction, QVBoxLayout, QHeaderView, QPushButton,
+from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6.QtCore import (Qt, QSortFilterProxyModel)
+from PySide6.QtWidgets import (QVBoxLayout, QHeaderView, QPushButton,
                                QSizePolicy, QTableView, QWidget, QFileDialog,
                                QHBoxLayout)
+from PySide6.QtGui import QAction
 from petab.visualize.helper_functions import create_or_update_vis_spec
 
 from . import table_models
