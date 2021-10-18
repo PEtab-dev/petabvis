@@ -2,11 +2,11 @@ import os
 import warnings
 from pathlib import Path
 
-from PySide2 import QtGui, QtCore
-from PySide2.QtWidgets import (QVBoxLayout, QWidget, QCheckBox,
+from PySide6 import QtGui, QtCore
+from PySide6.QtWidgets import (QVBoxLayout, QWidget, QCheckBox,
                                QComboBox, QLabel, QPushButton,
-                               QDoubleSpinBox)
-from PySide2.QtCore import Qt
+                               QDoubleSpinBox, QMainWindow)
+from PySide6.QtCore import Qt
 import petab.C as ptc
 import numpy as np
 import pandas as pd
@@ -19,7 +19,7 @@ from .dotted_line import DottedLine
 from . import C
 
 
-class OptionMenu(QtGui.QMainWindow):
+class OptionMenu(QMainWindow):
     """
     Option menu for selecting/deselecting lines,
     points and error bars, choosing color maps
@@ -237,7 +237,7 @@ class OptionMenu(QtGui.QMainWindow):
                                         DottedLine.hide_errors)
 
 
-class CorrelationOptionMenu(QtGui.QMainWindow):
+class CorrelationOptionMenu(QMainWindow):
     """
     Option menu for the correlation plot.
     """
@@ -287,7 +287,7 @@ class CorrelationOptionMenu(QtGui.QMainWindow):
             plot.add_points(plot.overview_df, color_by)
 
 
-class OverviewPlotWindow(QtGui.QMainWindow):
+class OverviewPlotWindow(QMainWindow):
     """
     Window for plotting and displaying an overview plot.
     """

@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import petab.C as ptc
 import scipy
-from PySide2 import QtCore
-from PySide2.QtWidgets import QComboBox
+from PySide6 import QtCore
+from PySide6.QtWidgets import QComboBox
 import matplotlib.pyplot as plt
 import pyqtgraph as pg
 
